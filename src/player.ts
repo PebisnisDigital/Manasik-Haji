@@ -4,6 +4,7 @@ import { CrowdRenderer } from './characters/CrowdRenderer.ts';
 import { resolveFrames } from './characters/CrowdView.ts';
 import { Clip } from './sim/States.ts';
 import { MATAF } from './config/site.ts';
+import {guidedStage,completeStage} from './journey.ts';
 
 const TAU = Math.PI * 2;
 const START = MATAF.startLineBearing;
@@ -23,7 +24,10 @@ const pauseButton = document.querySelector<HTMLButtonElement>('#pause')!;
 const mapPlayer = document.querySelector<SVGGElement>('#mapPlayer')!;
 const nextSai=document.querySelector<HTMLAnchorElement>('#nextSai')!;
 const saiLink=document.querySelector<HTMLAnchorElement>('#saiLink')!;
-function updateSaiLink():void{nextSai.href=saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);}
+const guided=guidedStage(1);
+if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextSai.textContent='Lanjut ke salat & zamzam →';}
+function updateSaiLink():void{saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);nextSai.href=guided?'./umrah.html':saiLink.href;}
+nextSai.addEventListener('click',e=>{if(guided&&!completeStage(1,guided.id)){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 
 function boot(): void {
@@ -128,7 +132,7 @@ function boot(): void {
       const a=Math.atan2(z,x),delta=wrap(lastAngle-a);lastAngle=a;total+=delta;
       completed=Math.max(0,Math.min(7,Math.floor((total+1e-7)/TAU)));
       count.textContent=completed+' / 7';progress.value=Math.max(0,Math.min(7,total/TAU));
-      if(completed===7){finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';nextSai.hidden=false;}
+      if(completed===7){finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';nextSai.hidden=false;if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }

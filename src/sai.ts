@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { buildSaiHall, END, GREEN_START, GREEN_END, WALK_WIDTH } from './env/SaiHall.ts';
 import { SaiProgress } from './sim/SaiProgress.ts';
+import {guidedStage,completeStage} from './journey.ts';
 import { CrowdRenderer } from './characters/CrowdRenderer.ts';
 import { resolveFrames } from './characters/CrowdView.ts';
 import { Clip } from './sim/States.ts';
@@ -24,6 +25,9 @@ const pace = document.querySelector<HTMLButtonElement>('#pace')!;
 const nextLink = document.querySelector<HTMLAnchorElement>('#next')!;
 const avatarPref=new URLSearchParams(location.search).get('avatar');
 if(avatarPref==='male'||avatarPref==='female')avatar.value=avatarPref;
+const guided=guidedStage(3);
+if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextLink.textContent='Lanjut ke tahallul →';nextLink.href='./umrah.html';}
+nextLink.addEventListener('click',e=>{if(guided&&!completeStage(3,guided.id)){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -128,7 +132,7 @@ function boot(): void {
       const arrived=track.update(z);
       count.textContent=track.completed+' / 7';progress.value=track.fraction(z);
       finished=track.finished;
-      if(finished){setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';nextLink.hidden=false;}
+      if(finished){setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';nextLink.hidden=false;if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(arrived){targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
       else if(Math.abs(z-oldZ)>.001){status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
     }
