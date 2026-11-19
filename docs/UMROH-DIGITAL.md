@@ -48,3 +48,6 @@ Responsive schematic location map and selectable level list in lobby registratio
 
 ## v2.6 — smart beginner tutorial
 Optional device-local, event-driven guidance for lobby walking/camera/guide encounter, field arrival and action controls, and tawaf/sa'i walking and auto-path option. Highlights actual controls with short illustrated instructions. Replay and skip; no tutorial state affects completion, locked levels, certificate or payment. Auto guidance and direct encounter can bypass training tips. Hides during map, portrait, modal and certificate. Unit tests cover progression and bypass; physical device and beginner usability testing pending.
+
+## v2.7 — optional comfort mode
+Device-local Standard/Comfort preference accessible before avatar selection, from lobby menu and in core arenas. Higher contrast panels, larger text and touch targets, lower manual (72%) and assisted (85%) walking speeds, reduced camera sensitivity (65%). Comfort sa'i retains ordinary walking instead of brisk pace. Secondary audio replay/ambience and camera/reset options are available under Lainnya; primary tasks and guided walking remain available. No auto-awarded counts or changed curriculum. No payment changes. Physical landscape layout and usability with older participants remain to be tested.

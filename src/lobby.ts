@@ -6,6 +6,7 @@ import {getProgramSettings} from './adminApi.ts';
 import {newSessionAllowed,type ProgramSetting} from './adminModel.ts';
 import {accountId,syncRuns} from './playerCloud.ts';
 import {newCore,readCore,writeCore,coreUrl,levelNumber,isComplete} from './coreProgress.ts';
+import {mountComfort,walkFactor,lookFactor} from './comfortMode.ts';
 import {installSmartTutorial} from './smartTutorial.ts';
 import {installMissionMap} from './missionMap.ts';
 import {bootTenant,slug,tenantUrl} from './tenant.ts';
@@ -62,7 +63,7 @@ btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exit
 window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);document.addEventListener('fullscreenchange',()=>{btn('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Keluar layar penuh':'Layar penuh');syncOrientation();});
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();const canvas=$<HTMLCanvasElement>('world');let cameraPointer:number|null=null,downX=0,downY=0,prevX=0,prevY=0,dragged=false;
 canvas.addEventListener('pointerdown',e=>{if(!sceneReady||modal||encounter||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||encounter||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005;cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035,.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||encounter||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor(),.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
 canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
 canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
 canvas.addEventListener('wheel',e=>{if(modal||encounter)return;e.preventDefault();cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,5.2);lookedAt=performance.now();},{passive:false});
@@ -76,7 +77,7 @@ function frame(now:number){
   if(target){automatic=true;const t=placements[target];dx=t.x-pos.x;dz=t.z+.96-pos.z;if(Math.hypot(dx,dz)<.10){greet(target);dx=dz=0;}}
   else{const side=joy.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),forward=-joy.y+Number(keys.has('w')||keys.has('arrowup'))-Number(keys.has('s')||keys.has('arrowdown'));dx=-Math.cos(cameraYaw)*side+Math.sin(cameraYaw)*forward;dz=Math.sin(cameraYaw)*side+Math.cos(cameraYaw)*forward;}
  }
- const n=Math.hypot(dx,dz),speed=2.6;const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
+ const n=Math.hypot(dx,dz),speed=2.6*walkFactor(automatic);const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
  if(modal||encounter)velocity.set(0,0);
  const moving=velocity.length()>.055;
  if(moving){const nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,-5.6,5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,-3,5.8);const moved=Math.hypot(nx-pos.x,nz-pos.z);lobbySound.walk(moved);tutorial.event({type:'walk',amount:moved});pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
@@ -98,6 +99,7 @@ function frame(now:number){
  if(encounter&&encounterProgram===p){const bubble=$('bubble');bubble.style.left=THREE.MathUtils.clamp((pt.x*.5+.5)*100,23,77)+'%';bubble.style.top=THREE.MathUtils.clamp((.5-pt.y*.5)*100,22,69)+'%';}}
  r.render(s,cam);
 }
+mountComfort($('comfortIntro'),{intro:true});mountComfort(document.querySelector<HTMLElement>('.menu nav')!);window.addEventListener('umroh-comfort-change',()=>{stopMotion();pid=null;cameraPointer=null;});
 const tutorial=installSmartTutorial({kind:'lobby',host:document.querySelector<HTMLElement>('.headerRight')!,blocked:()=>portraitBlocked||modal||encounter,ready:()=>selected&&sceneReady});
 if(touchMode)$('movementHint').textContent='';syncOrientation();try{build();}catch{sceneReady=false;$('joystick').hidden=true;$('cameraReset').hidden=true;$('hajjLabel').hidden=true;$('umrahLabel').hidden=true;$('movementHint').textContent='Pilih Haji atau Umroh.';}
 installMissionMap({host:$('previewMap'),get:()=>({program:chosenProgram,save:readCore(chosenProgram)}),blocked:()=>portraitBlocked,keyboard:false,onChange:open=>{if(open){stopMotion();cameraPointer=null;pid=null;}tutorial.paint();}});

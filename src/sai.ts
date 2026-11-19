@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {mobileGraphics,staticShadows} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
+import {mountComfort,walkFactor,lookFactor,comfortablePace} from './comfortMode.ts';
 import {installSmartTutorial} from './smartTutorial.ts';
 import {installMissionMap} from './missionMap.ts';
 import {installLandscape} from './coreLandscape.ts';
@@ -46,6 +47,7 @@ const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintas
 const guide=new VoiceGuide(intro);
 const sound=core?new ImmersiveSound('sai',document.querySelector('.voice-controls')):null;
 if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));tutorial?.paint();}});
+if(core)mountComfort(document.querySelector<HTMLElement>('.voice-controls')!,{more:true});
 const tutorial=core?installSmartTutorial({kind:'sai',host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,blocked:isPortrait,ready:()=>loading.hidden&&!coreFinished}):null;
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -99,7 +101,7 @@ function boot(): void {
   resize();window.addEventListener('resize',resize);
   window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.closest('select,input,textarea'))return;const k=keyMap[e.code];if(k&&!paused&&!isPortrait()&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();input.add(k);setAuto(false);}});
   window.addEventListener('keyup',e=>{const k=keyMap[e.code];if(k)input.delete(k);});
-  window.addEventListener('blur',()=>{input.clear();stopJoy();setAuto(false);dragId=null;guide.stop();});
+  window.addEventListener('blur',()=>{input.clear();stopJoy();setAuto(false);dragId=null;guide.stop();});window.addEventListener('umroh-comfort-change',()=>{input.clear();stopJoy();setAuto(false);dragId=null;});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){input.clear();stopJoy();setAuto(false);}last=performance.now();});
   function moveJoy(e:PointerEvent):void{
     const rect=joy.getBoundingClientRect(),r=rect.width*0.35;
@@ -114,7 +116,7 @@ function boot(): void {
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===joyId)stopJoy();});
   let dragId:number|null=null,dragX=0;
   canvas.addEventListener('pointerdown',e=>{if(dragId!==null||isPortrait())return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
+  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008*(core?lookFactor():1);dragX=e.clientX;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
   autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)tutorial?.event({type:'route'});if(auto)guide.announce('Mode otomatis aktif. Perhatikan tujuan setiap lintasan.','auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
@@ -132,22 +134,23 @@ function boot(): void {
     const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden;const dt=stopped?0:elapsed;sound?.setPaused(stopped);animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
     if(!finished&&inGreen!==wasGreen&&!paused){wasGreen=inGreen;if(inGreen)guide.announce(avatar.value==='male'?'Masuk area lampu hijau. Bagi laki-laki, dianjurkan berlari kecil bila mampu.':'Masuk area lampu hijau. Jamaah perempuan tetap berjalan biasa.','green-in-'+track.completed,5000,true);else guide.announce('Keluar area lampu hijau. Lanjutkan berjalan biasa menuju '+track.destination+'.','green-out-'+track.completed,5000);}
-    pace.hidden=avatar.value!=='male'||!inGreen||finished;
+    pace.hidden=avatar.value!=='male'||!inGreen||finished||(!!core&&comfortablePace(2.4,3.5,true)===2.4);
     if(pace.hidden&&brisk)setBrisk(false);
     zoneLabel.textContent=inGreen?(avatar.value==='male'?'Area lampu hijau: dianjurkan lari kecil bila mampu.':'Area lampu hijau: tetap berjalan biasa.'):'Jalur sa’i • berjalan biasa';
     if(cameraMode.value!=='free')orbit=track.direction===-1?0:Math.PI;
     let dx=0,dz=0;
     if(auto&&!finished){
       const lane=track.direction===-1?3:-3;
-      dx=(lane-x)*1.1;dz=track.direction*(inGreen&&avatar.value==='male'?4.2:3.2);
+      dx=(lane-x)*1.1;dz=track.direction*(core?comfortablePace(3.2,4.2,inGreen&&avatar.value==='male'):(inGreen&&avatar.value==='male'?4.2:3.2));
     }else{
       const f=(pressed('up')?1:0)-(pressed('down')?1:0)-joyY;
       const lateral=(pressed('right')?1:0)-(pressed('left')?1:0)+joyX;
       const len=Math.max(1,Math.hypot(f,lateral));
-      const speed=brisk&&inGreen?3.5:2.4;
+      const speed=core?comfortablePace(2.4,3.5,brisk&&inGreen):(brisk&&inGreen?3.5:2.4);
       dx=(-Math.sin(orbit)*f+Math.cos(orbit)*lateral)*speed/len;
       dz=(-Math.cos(orbit)*f-Math.sin(orbit)*lateral)*speed/len;
     }
+    if(core){const factor=walkFactor(auto);dx*=factor;dz*=factor;}
     const oldX=x,oldZ=z;
     if(!finished){
       x=THREE.MathUtils.clamp(x+dx*dt,-WALK_WIDTH,WALK_WIDTH);z=THREE.MathUtils.clamp(z+dz*dt,-END,END);
