@@ -5,6 +5,7 @@ import { resolveFrames } from './characters/CrowdView.ts';
 import { Clip } from './sim/States.ts';
 import { MATAF } from './config/site.ts';
 import {guidedStage,completeStage} from './journey.ts';
+import {hajjGame,completeHajj} from './hajjProgress.ts';
 import {VoiceGuide} from './audio/VoiceGuide.ts';
 
 const TAU = Math.PI * 2;
@@ -26,9 +27,11 @@ const mapPlayer = document.querySelector<SVGGElement>('#mapPlayer')!;
 const nextSai=document.querySelector<HTMLAnchorElement>('#nextSai')!;
 const saiLink=document.querySelector<HTMLAnchorElement>('#saiLink')!;
 const guided=guidedStage(1);
+const hajj=hajjGame('tawaf');
+if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent=hajj.stage==='wada'?'Latihan Tawaf Wada’':'Latihan Tawaf Ifadah';nextSai.textContent='Kembali ke perjalanan haji →';saiLink.textContent='Perjalanan haji';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextSai.textContent='Lanjut ke salat & zamzam →';}
-function updateSaiLink():void{saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);nextSai.href=guided?'./umrah.html':saiLink.href;}
-nextSai.addEventListener('click',e=>{if(guided&&!completeStage(1,guided.id)){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
+function updateSaiLink():void{saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);if(hajj)saiLink.href='./hajj.html';nextSai.href=hajj?'./hajj.html':guided?'./umrah.html':saiLink.href;}
+nextSai.addEventListener('click',e=>{if((guided&&!completeStage(1,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 
 const intro="Selamat datang di area latihan tawaf. Mulai dari garis Hajar Aswad, berjalan mengelilingi Ka'bah berlawanan arah jarum jam. Jaga Ka'bah di sebelah kiri. Selesaikan tujuh putaran.";
@@ -138,7 +141,7 @@ function boot(): void {
       count.textContent=completed+' / 7';progress.value=Math.max(0,Math.min(7,total/TAU));
       if(completed>announcedLap&&completed<7){announcedLap=completed;guide.announce('Putaran ke '+completed+' selesai. Lanjutkan hingga tujuh putaran.','lap-'+completed,0,true);}
       if(delta < -0.0004){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce("Arah tawaf terbalik. Berbaliklah sehingga Ka'bah berada di sebelah kiri.",'wrong',10000,true);}}else if(delta>0.0004){if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar. Lanjutkan tawaf.','correct',10000);wrongSince=0;wrongAnnounced=false;}else if(!paused){wrongSince=0;}
-      if(completed===7){guide.announce('Alhamdulillah, tujuh putaran latihan selesai. Selanjutnya pelajari salat sunah tawaf dan minum air zamzam.','complete',0,true);finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';nextSai.hidden=false;if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
+      if(completed===7){guide.announce(hajj?'Tujuh putaran latihan haji selesai. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh putaran latihan selesai. Selanjutnya pelajari salat sunah tawaf dan minum air zamzam.','complete',0,true);finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';if(hajj)status.textContent='Tujuh putaran latihan selesai. Kembali ke perjalanan haji.';nextSai.hidden=false;if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }

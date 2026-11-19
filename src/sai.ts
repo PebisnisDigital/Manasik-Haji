@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildSaiHall, END, GREEN_START, GREEN_END, WALK_WIDTH } from './env/SaiHall.ts';
 import { SaiProgress } from './sim/SaiProgress.ts';
 import {guidedStage,completeStage} from './journey.ts';
+import {hajjGame,completeHajj} from './hajjProgress.ts';
 import {VoiceGuide} from './audio/VoiceGuide.ts';
 import { CrowdRenderer } from './characters/CrowdRenderer.ts';
 import { resolveFrames } from './characters/CrowdView.ts';
@@ -27,8 +28,9 @@ const nextLink = document.querySelector<HTMLAnchorElement>('#next')!;
 const avatarPref=new URLSearchParams(location.search).get('avatar');
 if(avatarPref==='male'||avatarPref==='female')avatar.value=avatarPref;
 const guided=guidedStage(3);
+const hajj=hajjGame('sai');if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent='Latihan Sa’i Haji';nextLink.textContent='Kembali ke perjalanan haji →';nextLink.href='./hajj.html';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextLink.textContent='Lanjut ke tahallul →';nextLink.href='./umrah.html';}
-nextLink.addEventListener('click',e=>{if(guided&&!completeStage(3,guided.id)){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
+nextLink.addEventListener('click',e=>{if((guided&&!completeStage(3,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 
 const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintasan pertama. Lanjutkan bolak-balik hingga tujuh lintasan dan berakhir di Marwah.';
 const guide=new VoiceGuide(intro);
@@ -137,7 +139,7 @@ function boot(): void {
       const arrived=track.update(z);
       count.textContent=track.completed+' / 7';progress.value=track.fraction(z);
       finished=track.finished;
-      if(finished){guide.announce('Alhamdulillah, tujuh lintasan latihan selesai di Marwah. Berikutnya adalah tahallul.','complete',0,true);setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';nextLink.hidden=false;if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
+      if(finished){guide.announce(hajj?'Tujuh lintasan latihan haji selesai di Marwah. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh lintasan latihan selesai di Marwah. Berikutnya adalah tahallul.','complete',0,true);setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';if(hajj)status.textContent='Tujuh lintasan selesai. Kembali ke perjalanan haji.';nextLink.hidden=false;if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(arrived){wrongSince=0;wrongAnnounced=false;guide.announce('Lintasan ke '+track.completed+' selesai di '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.','arrival-'+track.completed,0,true);targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
       else if(Math.abs(z-oldZ)>.001){if((z-oldZ)*track.direction<0){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce('Arah berlawanan. Tujuan berikutnya adalah '+track.destination+'.','wrong',10000,true);}}else{if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar.','correct',10000);wrongSince=0;wrongAnnounced=false;}status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
     }

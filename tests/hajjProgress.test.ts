@@ -1,0 +1,3 @@
+import {describe,it,expect} from 'vitest';
+import {newHajj,advanceHajj,decodeHajj} from '../src/hajjProgress.ts';
+describe('hajj checkpoint route',()=>{it('does not permit unexpected advancement',()=>{const s=newHajj('female');expect(advanceHajj(s,'day12')).toEqual(s);expect(decodeHajj(JSON.stringify(s))).toEqual(s);});it('branches early and late nafar',()=>{const s={...newHajj('male'),stage:'nafar' as const};expect(advanceHajj(s,'nafar',true).stage).toBe('wada');expect(advanceHajj(s,'nafar').stage).toBe('day13');});});
