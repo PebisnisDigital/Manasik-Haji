@@ -54,7 +54,7 @@ function boot(): void {
   let lastAngle: number = START;
   const input = new Set<string>();
   let joyId:number|null=null, joyX=0, joyY=0, paused=false;
-  let initializedCamera=false;
+  let initializedCamera=false, animationTime=0;
   const desiredCamera = new THREE.Vector3();
   const desiredLook = new THREE.Vector3();
   const smoothLook = new THREE.Vector3();
@@ -103,7 +103,7 @@ function boot(): void {
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused?0:elapsed;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused?0:elapsed;animationTime+=dt;
     const angle=Math.atan2(z,x);
     if(cameraMode.value!=='free')orbit=-angle;
     let dx=0,dz=0;
@@ -151,13 +151,13 @@ function boot(): void {
     if(female)female.group.visible=active===female&&cameraMode.value!=='first';
     marker.visible=cameraMode.value!=='first';
     active.beginFrame();
-    if(cameraMode.value!=='first')submit(active,0,x,z,yaw,avatar.value==='female'?1.62:1.74,avatar.value==='female'?8:0,dist>0.0001?Clip.WALK:Clip.IDLE,dist>0.0001?walkPhase:now/3000%1);
+    if(cameraMode.value!=='first')submit(active,0,x,z,yaw,avatar.value==='female'?1.62:1.74,avatar.value==='female'?8:0,dist>0.0001?Clip.WALK:Clip.IDLE,dist>0.0001?walkPhase:animationTime/3%1);
     active.endFrame();
     crowd.beginFrame();
     for(let i=0;i<npc.length;i++){
       const n=npc[i];n.a-=n.s/n.r*dt;const px=Math.cos(n.a)*n.r,pz=Math.sin(n.a)*n.r;
       if(Math.hypot(px-x,pz-z)<0.7)continue;
-      submit(crowd,1,px,pz,Math.atan2(Math.sin(n.a),-Math.cos(n.a)),n.h,i%7,Clip.WALK,(now/1000*n.s/1.42+i*.13)%1);
+      submit(crowd,1,px,pz,Math.atan2(Math.sin(n.a),-Math.cos(n.a)),n.h,i%7,Clip.WALK,(animationTime*n.s/1.42+i*.13)%1);
     }
     crowd.endFrame();renderer.render(scene,camera);requestAnimationFrame(frame);
   }
