@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {mobileGraphics} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
+import {installSmartTutorial} from './smartTutorial.ts';
 import {installMissionMap} from './missionMap.ts';
 import {installLandscape} from './coreLandscape.ts';
 import {tenantUrl,bootTenant,slug} from './tenant.ts';
@@ -46,7 +47,8 @@ avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 const intro=core?.step===17?"Tawaf wada’ sebagai perpisahan sebelum meninggalkan Makkah. Ada pengecualian sesuai ketentuan. Lakukan tujuh putaran latihan dengan Ka’bah di kiri.":core?.step===10?"Tawaf Ifadah adalah rukun haji. Lakukan tujuh putaran, Ka’bah di sebelah kiri.":"Selamat datang di area latihan tawaf. Mulai dari garis Hajar Aswad, berjalan mengelilingi Ka'bah berlawanan arah jarum jam. Jaga Ka'bah di sebelah kiri. Selesaikan tujuh putaran.";
 const guide=new VoiceGuide(intro);
 const sound=core?new ImmersiveSound('tawaf',document.querySelector('.voice-controls')):null;
-if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));}});
+if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));tutorial?.paint();}});
+const tutorial=core?installSmartTutorial({kind:'tawaf',host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,blocked:isPortrait,ready:()=>loading.hidden&&!coreFinished}):null;
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
@@ -120,7 +122,7 @@ function boot(): void {
   canvas.addEventListener('pointerdown',e=>{if(dragId!==null||isPortrait())return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
   canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
-  autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)guide.announce("Mode otomatis aktif. Perhatikan arah tawaf dan posisi Ka'bah di kiri.",'auto',3000);});reset.addEventListener('click',resetAll);
+  autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)tutorial?.event({type:'route'});if(auto)guide.announce("Mode otomatis aktif. Perhatikan arah tawaf dan posisi Ka'bah di kiri.",'auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
   const pressed=(k:string)=>input.has(k);
   let lastSaved=core?readCheckpoint(core):0;
@@ -151,15 +153,15 @@ function boot(): void {
       x+=dx*dt;z+=dz*dt;const r=Math.hypot(x,z);const bounded=THREE.MathUtils.clamp(r,MIN_RADIUS,MAX_RADIUS);if(r>0){x*=bounded/r;z*=bounded/r;}
       const a=Math.atan2(z,x),delta=wrap(lastAngle-a);lastAngle=a;total+=delta;
       completed=Math.max(0,Math.min(7,Math.floor((total+1e-7)/TAU)));
-      if(core&&completed!==lastSaved&&saveCheckpoint(core,completed))lastSaved=completed;
+      if(completed>0)tutorial?.event({type:'route'});if(core&&completed!==lastSaved&&saveCheckpoint(core,completed))lastSaved=completed;
       count.textContent=completed+' / 7';progress.value=Math.max(0,Math.min(7,total/TAU));
       if(completed>announcedLap&&completed<7){announcedLap=completed;guide.announce('Putaran ke '+completed+' selesai. Lanjutkan hingga tujuh putaran.','lap-'+completed,0,true);}
       if(delta < -0.0004){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce("Arah tawaf terbalik. Berbaliklah sehingga Ka'bah berada di sebelah kiri.",'wrong',10000,true);}}else if(delta>0.0004){if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar. Lanjutkan tawaf.','correct',10000);wrongSince=0;wrongAnnounced=false;}else if(!paused){wrongSince=0;}
-      if(completed===7){guide.announce(core?.step===17?'Tawaf wada’ selesai. Rangkaian latihan haji selesai.':core?.step===10?'Tawaf ifadah selesai. Lanjut sa’i haji.':hajj?'Tujuh putaran latihan haji selesai. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh putaran latihan selesai. Selanjutnya pelajari salat sunah tawaf dan minum air zamzam.','complete',0,true);finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';if(hajj||core?.step===10||core?.step===17)status.textContent=core?.step===17?'Tawaf wada’ selesai.':core?.step===10?'Tawaf Ifadah selesai. Lanjut sa’i haji.':'Tujuh putaran latihan selesai. Kembali ke perjalanan haji.';nextSai.hidden=false;coreFinished=true;if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
+      if(completed===7){guide.announce(core?.step===17?'Tawaf wada’ selesai. Rangkaian latihan haji selesai.':core?.step===10?'Tawaf ifadah selesai. Lanjut sa’i haji.':hajj?'Tujuh putaran latihan haji selesai. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh putaran latihan selesai. Selanjutnya pelajari salat sunah tawaf dan minum air zamzam.','complete',0,true);finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';if(hajj||core?.step===10||core?.step===17)status.textContent=core?.step===17?'Tawaf wada’ selesai.':core?.step===10?'Tawaf Ifadah selesai. Lanjut sa’i haji.':'Tujuh putaran latihan selesai. Kembali ke perjalanan haji.';nextSai.hidden=false;coreFinished=true;tutorial?.finish();if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }
-    const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);
+    const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);if(dt>0)tutorial?.event({type:'walk',amount:dist});tutorial?.paint();
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}
     marker.position.x=x;marker.position.z=z;
     mapPlayer.setAttribute('transform','translate('+(70+x*1.08).toFixed(1)+' '+(70+z*1.08).toFixed(1)+')');
@@ -193,6 +195,6 @@ function boot(): void {
     crowd.endFrame();renderer.render(scene,camera);requestAnimationFrame(frame);
   }
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();loading.hidden=false;loading.textContent='Konteks grafis terputus. Muat ulang halaman.';});
-  loading.hidden=true;requestAnimationFrame(frame);
+  loading.hidden=true;tutorial?.paint();requestAnimationFrame(frame);
 }
 if(core||!new URLSearchParams(location.search).has('core'))requestAnimationFrame(()=>{try{boot();}catch(e){console.error(e);loading.hidden=false;loading.textContent='Simulasi gagal dimulai. Gunakan browser dengan WebGL 2 lalu muat ulang.';}});

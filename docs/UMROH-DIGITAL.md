@@ -45,3 +45,6 @@ Existing Studio identity and membership tools retained. Core reporting uses a se
 
 ## v2.5 — mission map
 Responsive schematic location map and selectable level list in lobby registration and active core training/tawaf/sa'i. Current completed and locked states derive from the saved core step; current sub-stage shows completed checkpoint counts. No level jumping or progress mutation. Map is deliberately schematic, not actual geographic coordinates or travel instructions. Modal pauses movement and active practice, releases input and closes on portrait. Guest and tenant scopes unchanged. Payment deferred. Browser touch/focus and visual verification pending.
+
+## v2.6 — smart beginner tutorial
+Optional device-local, event-driven guidance for lobby walking/camera/guide encounter, field arrival and action controls, and tawaf/sa'i walking and auto-path option. Highlights actual controls with short illustrated instructions. Replay and skip; no tutorial state affects completion, locked levels, certificate or payment. Auto guidance and direct encounter can bypass training tips. Hides during map, portrait, modal and certificate. Unit tests cover progression and bypass; physical device and beginner usability testing pending.
