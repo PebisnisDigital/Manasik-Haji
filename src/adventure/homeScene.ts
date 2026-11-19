@@ -1,9 +1,10 @@
 import * as THREE from 'three';
-import {QUESTS,type Avatar,type Quest} from './state.ts';
+import {missions,type Avatar,type Quest,type PlayableLevel} from './state.ts';
 export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onInteract:()=>void}
 export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;dispose():void}
 type Hit={x:number;z:number;w:number;d:number};
-export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,callbacks:HomeCallbacks):HomeWorld{
+export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks):HomeWorld{
+ const QUESTS=missions(level);
  const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});r.setPixelRatio(Math.min(devicePixelRatio,1.45));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;
  const s=new THREE.Scene();s.background=new THREE.Color(0xd8ddd3);s.add(new THREE.HemisphereLight(0xfff6df,0xb7a78c,2.3));const sun=new THREE.DirectionalLight(0xffe5b0,2.5);sun.position.set(3,10,-6);s.add(sun);
  const mat=(c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.82});const cream=mat(0xf0e3c7),wood=mat(0x825638),oak=mat(0xc5a276),green=mat(0x557668),dark=mat(0x30464c),gold=mat(0xc7a253),white=mat(0xf7f1df),blue=mat(0x8eb7c5),rose=mat(0x8f6560),leaf=mat(0x46764d),floor=mat(0xd5b99a);
@@ -22,7 +23,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  box(3.6,2,.12,wood,-3.75,1.99,-5.34);box(3.3,1.73,.13,blue,-3.75,1.99,-5.24);box(.08,1.73,.16,white,-3.75,1.99,-5.15);box(3.3,.08,.16,white,-3.75,1.99,-5.15);
  const curtain=box(.4,2.1,.17,green,-5.35,1.98,-5.05);box(.48,2.1,.17,green,-2.15,1.98,-5.05);
  const beam=box(2.9,.014,3.7,new THREE.MeshBasicMaterial({color:0xffd68b,transparent:true,opacity:.28}),-3.7,.04,-2.8);beam.rotation.y=.17;
- rug(-3,0,4.5,3.4,green);rug(3.6,-2.8,2.4,2.7,rose);
+ rug(-3,0,4.5,3.4,green);rug(3.6,-2.8,2.4,2.7,rose);if(level===2){rug(3.5,-2.65,1.05,1.8,green);box(.78,.043,.16,gold,3.5,.035,-3.25);}
  // Sofa and cushions.
  box(3.6,.46,1.28,green,-4.65,.3,-.9);box(3.6,.6,.25,green,-4.65,.77,-1.43);box(.3,.66,1.28,green,-6.3,.57,-.9);box(.3,.66,1.28,green,-3,.57,-.9);box(1,.18,.8,cream,-5.4,.63,-.95);box(.85,.18,.8,rose,-3.9,.63,-.95);obstacle(-4.65,-.9,3.6,1.28);
  // Small table and reading objects; the passage to the TV remains open.
