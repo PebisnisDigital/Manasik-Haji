@@ -1,5 +1,5 @@
 import type {PlayableLevel,Campaign} from './state.ts';
-export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin';
+export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas';
 export type Speaker=Npc|'Kamu';
 export type Line={speaker:Speaker;text:string};
 export type Lesson={title:string;body:string;points:string[];note?:string;lines:Line[];npc?:Npc};
@@ -178,9 +178,87 @@ export const LESSONS:Lesson[][]=[
       }
     ]
   }
+],
+[
+  {
+    "title": "Identitas dan paspor",
+    "body": "Cocokkan identitas sebelum mengurus atau memperbarui paspor.",
+    "points": [
+      "Siapkan KTP-el, KK, dan dokumen pendukung seperti akta lahir, buku nikah atau ijazah sesuai ketentuan.",
+      "Cek kesesuaian nama, tanggal lahir dan masa berlaku paspor; konfirmasi syarat tambahan haji atau umroh ke kantor imigrasi.",
+      "Ikuti prosedur permohonan, pemeriksaan berkas, foto dan wawancara melalui layanan resmi."
+    ],
+    "note": "Kebutuhan dokumen dan prosedur dapat berbeda menurut kondisi pemohon. Berkas di game hanya ilustrasi.",
+    "npc": "Petugas Paspor",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Saya ingin menyiapkan paspor untuk ibadah. Apa yang perlu disiapkan?"
+      },
+      {
+        "speaker": "Petugas Paspor",
+        "text": "Cocokkan identitas pada KTP, KK, dan dokumen pendukung. Periksa persyaratan resmi sebelum mengajukan paspor."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik, saya juga akan periksa masa berlaku paspor."
+      }
+    ]
+  },
+  {
+    "title": "Visa dan izin perjalanan",
+    "body": "Pastikan visa atau izin perjalanan sesuai jenis ibadah, jadwal, dan rute.",
+    "points": [
+      "Cocokkan nama serta nomor paspor dengan data visa.",
+      "Periksa jenis izin, masa berlaku dan ketentuan masuk Arab Saudi melalui kanal resmi.",
+      "Untuk haji, pastikan memiliki izin haji yang sesuai; visa umroh atau wisata saja bukan izin menunaikan haji."
+    ],
+    "note": "Petugas dalam game hanya memberikan informasi. Visa sebenarnya diterbitkan oleh otoritas yang berwenang.",
+    "npc": "Petugas Visa",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Paspor sudah disiapkan. Bagaimana dengan visa?"
+      },
+      {
+        "speaker": "Petugas Visa",
+        "text": "Pastikan jenis visa atau izin sesuai ibadah dan data paspor. Ikuti ketentuan resmi sesuai rute."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Saya akan periksa sebelum berangkat."
+      }
+    ]
+  },
+  {
+    "title": "Arsip dokumen aman",
+    "body": "Simpan berkas agar mudah ditemukan tanpa mengabaikan kerahasiaannya.",
+    "points": [
+      "Siapkan paspor, visa atau izin, tiket, identitas jamaah dan dokumen kesehatan yang diminta.",
+      "Simpan salinan secara aman dan pisahkan dari dokumen asli bila memungkinkan.",
+      "Catat kontak pembimbing, penyelenggara dan kontak darurat. Jangan bagikan data identitas di kanal publik."
+    ],
+    "note": "Map berkas demo tidak berisi identitas nyata. Tidak ada unggahan, pembayaran, atau penerbitan dokumen.",
+    "npc": "Petugas Berkas",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Bagaimana menyimpan dokumen perjalanan, Bu?"
+      },
+      {
+        "speaker": "Petugas Berkas",
+        "text": "Gunakan map yang aman, siapkan salinan, dan catat kontak darurat. Jaga kerahasiaan data pribadi."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Siap. Berkas saya akan lebih teratur."
+      }
+    ]
+  }
 ]
 ];
 export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
+ if(level===4)return [{speaker:npc,text:npc==='Petugas Paspor'?'Selamat datang. Mari pelajari persyaratan paspor.':npc==='Petugas Visa'?'Periksa izin perjalanan sesuai ibadah.':'Simpan berkas perjalanan dengan aman.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===3)return [{speaker:npc,text:npc==='Resepsionis'?'Selamat datang di kantor simulasi. Silakan cek informasi izin.':npc==='Konsultan'?'Silakan konsultasikan rencana perjalanan.':'Di sini kita belajar alur pendaftaran.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(npc==='Ibu')return [{speaker:'Ibu',text:level===1&&quest===0?'Ada yang ingin kamu bicarakan, Nak?':'Semoga persiapanmu lancar, Nak.'},{speaker:'Kamu',text:'Aamiin, Bu.'}];
  return [{speaker:'Ayah',text:'Siapkan perjalanan baik-baik, ya.'},{speaker:'Kamu',text:'Siap, Yah.'}];
