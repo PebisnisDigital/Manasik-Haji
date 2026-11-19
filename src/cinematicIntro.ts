@@ -2,9 +2,10 @@ import './cinematicIntro.css';
 import {INTRO_DURATION,INTRO_KEY,shouldPlayIntro,introRemaining} from './introModel.ts';
 type Options={onChange:(playing:boolean)=>void;canReplay:()=>boolean};
 export function mountCinematicIntro(o:Options){
- const dialog=document.getElementById('cinematicIntro') as HTMLDialogElement|null;
- const replay=document.getElementById('replayIntro') as HTMLButtonElement|null;
- if(!dialog||!replay||typeof dialog.showModal!=='function')return {playing:()=>false};
+ const dialogEl=document.getElementById('cinematicIntro');
+ const replayEl=document.getElementById('replayIntro');
+ if(!(dialogEl instanceof HTMLDialogElement)||!(replayEl instanceof HTMLButtonElement)||typeof dialogEl.showModal!=='function')return {playing:()=>false};
+ const dialog:HTMLDialogElement=dialogEl,replay:HTMLButtonElement=replayEl;
  const skip=dialog.querySelector<HTMLButtonElement>('#skipIntro')!,sound=dialog.querySelector<HTMLButtonElement>('#introSound')!,reduced=matchMedia('(prefers-reduced-motion: reduce)');
  let active=false,started=0,timer=0,sessionSeen:string|null=null,fromReplay=false,ctx:AudioContext|null=null,audioBusy=false,audioPlayed=false,generation=0;
  try{sessionSeen=sessionStorage.getItem(INTRO_KEY);}catch{}
