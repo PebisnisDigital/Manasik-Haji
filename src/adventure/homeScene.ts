@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import type {Npc} from './lessons.ts';
+import {practicePosition,type PracticeMode} from './practice.ts';
 import {packingItems} from './packing.ts';
 import {brandName,brandAccent} from '../tenant.ts';
 import {missions,type Avatar,type Quest,type PlayableLevel} from './state.ts';
 export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onTask:()=>void;onNpc:(npc:Npc|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
-export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:Npc):void;unlockCoin():void;packItem(index:number):void;dispose():void}
+export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:Npc):void;unlockCoin():void;packItem(index:number):void;practice(mode:PracticeMode,p:number):void;dispose():void}
 type Hit={x:number;z:number;w:number;d:number};
 export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks):HomeWorld{
  const QUESTS=missions(level);
@@ -170,6 +171,34 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   box(.7,.5,.7,cream,6.6,.25,-4.65);for(let i=0;i<5;i++){const p=sphere(.22,leaf,6.6+Math.cos(i*2.4)*.22,.65+(i%3)*.25,-4.65+Math.sin(i*2.4)*.22);p.scale.set(.65,1.7,.65);}obstacle(6.6,-4.65,.75,.75,1.35);
   for(const px of [-4,0,4]){box(1.15,.07,.45,white,px,3.16,0).castShadow=false;const light=new THREE.PointLight(0xffefd9,10,8,2);light.position.set(px,2.95,0);s.add(light);}
  }
+ let tawafDot:THREE.Mesh|null=null,saiDot:THREE.Mesh|null=null;
+ if(level===7){
+  for(const obj of s.children.slice(houseStart))obj.visible=false;obstacles.splice(houseObstacles);blockers.splice(houseBlockers);
+  const sage=mat(0x466c59),linen=mat(0xefece0),steel=mat(0x9aa59c),blackCloth=mat(0x252722),stone=mat(0xc6b9a1);
+  function panel(title:string,sub:string,x:number,y:number,z:number,w:number){const tex=surface(1024,300,g=>{g.fillStyle='#214b3b';g.fillRect(0,0,1024,300);g.fillStyle='#f7e4ae';g.font='bold 62px sans-serif';g.textAlign='center';g.fillText(title,512,117,980);g.fillStyle='#fff';g.font='36px sans-serif';g.fillText(sub,512,205,980);});box(w,w*.293,.04,new THREE.MeshBasicMaterial({map:tex}),x,y,z).castShadow=false;}
+  panel('KELAS MANASIK HAJI & UMROH','Belajar sebelum berangkat • Miniatur edukasi',0,2.45,-5.34,7.8);
+  function table(x:number,z:number,w:number,d:number){box(w,.12,d,oak,x,.82,z);for(const dx of [-w/2+.12,w/2-.12])for(const dz of [-d/2+.12,d/2-.12])box(.085,.76,.085,steel,x+dx,.38,z+dz);obstacle(x,z,w,d,1.7);}
+  table(-4,-3,2.5,1);panel('01 • URUTAN IBADAH','Panduan pembimbing',-4,.5,-2.48,2.25);
+  box(.68,.04,.46,linen,-4.5,.91,-2.9);box(.37,.03,.26,sage,-3.65,.92,-2.85);
+  table(3.5,-3,2.5,1);panel('02 • IHRAM','Ketentuan dan larangan',3.5,.5,-2.48,2.25);
+  for(let j=0;j<3;j++)box(.58,.055,.36,linen,3.0,.91+j*.055,-2.9);
+  for(let j=0;j<3;j++)box(.49,.065,.35,sage,4.03,.91+j*.065,-2.9);
+  // Both miniature practice paths fit the same demonstration table; not a scale replica.
+  table(3.5,.68,5.4,2.10);panel('03 • MINIATUR LATIHAN','Tawaf dan sa’i • bukan ibadah nyata',3.5,.5,1.76,4.9);
+  const cx=2.06,cz=.65,baseY=.895;
+  box(2.26,.035,1.95,linen,cx,baseY,cz);box(.60,.68,.60,blackCloth,cx,baseY+.36,cz);
+  box(.615,.07,.615,gold,cx,baseY+.53,cz);box(.14,.24,.014,gold,cx+.16,baseY+.23,cz+.308);
+  const track=new THREE.Mesh(new THREE.RingGeometry(.75,.79,72).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x40876a,side:THREE.DoubleSide}));track.position.set(cx,baseY+.026,cz);s.add(track);
+  // A starting marker denotes the schematic alignment, not a depiction of the stone.
+  box(.07,.025,.38,gold,cx+.55,baseY+.04,cz+.55).rotation.y=Math.PI/4;
+  box(.74,.04,1.85,linen,4.7,baseY,.65);box(.12,.05,1.6,sage,4.7,baseY+.034,.65);box(.5,.10,.32,stone,4.7,baseY+.08,-.14);box(.5,.10,.32,stone,4.7,baseY+.08,1.44);
+  tawafDot=sphere(.075,new THREE.MeshBasicMaterial({color:0xe2b849}),cx+.77/Math.sqrt(2),baseY+.13,cz+.77/Math.sqrt(2));saiDot=sphere(.075,new THREE.MeshBasicMaterial({color:0xe2b849}),4.7,baseY+.15,-.14);
+  // Simple rows of class chairs, prayer-room-style wall and teaching board.
+  for(const x of [-5.6,-4.4,-3.2])for(const z of [2.8,4.05]){box(.83,.1,.75,sage,x,.49,z);box(.83,.55,.12,sage,x,.78,z+.33);for(const dx of [-.3,.3])for(const dz of [-.25,.25])box(.05,.42,.05,steel,x+dx,.22,z+dz);obstacle(x,z,.86,.8,1);}
+  const board=surface(720,440,g=>{g.fillStyle='#f4f1de';g.fillRect(0,0,720,440);g.fillStyle='#265644';g.font='bold 36px sans-serif';g.textAlign='center';g.fillText('BEKAL MANASIK',360,65);g.textAlign='left';g.font='27px sans-serif';['01  Kenali urutan ibadah','02  Pahami miqat dan ihram','03  Latih hitungan tawaf dan sa’i','04  Ingat titik kumpul & kontak pembimbing'].forEach((v,i)=>g.fillText(v,30,140+i*73,660));});
+  box(.045,1.52,2.5,new THREE.MeshBasicMaterial({map:board}),-7.34,1.95,-1.3).castShadow=false;
+  for(const px of [-4,0,4]){box(1.4,.07,.42,white,px,3.16,0).castShadow=false;const light=new THREE.PointLight(0xfff2e2,10,8,2);light.position.set(px,2.95,0);s.add(light);}
+ }
  function capsule(radius:number,length:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length,5,10),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
  function person(female:boolean,color:number,height=1.7,sarong=false){
   const root=new THREE.Group();s.add(root);root.scale.setScalar(height/1.7);const cloth=mat(color),skin=mat(0xb98662),pants=mat(0x33464a),hair=mat(0x292823);
@@ -182,11 +211,11 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   return {root,body,legs,arms};
  }
  const hero=person(avatar==='female',avatar==='female'?0x69586d:0x597b89);
- const family=person(true,level===5?0xf3f1e9:level===6?0xa87864:level>=3?0x386957:0xa87864,1.58);
- const family2=person(false,level===5?0x4d9795:level===6?0xe5dfc8:level>=3?0x587484:0xe5dfc8,1.68,level<3||level===6);
+ const family=person(level!==7,level===7?0xe6dfc9:level===5?0xf3f1e9:level===6?0xa87864:level>=3?0x386957:0xa87864,1.58);
+ const family2=person(level===7,level===7?0x667d6b:level===5?0x4d9795:level===6?0xe5dfc8:level>=3?0x587484:0xe5dfc8,1.68,level<3||level===6);
  family.root.position.set(level===6?-5.5:level>=3?-4:-4.65,0,level===6?1.7:level>=3?-4.05:.47);family.root.rotation.y=level>=3?0:.65;
  family2.root.position.set(level===6?-.9:level>=3?3.5:-5.8,0,level===6?-3.8:level>=3?-4.05:2.3);family2.root.rotation.y=level>=3?0:.9;
- const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===5?'Dokter':level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===5?'Perawat':level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
+ const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===7?'Pembimbing':level===5?'Dokter':level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===7?'Asisten Manasik':level===5?'Perawat':level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
  if(level>=3&&level<=5){const admin=person(true,level===5?0xe9f3eb:0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:level===5?'Apoteker':level===4?'Petugas Berkas':'Admin',actor:admin});}
  for(const entry of actors){const p=entry.actor.root.position;obstacle(p.x,p.z,.45,.36,1.6);}
  const getActor=(name:string)=>name==='Kamu'?hero:actors.find(a=>a.name===name)?.actor??null;
@@ -264,5 +293,5 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   if(t){const bearing=Math.atan2(t.x-x,t.z-z);callbacks.onNav(angleDelta(cameraYaw,bearing),Math.hypot(t.x-x,t.z-z));}
   if(level===6)for(const group of packingProps)for(const p of group)if(p.start){const t=Math.min(1,Math.max(0,(now-p.start)/530));p.mesh.position.lerpVectors(p.from,p.to,t);p.mesh.position.y+=Math.sin(t*Math.PI)*.62;if(t>=1){p.start=0;p.inside=true;}}if(level>=3&&level<=5)drawOfficeBrand();r.render(s,cam);
  }raf=requestAnimationFrame(frame);
- return {packItem(index){const p=packingProps[quest]?.[index];if(p&&!p.inside&&!p.start)p.start=performance.now();},talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
+ return {practice(mode,p){const pos=practicePosition(mode,p);if(mode==='tawaf'&&tawafDot)tawafDot.position.set(2.06+pos.x*.77,1.025,.65+pos.y*.77);if(mode==='sai'&&saiDot)saiDot.position.set(4.7,1.045,-.14+pos.x*1.58);},packItem(index){const p=packingProps[quest]?.[index];if(p&&!p.inside&&!p.start)p.start=performance.now();},talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
 }
