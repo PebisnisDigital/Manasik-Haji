@@ -24,7 +24,7 @@ export class ImmersiveSound{
   this.scene=scene;try{this.preferred=localStorage.getItem(PREF)==='on';}catch{}
   this.button=document.createElement('button');this.button.type='button';this.button.className='ambienceToggle';host?.append(this.button);this.render();
   const signal=this.abort.signal;
-  this.button.addEventListener('click',()=>{if(this.preferred||this.active||this.pending){this.preferred=false;this.active=false;this.generation++;this.pending=false;this.save();this.mix();this.render();}else{this.preferred=true;this.save();void this.unlock();}},{signal});
+  this.button.addEventListener('click',()=>{if(this.active||this.pending){this.preferred=false;this.active=false;this.generation++;this.pending=false;this.save();this.mix();this.render();}else{this.preferred=true;this.save();void this.unlock();}},{signal});
   const resume=(e:Event)=>{if(!e.isTrusted||!this.preferred||this.active||this.pending||document.hidden||this.paused||(e.target instanceof Element&&e.target.closest('.ambienceToggle,a,#voiceToggle,#voiceReplay')))return;void this.unlock();};
   document.addEventListener('click',resume,{capture:true,signal});document.addEventListener('keydown',resume,{capture:true,signal});
   document.addEventListener('visibilitychange',()=>this.mix(),{signal});
