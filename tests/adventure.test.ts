@@ -1,0 +1,3 @@
+import {describe,it,expect} from 'vitest';
+import {makeSave,decodeSave,finishQuest,route} from '../src/adventure/state.ts';
+describe('Adventure checkpoint',()=>{it('requires quests in sequence',()=>{const s=makeSave('female','umrah');expect(finishQuest(s,1)).toEqual(s);const a=finishQuest(s,0),b=finishQuest(a,1),c=finishQuest(b,2);expect(c.quest).toBe(3);expect(finishQuest(c,3)).toEqual(c);expect(decodeSave(JSON.stringify(c))).toEqual(c);});it('rejects invalid saves and branches route',()=>{expect(decodeSave('{"version":1,"avatar":"male","campaign":"umrah","quest":4}')).toBeNull();expect(route('umrah')).toHaveLength(22);expect(route('hajj')).toHaveLength(35);expect(route('umrah')).not.toContain(19);});});

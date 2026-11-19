@@ -1,0 +1,2 @@
+# Adventure V4.0
+Level 1 has three ordered objectives, procedural low-poly house, manually controlled character and guided walking, family dialogue, cinematic camera, generated ambience and browser speech. Level 2–35 are roadmap only. Progress is a local, tenant-scoped checkpoint. Existing practice modes and Supabase are unchanged. No real registration, document collection or cloud adventure reporting.

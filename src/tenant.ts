@@ -41,7 +41,7 @@ function apply(b:Brand,demo:boolean){
 }
 export function bootTenant(){
  if(!slug)return;
- const rewire=(a:HTMLAnchorElement)=>{if(!new URL(a.href).searchParams.has('mitra')&&a.origin===location.origin&&/\/(index|umrah|hajj|player|sai|explore|peserta)\.html$|\/$/.test(a.pathname))a.href=tenantUrl(a.href);};
+ const rewire=(a:HTMLAnchorElement)=>{if(!new URL(a.href).searchParams.has('mitra')&&a.origin===location.origin&&/\/(index|umrah|hajj|player|sai|explore|peserta|adventure)\.html$|\/$/.test(a.pathname))a.href=tenantUrl(a.href);};
  document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(rewire);
  document.addEventListener('click',e=>{const a=(e.target as Element|null)?.closest('a[href]') as HTMLAnchorElement|null;if(a)rewire(a);},true);
  void lookup().then(p=>{if(p)apply(p.brand,p.demo);else{const el=document.querySelector<HTMLElement>('[data-tenant-brand]');if(el)el.textContent='Mitra tidak tersedia';}}).catch(()=>{});
