@@ -1,0 +1,7 @@
+export type AirportStep={title:string;hint:string;action:string;status:string};
+export const AIRPORT_STEPS:ReadonlyArray<readonly AirportStep[]>=[
+ [{title:'Dokumen perjalanan',hint:'Paspor dan tiket contoh. Cocokkan nama dan tujuan.',action:'Tunjukkan dokumen',status:'Dokumen demo diperiksa.'},{title:'Bagasi tercatat',hint:'Serahkan koper ke conveyor petugas. Simpan bukti bagasi.',action:'Serahkan koper',status:'Koper demo menuju conveyor.'},{title:'Boarding pass',hint:'Terima kartu demo dengan gate A01. Pastikan data sesuai.',action:'Terima boarding pass',status:'Boarding pass demo diterima.'}],
+ [{title:'Baki pemeriksaan',hint:'Letakkan tas kabin dan barang sesuai arahan petugas.',action:'Letakkan tas',status:'Tas kabin demo menuju pemindai.'},{title:'Pemeriksaan keamanan',hint:'Ikuti petugas dan ambil kembali barang setelah diizinkan.',action:'Ikuti pemeriksaan',status:'Peragaan pemeriksaan selesai.'},{title:'Imigrasi keberangkatan',hint:'Tunjukkan paspor dan dokumen kepada petugas imigrasi.',action:'Tunjukkan paspor',status:'Simulasi imigrasi selesai; bukan izin nyata.'}],
+ [{title:'Informasi gate',hint:'Cocokkan gate A01 pada boarding pass dan layar simulasi.',action:'Periksa gate',status:'Gate demo cocok.'},{title:'Boarding',hint:'Siapkan paspor dan boarding pass, ikuti rombongan ketika dipanggil.',action:'Tunjukkan boarding pass',status:'Simulasi boarding selesai.'}]
+];
+export function nextAirportStep(quest:number,index:number){const steps=AIRPORT_STEPS[quest];return steps&&Number.isInteger(index)&&index>=0&&index<steps.length?index+1:index;}

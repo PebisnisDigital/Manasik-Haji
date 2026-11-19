@@ -36,3 +36,6 @@ Level 7 playable after Level 6. Classroom with two teaching NPCs, introductory r
 
 ## V5.3 — Departure day
 Level 8 playable after Level 7. Outdoor Indonesian porch and coach gathering scene, three-item final check, silent farewell conversation, direct guidance with personal prayer and QS Az-Zukhruf 43:13–14 excerpt, group-leader dialogue followed by loading the demo suitcase into the coach. No actual bus ride or booking: airport begins with Level 9. Same local checkpoint key. Level 9 planned. No document uploads. Religious guidance should receive qualified review.
+
+## V5.4 — Airport
+Level 9 playable after Level 8. Fictional international terminal with an apron-facing window, parked airliner, check-in counter and conveyor, security tray and scanner, immigration booth, waiting seats and demo boarding gate A01. Three NPC-dialogue missions followed by ordered tap actions (3+3+2); bag movement and gate animation; no quiz, no real document upload or travel booking. Immigration is an action within the second station, not a separate navigable mission. Real procedures vary; follow airport and airline staff. Same checkpoint key; level 10 planned.

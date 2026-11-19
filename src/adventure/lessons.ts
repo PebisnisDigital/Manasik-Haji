@@ -1,5 +1,5 @@
 import type {PlayableLevel,Campaign} from './state.ts';
-export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker'|'Pembimbing'|'Asisten Manasik'|'Ketua Rombongan';
+export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker'|'Pembimbing'|'Asisten Manasik'|'Ketua Rombongan'|'Petugas Check-in'|'Petugas Keamanan'|'Petugas Gate';
 export type Speaker=Npc|'Kamu';
 export type Line={speaker:Speaker;text:string};
 export type Lesson={title:string;body:string;points:string[];note?:string;lines:Line[];npc?:Npc};
@@ -498,9 +498,87 @@ export const LESSONS:Lesson[][]=[
       }
     ]
   }
+],
+[
+  {
+    "title": "Check-in dan bagasi tercatat",
+    "body": "Di loket maskapai, periksa dokumen dan ketentuan bagasi sebelum menuju gate.",
+    "points": [
+      "Siapkan paspor, tiket dan dokumen perjalanan yang diminta petugas. Cocokkan identitas pada boarding pass.",
+      "Serahkan koper tercatat untuk ditimbang dan diberi label; simpan bukti bagasi.",
+      "Simpan paspor, obat penting dan barang yang wajib dibawa di kabin bersama diri. Ikuti ketentuan maskapai."
+    ],
+    "note": "Boarding pass A01 adalah data fiktif, bukan tiket atau bukti penerbangan.",
+    "npc": "Petugas Check-in",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Selamat pagi. Saya akan check-in bersama rombongan."
+      },
+      {
+        "speaker": "Petugas Check-in",
+        "text": "Silakan siapkan paspor dan tiket. Koper tercatat akan diperiksa, ditimbang dan diberi label."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik. Saya simpan dokumen dan tas kabin bersama saya."
+      }
+    ]
+  },
+  {
+    "title": "Keamanan dan imigrasi",
+    "body": "Ikuti pemeriksaan sesuai arahan petugas dan urutan yang berlaku di terminal.",
+    "points": [
+      "Letakkan barang kabin pada baki sesuai instruksi petugas keamanan. Patuhi aturan cairan, elektronik dan barang terlarang.",
+      "Lewati pemeriksaan hanya saat dipersilakan. Ambil kembali barang setelah diperiksa.",
+      "Siapkan paspor dan dokumen perjalanan di pemeriksaan imigrasi keberangkatan. Jawab petugas dengan jujur."
+    ],
+    "note": "Urutan serta prosedur dapat berbeda menurut bandara. Simulasi ini tidak memberikan izin keberangkatan.",
+    "npc": "Petugas Keamanan",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Apa yang harus dilakukan di area pemeriksaan?"
+      },
+      {
+        "speaker": "Petugas Keamanan",
+        "text": "Ikuti petunjuk petugas. Letakkan tas kabin pada baki, lalu siapkan paspor untuk pemeriksaan imigrasi."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik, saya akan mengikuti prosedurnya."
+      }
+    ]
+  },
+  {
+    "title": "Boarding gate",
+    "body": "Periksa informasi keberangkatan dan tetap bersama rombongan.",
+    "points": [
+      "Cocokkan nomor gate dan jadwal boarding pada boarding pass dengan layar bandara; informasi dapat berubah.",
+      "Siapkan boarding pass dan paspor ketika dipanggil. Ikuti urutan boarding dan arahan petugas.",
+      "Jika terpisah atau perlu bantuan, hubungi ketua rombongan atau petugas bandara."
+    ],
+    "note": "Gate A01 dan seluruh informasi penerbangan dalam game bersifat fiktif. Level berikutnya adalah simulasi kabin pesawat.",
+    "npc": "Petugas Gate",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Apakah ini gate untuk rombongan saya?"
+      },
+      {
+        "speaker": "Petugas Gate",
+        "text": "Cocokkan gate A01 pada boarding pass demo dan layar informasi. Tetap bersama pembimbing dan ikuti panggilan boarding."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik, saya siap mengikuti arahan."
+      }
+    ]
+  }
 ]
 ];
 export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
+ if(level===9)return [{speaker:npc,text:npc==='Petugas Check-in'?'Silakan siapkan dokumen dan bagasi.':npc==='Petugas Keamanan'?'Ikuti petunjuk pemeriksaan keamanan dan imigrasi.':'Cocokkan gate dan ikuti arahan boarding.'},{speaker:'Kamu',text:'Baik, terima kasih.'}];
  if(level===8)return [{speaker:npc,text:npc==='Ketua Rombongan'?'Selamat datang. Ikuti arahan rombongan sebelum berangkat.':'Hati-hati di perjalanan. Semoga Allah menjagamu.'},{speaker:'Kamu',text:'Aamiin. Terima kasih.'}];
  if(level===7)return [{speaker:npc,text:npc==='Pembimbing'?'Silakan pelajari urutan ibadah sesuai jenis perjalanan.':'Mari kenali ihram dan latihan manasik.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===6)return [{speaker:npc,text:npc==='Ibu'?'Siapkan barang secukupnya, Nak. Jangan lupa dokumen.':'Periksa aturan bagasi sebelum berangkat, ya.'},{speaker:'Kamu',text:'Siap.'}];
