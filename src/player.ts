@@ -15,6 +15,12 @@ const count = document.querySelector<HTMLDivElement>('#count')!;
 const progress = document.querySelector<HTMLProgressElement>('#progress')!;
 const autoButton = document.querySelector<HTMLButtonElement>('#auto')!;
 const reset = document.querySelector<HTMLButtonElement>('#reset')!;
+const joy = document.querySelector<HTMLDivElement>('#joy')!;
+const knob = document.querySelector<HTMLSpanElement>('#knob')!;
+const avatar = document.querySelector<HTMLSelectElement>('#avatar')!;
+const cameraMode = document.querySelector<HTMLSelectElement>('#cameraMode')!;
+const pauseButton = document.querySelector<HTMLButtonElement>('#pause')!;
+const mapPlayer = document.querySelector<SVGGElement>('#mapPlayer')!;
 
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -27,8 +33,17 @@ function boot(): void {
   const environment = new Environment(renderer, scene, 'low');
   scene.add(environment.group);
   const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 1000);
-  const crowd = new CrowdRenderer(96, { lod0Budget: 12, lod1Budget: 96, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
+  const crowd = new CrowdRenderer(160, { lod0Budget: 12, lod1Budget: 160, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
   scene.add(crowd.group);
+  const playerQuality = {lod0Budget:1,lod1Budget:1,lod0Distance:100,lod1Distance:100,blobShadows:true};
+  const male = new CrowdRenderer(1, playerQuality, {robeLength:0.19,coverHead:false,pilgrimStyle:'male'});
+  scene.add(male.group);
+  let female: CrowdRenderer | undefined;
+  function hero(): CrowdRenderer {
+    if(avatar.value !== 'female') return male;
+    if(!female){female = new CrowdRenderer(1, playerQuality, {robeLength:0.065,coverHead:true,pilgrimStyle:'female'});scene.add(female.group);}
+    return female;
+  }
   const route = new THREE.Mesh(new THREE.RingGeometry(START_RADIUS - 0.11, START_RADIUS + 0.11, 160).rotateX(-Math.PI / 2),
     new THREE.MeshBasicMaterial({color:0x477a68, transparent:true, opacity:0.55, side:THREE.DoubleSide, depthWrite:false}));
   route.position.y=0.05;scene.add(route);
@@ -38,7 +53,11 @@ function boot(): void {
   let orbit = 0, walkPhase = 0, total = 0, completed = 0, auto = false, finished = false, last = performance.now();
   let lastAngle: number = START;
   const input = new Set<string>();
-  const pointerInput = new Map<number,string>();
+  let joyId:number|null=null, joyX=0, joyY=0, paused=false;
+  let initializedCamera=false;
+  const desiredCamera = new THREE.Vector3();
+  const desiredLook = new THREE.Vector3();
+  const smoothLook = new THREE.Vector3();
   const frameState = {f0:0,f1:0,frac:0};
   const keyMap: Record<string,string> = {KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
   const wrap = (a:number) => Math.atan2(Math.sin(a),Math.cos(a));
@@ -47,43 +66,55 @@ function boot(): void {
     autoButton.setAttribute('aria-pressed',String(auto));
     autoButton.textContent=auto?'Hentikan otomatis':'Ikuti jalur otomatis';
   }
+  function stopJoy():void{joyId=null;joyX=0;joyY=0;knob.style.transform='translate(0px,0px)';}
+  function setPause(on:boolean):void{paused=on;pauseButton.setAttribute('aria-pressed',String(on));pauseButton.textContent=on?'Lanjutkan':'Jeda';input.clear();stopJoy();}
   function resetAll():void {
     x=Math.cos(START)*START_RADIUS;z=Math.sin(START)*START_RADIUS;lastAngle=START;
-    yaw=Math.PI;orbit=0;total=0;completed=0;finished=false;walkPhase=0;input.clear();pointerInput.clear();setAuto(false);
-    count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
+    yaw=Math.PI;orbit=0;total=0;completed=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);
+    setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
   }
   function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   resize();window.addEventListener('resize',resize);
-  window.addEventListener('keydown',e=>{const k=keyMap[e.code];if(k&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();input.add(k);setAuto(false);}});
+  window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.closest('select,input,textarea'))return;const k=keyMap[e.code];if(k&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();input.add(k);setAuto(false);}});
   window.addEventListener('keyup',e=>{const k=keyMap[e.code];if(k)input.delete(k);});
-  window.addEventListener('blur',()=>{input.clear();pointerInput.clear();setAuto(false);});
-  document.addEventListener('visibilitychange',()=>{if(document.hidden){input.clear();pointerInput.clear();setAuto(false);}last=performance.now();});
-  document.querySelectorAll<HTMLButtonElement>('[data-move]').forEach(b=>{
-    b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture(e.pointerId);pointerInput.set(e.pointerId,b.dataset.move!);setAuto(false);});
-    for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,e=>pointerInput.delete((e as PointerEvent).pointerId));
-  });
+  window.addEventListener('blur',()=>{input.clear();stopJoy();setAuto(false);});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){input.clear();stopJoy();setAuto(false);}last=performance.now();});
+  function moveJoy(e:PointerEvent):void{
+    const rect=joy.getBoundingClientRect(),r=rect.width*0.35;
+    const dx=e.clientX-rect.left-rect.width/2,dy=e.clientY-rect.top-rect.height/2;
+    const mag=Math.hypot(dx,dy), scale=mag>r?r/mag:1;
+    joyX=dx*scale/r;joyY=dy*scale/r;
+    if(mag<r*.1){joyX=0;joyY=0;}
+    knob.style.transform='translate('+joyX*r+'px,'+joyY*r+'px)';
+  }
+  joy.addEventListener('pointerdown',e=>{if(joyId!==null)return;e.preventDefault();joyId=e.pointerId;joy.setPointerCapture(e.pointerId);setAuto(false);moveJoy(e);});
+  joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)moveJoy(e);});
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===joyId)stopJoy();});
   let dragId:number|null=null,dragX=0;
   canvas.addEventListener('pointerdown',e=>{if(dragId!==null)return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
+  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
   autoButton.addEventListener('click',()=>setAuto(!auto));reset.addEventListener('click',resetAll);
-  const pressed=(k:string)=>input.has(k)||Array.from(pointerInput.values()).includes(k);
-  const npc=Array.from({length:72},(_,i)=>({a:i*2.399963,r:36+(i%8)*2.4,s:0.9+(i%5)*0.12,h:1.59+(i%7)*0.035}));
-  function submit(lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
+  pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
+  const pressed=(k:string)=>input.has(k);
+  const npc=Array.from({length:124},(_,i)=>({a:i*2.399963,r:35.8+(i%9)*2.35,s:0.9+(i%5)*0.12,h:1.59+(i%7)*0.035}));
+  function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
-    crowd.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
+    target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const dt=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused?0:elapsed;
+    const angle=Math.atan2(z,x);
+    if(cameraMode.value!=='free')orbit=-angle;
     let dx=0,dz=0;
     if(auto&&!finished){
       const r=Math.hypot(x,z);const a=Math.atan2(z,x);const correction=(START_RADIUS-r)*0.8;
       dx=Math.sin(a)*3.5+Math.cos(a)*correction;dz=-Math.cos(a)*3.5+Math.sin(a)*correction;
-      orbit=-a;
+      if(cameraMode.value!=='free')orbit=-a;
     }else{
-      const f=(pressed('up')?1:0)-(pressed('down')?1:0);
-      const s=(pressed('right')?1:0)-(pressed('left')?1:0);
-      const len=Math.hypot(f,s)||1;
+      const f=(pressed('up')?1:0)-(pressed('down')?1:0)-joyY;
+      const s=(pressed('right')?1:0)-(pressed('left')?1:0)+joyX;
+      const len=Math.max(1,Math.hypot(f,s));
       dx=(-Math.sin(orbit)*f+Math.cos(orbit)*s)*2.4/len;
       dz=(-Math.cos(orbit)*f-Math.sin(orbit)*s)*2.4/len;
     }
@@ -100,16 +131,33 @@ function boot(): void {
     const dist=Math.hypot(x-oldX,z-oldZ);
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}
     marker.position.x=x;marker.position.z=z;
+    mapPlayer.setAttribute('transform','translate('+(70+x*1.08).toFixed(1)+' '+(70+z*1.08).toFixed(1)+')');
     const viewX=Math.sin(orbit),viewZ=Math.cos(orbit);
-    camera.position.set(x+viewX*6.4,3.8,z+viewZ*6.4);
-    camera.lookAt(x-viewX*2.0,1.5,z-viewZ*2.0);
-    camera.updateMatrixWorld();
+    const r=Math.hypot(x,z),rx=x/r,rz=z/r;
+    if(cameraMode.value==='first'){
+      desiredCamera.set(x,1.61,z);desiredLook.set(x-viewX*8,1.61,z-viewZ*8);
+    }else if(cameraMode.value==='follow'){
+      desiredCamera.set(x+viewX*5.9+rx*6.4,3.6,z+viewZ*5.9+rz*6.4);
+      desiredLook.set(x-viewX*3-rx*5,1.3,z-viewZ*3-rz*5);
+    }else{
+      desiredCamera.set(x+viewX*5.6,3.2,z+viewZ*5.6);
+      desiredLook.set(x-viewX*2,1.45,z-viewZ*2);
+    }
+    if(!initializedCamera){camera.position.copy(desiredCamera);smoothLook.copy(desiredLook);initializedCamera=true;}
+    else {const a=1-Math.exp(-elapsed*9);camera.position.lerp(desiredCamera,a);smoothLook.lerp(desiredLook,a);}
+    camera.lookAt(smoothLook);camera.updateMatrixWorld();
+    const active=hero();
+    male.group.visible=active===male&&cameraMode.value!=='first';
+    if(female)female.group.visible=active===female&&cameraMode.value!=='first';
+    marker.visible=cameraMode.value!=='first';
+    active.beginFrame();
+    if(cameraMode.value!=='first')submit(active,0,x,z,yaw,avatar.value==='female'?1.62:1.74,avatar.value==='female'?8:0,dist>0.0001?Clip.WALK:Clip.IDLE,dist>0.0001?walkPhase:now/3000%1);
+    active.endFrame();
     crowd.beginFrame();
-    submit(0,x,z,yaw,1.74,0,dist>0.0001?Clip.WALK:Clip.IDLE,dist>0.0001?walkPhase:now/3000%1);
     for(let i=0;i<npc.length;i++){
       const n=npc[i];n.a-=n.s/n.r*dt;const px=Math.cos(n.a)*n.r,pz=Math.sin(n.a)*n.r;
-      if(Math.hypot(px-x,pz-z)<1.0)continue;
-      submit(1,px,pz,Math.atan2(Math.sin(n.a),-Math.cos(n.a)),n.h,i%7,Clip.WALK,(now/1000*n.s/1.42+i*.13)%1);
+      if(Math.hypot(px-x,pz-z)<0.7)continue;
+      submit(crowd,1,px,pz,Math.atan2(Math.sin(n.a),-Math.cos(n.a)),n.h,i%7,Clip.WALK,(now/1000*n.s/1.42+i*.13)%1);
     }
     crowd.endFrame();renderer.render(scene,camera);requestAnimationFrame(frame);
   }

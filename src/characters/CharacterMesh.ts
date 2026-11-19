@@ -360,7 +360,7 @@ function buildLimb(
   capRing(b, rings[0], startCentre, true);
 }
 
-function buildHead(b: Builder, spec: LodSpec, coverTop: boolean): void {
+function buildHead(b: Builder, spec: LodSpec, coverTop: boolean, hijab = false): void {
   const cy = 0.928;
   const rx = 0.048;
   const ry = 0.062;
@@ -381,10 +381,12 @@ function buildHead(b: Builder, spec: LodSpec, coverTop: boolean): void {
     const scale = coverTop && cp > -0.15 ? 1.09 : 1;
     for (let i = 0; i < segs; i++) {
       const a = (i / segs) * Math.PI * 2;
-      const x = Math.cos(a) * sp * rx * scale;
-      const z = Math.sin(a) * sp * rz * scale;
+      const cloth = hijab && (cp > 0.43 || Math.sin(a) < 0.72 || cp < -0.65);
+      const s = cloth ? 1.15 : scale;
+      const x = Math.cos(a) * sp * rx * s;
+      const z = Math.sin(a) * sp * rz * s;
       ring.push(
-        pushVertex(b, x, y, z, x, (y - cy) * 1.2, z, BoneIndex.head, BoneIndex.head, 1, zone),
+        pushVertex(b, x, y, z, x, (y - cy) * 1.2, z, BoneIndex.head, BoneIndex.head, 1, cloth ? Z_HEADCOVER : hijab ? Z_SKIN : zone),
       );
     }
     rings.push(ring);
@@ -456,6 +458,7 @@ export interface CharacterVariant {
   /** Height fraction at which the garment hem sits. */
   robeLength: number;
   coverHead: boolean;
+  pilgrimStyle?: 'male' | 'female';
 }
 
 /**
@@ -473,7 +476,7 @@ export function buildCharacterMesh(lod: number, variant: CharacterVariant = DEFA
 
   buildGarment(b, spec, variant.robeLength);
   buildNeck(b, spec);
-  buildHead(b, spec, variant.coverHead);
+  buildHead(b, spec, variant.coverHead, variant.pilgrimStyle === 'female');
 
   // Arms: upper and lower, left and right. The sleeve is part of the garment
   // colour zone down to the forearm, then skin.
@@ -494,8 +497,8 @@ export function buildCharacterMesh(lod: number, variant: CharacterVariant = DEFA
     [-1, BoneIndex.upArmR, BoneIndex.loArmR, BoneIndex.handR],
   ] as const) {
     const x = armX * side;
-    buildLimb(b, spec, up, lo, shoulderY, elbowY, x, 0.036, 0.026, Z_GARMENT, false);
-    buildLimb(b, spec, lo, hand, elbowY, wristY, x, 0.026, 0.019, Z_SKIN, false);
+    buildLimb(b, spec, up, lo, shoulderY, elbowY, x, 0.036, 0.026, variant.pilgrimStyle === 'male' ? Z_SKIN : Z_GARMENT, false);
+    buildLimb(b, spec, lo, hand, elbowY, wristY, x, 0.026, 0.019, variant.pilgrimStyle === 'female' ? Z_GARMENT : Z_SKIN, false);
     buildLimb(b, spec, hand, hand, wristY, handY, x, 0.021, 0.013, Z_SKIN, true);
   }
 

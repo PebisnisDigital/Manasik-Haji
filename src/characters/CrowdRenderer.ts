@@ -16,7 +16,7 @@
  */
 
 import * as THREE from 'three';
-import { LOD_SPECS, buildCharacterMesh, type MeshData } from './CharacterMesh.ts';
+import { LOD_SPECS, buildCharacterMesh, type CharacterVariant, type MeshData } from './CharacterMesh.ts';
 import { bakeVertexAnimation, type BakedAnimation } from './VertexAnimationTexture.ts';
 import { CLIPS, CLIP_OFFSETS, WALK_STRIDE_FRACTION } from './AnimationBank.ts';
 import { Clip } from '../sim/States.ts';
@@ -163,7 +163,7 @@ export class CrowdRenderer {
   private blobMesh: THREE.Mesh | null = null;
   private blobPos: THREE.InstancedBufferAttribute | null = null;
 
-  constructor(capacity: number, quality: CrowdQuality) {
+  constructor(capacity: number, quality: CrowdQuality, private readonly variant?: CharacterVariant) {
     this.capacity = capacity;
     this.quality = quality;
     this.group.name = 'crowd';
@@ -191,7 +191,7 @@ export class CrowdRenderer {
   }
 
   private buildLod(lod: number): LodResources {
-    const mesh = buildCharacterMesh(lod);
+    const mesh = buildCharacterMesh(lod, this.variant);
     const baked = bakeVertexAnimation(mesh);
 
     const geometry = new THREE.InstancedBufferGeometry();
