@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import {ImmersiveSound} from './audio/ImmersiveSound.ts';
+const lobbySound=new ImmersiveSound('lobby',document.querySelector('.menu nav'));
 import {surfaceDetail} from './env/GraphicsDetail.ts';
 import {newCore,readCore,writeCore,coreUrl} from './coreProgress.ts';
 import {bootTenant,slug,tenantUrl} from './tenant.ts';
@@ -46,7 +48,7 @@ for(const p of ['hajj','umrah'] as const){const pos=placements[p];mesh(new THREE
 for(const x of [-6.5,6.5])for(const z of [-2.6,3.5]){mesh(new THREE.CylinderGeometry(.55,.38,.49,12),sand,x,.245,z,s);box(.18,2,.18,mat(0x967c55),x,1.25,z,s);for(let k=0;k<9;k++){const o=ball(.3,teal,x+Math.cos(k*2.4)*.55,2.5+Math.sin(k)*.25,z+Math.sin(k*2.4)*.55,s);o.scale.set(1.4,.55,1.8);}}
 hero=person(false,0xf4ead6);hero.root.position.copy(start);hero.root.rotation.y=Math.PI;heading=Math.PI;sceneReady=true;resize();requestAnimationFrame(frame);}
 function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);r.setPixelRatio(Math.min(devicePixelRatio,touchMode?1.35:1.8));r.setSize(w,h,false);cam.aspect=w/h;cam.fov=touchMode?57:w/h<.85?66:60;cam.updateProjectionMatrix();}
-function syncOrientation(){const was=portraitBlocked;portraitBlocked=touchMode&&matchMedia('(orientation: portrait)').matches;const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
+function syncOrientation(){const was=portraitBlocked;portraitBlocked=touchMode&&matchMedia('(orientation: portrait)').matches;lobbySound.setPaused(portraitBlocked);const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
 async function landscapeFullscreen(){if(!touchMode)return;try{if(!document.fullscreenElement){const el=document.documentElement;if(typeof el.requestFullscreen==='function')await el.requestFullscreen();else throw Error('Fullscreen unsupported');}const o=screen.orientation as ScreenOrientation&{lock?:(orientation:'landscape')=>Promise<void>};if(o?.lock)await o.lock('landscape');}catch{if(portraitBlocked)$('rotateHint').textContent='Putar HP secara manual. Aktifkan rotasi otomatis.';}finally{syncOrientation();}}
 btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exitFullscreen().catch(()=>{});}else void landscapeFullscreen();};btn('rotateFullscreen').onclick=()=>void landscapeFullscreen();btn('cameraReset').onclick=()=>resetCamera();
 window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);document.addEventListener('fullscreenchange',()=>{btn('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Keluar layar penuh':'Layar penuh');syncOrientation();});
@@ -69,7 +71,7 @@ function frame(now:number){
  const n=Math.hypot(dx,dz),speed=2.6;const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
  if(modal||encounter)velocity.set(0,0);
  const moving=velocity.length()>.055;
- if(moving){const nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,-5.6,5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,-3,5.8);pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
+ if(moving){const nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,-5.6,5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,-3,5.8);lobbySound.walk(Math.hypot(nx-pos.x,nz-pos.z));pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
  if(selected&&!modal&&!encounter){for(const p of ['hajj','umrah'] as const){const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d<1.05){greet(p);break;}}}
  if(encounter&&encounterProgram){const t=placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
  hero.root.rotation.y=heading;

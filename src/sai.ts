@@ -7,6 +7,7 @@ import { buildSaiHall, END, GREEN_START, GREEN_END, WALK_WIDTH } from './env/Sai
 import { SaiProgress } from './sim/SaiProgress.ts';
 import {guidedStage,completeStage} from './journey.ts';
 import {hajjGame,completeHajj} from './hajjProgress.ts';
+import {ImmersiveSound} from './audio/ImmersiveSound.ts';
 import {VoiceGuide} from './audio/VoiceGuide.ts';
 import { CrowdRenderer } from './characters/CrowdRenderer.ts';
 import { resolveFrames } from './characters/CrowdView.ts';
@@ -40,6 +41,7 @@ nextLink.addEventListener('click',e=>{if(core&&(!coreFinished||!completeCoreGame
 
 const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintasan pertama. Lanjutkan bolak-balik hingga tujuh lintasan dan berakhir di Marwah.';
 const guide=new VoiceGuide(intro);
+const sound=core?new ImmersiveSound('sai',document.querySelector('.voice-controls')):null;
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
@@ -120,7 +122,7 @@ function boot(): void {
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused||isPortrait()?0:elapsed;animationTime+=dt;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused||isPortrait()?0:elapsed;sound?.setPaused(paused||isPortrait());animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
     if(!finished&&inGreen!==wasGreen&&!paused){wasGreen=inGreen;if(inGreen)guide.announce(avatar.value==='male'?'Masuk area lampu hijau. Bagi laki-laki, dianjurkan berlari kecil bila mampu.':'Masuk area lampu hijau. Jamaah perempuan tetap berjalan biasa.','green-in-'+track.completed,5000,true);else guide.announce('Keluar area lampu hijau. Lanjutkan berjalan biasa menuju '+track.destination+'.','green-out-'+track.completed,5000);}
     pace.hidden=avatar.value!=='male'||!inGreen||finished;
@@ -149,7 +151,7 @@ function boot(): void {
       else if(arrived){wrongSince=0;wrongAnnounced=false;guide.announce('Lintasan ke '+track.completed+' selesai di '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.','arrival-'+track.completed,0,true);targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
       else if(Math.abs(z-oldZ)>.001){if((z-oldZ)*track.direction<0){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce('Arah berlawanan. Tujuan berikutnya adalah '+track.destination+'.','wrong',10000,true);}}else{if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar.','correct',10000);wrongSince=0;wrongAnnounced=false;}status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
     }
-    const dist=Math.hypot(x-oldX,z-oldZ);
+    const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}
     marker.position.x=x;marker.position.z=z;
     mapPlayer.setAttribute('transform','translate('+(70+x*2.2).toFixed(1)+' '+(70+z*1.16).toFixed(1)+')');

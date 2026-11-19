@@ -10,6 +10,7 @@ import { Clip } from './sim/States.ts';
 import { MATAF } from './config/site.ts';
 import {guidedStage,completeStage} from './journey.ts';
 import {hajjGame,completeHajj} from './hajjProgress.ts';
+import {ImmersiveSound} from './audio/ImmersiveSound.ts';
 import {VoiceGuide} from './audio/VoiceGuide.ts';
 
 const TAU = Math.PI * 2;
@@ -42,6 +43,7 @@ avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 
 const intro=core?.step===17?"Tawaf wada’ sebagai perpisahan sebelum meninggalkan Makkah. Ada pengecualian sesuai ketentuan. Lakukan tujuh putaran latihan dengan Ka’bah di kiri.":core?.step===10?"Tawaf Ifadah adalah rukun haji. Lakukan tujuh putaran, Ka’bah di sebelah kiri.":"Selamat datang di area latihan tawaf. Mulai dari garis Hajar Aswad, berjalan mengelilingi Ka'bah berlawanan arah jarum jam. Jaga Ka'bah di sebelah kiri. Selesaikan tujuh putaran.";
 const guide=new VoiceGuide(intro);
+const sound=core?new ImmersiveSound('tawaf',document.querySelector('.voice-controls')):null;
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
@@ -124,7 +126,7 @@ function boot(): void {
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused||isPortrait()?0:elapsed;animationTime+=dt;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused||isPortrait()?0:elapsed;sound?.setPaused(paused||isPortrait());animationTime+=dt;
     const angle=Math.atan2(z,x);
     if(cameraMode.value!=='free')orbit=-angle;
     let dx=0,dz=0;
@@ -151,7 +153,7 @@ function boot(): void {
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }
-    const dist=Math.hypot(x-oldX,z-oldZ);
+    const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}
     marker.position.x=x;marker.position.z=z;
     mapPlayer.setAttribute('transform','translate('+(70+x*1.08).toFixed(1)+' '+(70+z*1.08).toFixed(1)+')');

@@ -4,7 +4,7 @@ import {resolveFrames} from './characters/CrowdView.ts';
 import {Clip} from './sim/States.ts';
 import type {Avatar} from './coreProgress.ts';
 export type Obstacle={x:number;z:number;w:number;d:number};
-export interface WalkOptions{avatar:Avatar;blocked:()=>boolean;onNear:()=>void}
+export interface WalkOptions{avatar:Avatar;blocked:()=>boolean;onNear:()=>void;onWalk?:(metres:number)=>void}
 export function safePosition(x:number,z:number,obs:readonly Obstacle[],bounds:readonly [number,number,number,number]):boolean{return x>=bounds[0]&&x<=bounds[1]&&z>=bounds[2]&&z<=bounds[3]&&!obs.some(o=>Math.abs(x-o.x)<o.w/2+.32&&Math.abs(z-o.z)<o.d/2+.32);}
 // Grid search prevents auto-approach from getting stuck behind a tent.
 export function walkPath(start:readonly [number,number],goal:readonly [number,number],obs:readonly Obstacle[],bounds:readonly [number,number,number,number]):[number,number][]{
@@ -37,7 +37,7 @@ export function attachWalker(scene:THREE.Scene,cam:THREE.PerspectiveCamera,canva
  function moveAxis(x:number,z:number){if(safePosition(x,z,obstacles,bounds)){pos.x=x;pos.z=z;return;}if(safePosition(x,pos.z,obstacles,bounds))pos.x=x;if(safePosition(pos.x,z,obstacles,bounds))pos.z=z;}
  function update(now:number){const dt=Math.min(.05,last?(now-last)/1000:0);last=now;if(isBlocked()){v.set(0,0);if(options.blocked()||document.hidden)stop();}let dx=0,dz=0;
  if(!isBlocked()){if(auto){while(route.length&&Math.hypot(route[0][0]-pos.x,route[0][1]-pos.z)<.18)route.shift();if(!route.length||Math.hypot(goal.x-pos.x,goal.y-pos.z)<=.65)auto=false;else {const x=route[0][0]-pos.x,z=route[0][1]-pos.z,d=Math.hypot(x,z);dx=x/Math.max(.3,d);dz=z/Math.max(.3,d);}}else{const a=joy.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),f=-joy.y+Number(keys.has('w')||keys.has('arrowup'))-Number(keys.has('s')||keys.has('arrowdown'));dx=-Math.cos(yaw)*a+Math.sin(yaw)*f;dz=Math.sin(yaw)*a+Math.cos(yaw)*f;}}
- const n=Math.hypot(dx,dz);v.lerp(new THREE.Vector2(dx,dz).multiplyScalar(2.8/Math.max(1,n)),1-Math.exp(-dt*12));if(locked)v.set(0,0);const ox=pos.x,oz=pos.z;moveAxis(pos.x+v.x*dt,pos.z+v.y*dt);const dist=Math.hypot(pos.x-ox,pos.z-oz);
+ const n=Math.hypot(dx,dz);v.lerp(new THREE.Vector2(dx,dz).multiplyScalar(2.8/Math.max(1,n)),1-Math.exp(-dt*12));if(locked)v.set(0,0);const ox=pos.x,oz=pos.z;moveAxis(pos.x+v.x*dt,pos.z+v.y*dt);const dist=Math.hypot(pos.x-ox,pos.z-oz);if(dist>.001&&!isBlocked())options.onWalk?.(dist);
  if(dist>.001){heading+=angle(heading,Math.atan2(pos.x-ox,pos.z-oz))*(1-Math.exp(-dt*14));phase=(phase+dist/1.42)%1;}
  if(auto&&drag===null&&now-manualAt>1000)yaw+=angle(yaw,heading)*(1-Math.exp(-dt*4));
  const d=Math.hypot(pos.x-goal.x,pos.z-goal.y),next=d<=1.15;if(next!==near){near=next;options.onNear();}ring.visible=!near;arrow.visible=!near;arrow.position.y=.74+Math.sin(now*.004)*.13;info.textContent=near?'✓ Di lokasi':Math.ceil(d)+' m';

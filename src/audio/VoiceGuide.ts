@@ -39,7 +39,7 @@ export class VoiceGuide {
     this.toggle.textContent=this.enabled?'Matikan suara':'Aktifkan suara';
     this.state.textContent=this.enabled?'Pemandu suara aktif':this.preferred?'Ketuk untuk melanjutkan suara':'Panduan teks • suara opsional';
   }
-  stop():void{if(this.active){this.active=null;this.engine?.cancel();}}
+  stop():void{if(this.active){this.active=null;this.engine?.cancel();document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:false}));}}
   private speak():void{
     if(!this.enabled||!this.engine||!this.current||document.hidden)return;
     this.stop();
@@ -51,9 +51,9 @@ export class VoiceGuide {
     const u=new SpeechSynthesisUtterance(this.current);
     u.lang='id-ID';u.rate=.9;u.pitch=1;u.volume=1;if(idVoice)u.voice=idVoice;
     this.active=u;
-    u.onstart=()=>{if(this.active===u)this.state.textContent='Pemandu sedang berbicara…';};
-    u.onend=()=>{if(this.active===u){this.active=null;this.render();}};
-    u.onerror=()=>{if(this.active===u){this.active=null;this.enabled=false;this.render();this.state.textContent='Audio belum bisa diputar. Ketuk aktifkan suara atau baca panduan.';}};
+    u.onstart=()=>{if(this.active===u){this.state.textContent='Pemandu sedang berbicara…';document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:true}));}};
+    u.onend=()=>{if(this.active===u){this.active=null;document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:false}));this.render();}};
+    u.onerror=()=>{if(this.active===u){this.active=null;document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:false}));this.enabled=false;this.render();this.state.textContent='Audio belum bisa diputar. Ketuk aktifkan suara atau baca panduan.';}};
     try{this.engine.speak(u);}catch{this.active=null;this.enabled=false;this.render();this.state.textContent='Audio tidak tersedia. Panduan teks tetap aktif.';}
   }
   /** Discrete educational events only; never announce every animation frame. */
