@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mobileGraphics,staticShadows} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,type CoreGameStep} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
 import {tenantUrl} from './tenant.ts';
@@ -48,9 +49,9 @@ function boot(): void {
   const scene = new THREE.Scene();
   scene.background=new THREE.Color(0xece7dc);
   scene.fog=new THREE.Fog(0xece7dc,40,117);
-  scene.add(buildSaiHall());
+  const hall=buildSaiHall();scene.add(hall);const sun=hall.children.find(o=>o instanceof THREE.DirectionalLight);if(core&&sun instanceof THREE.DirectionalLight){sun.position.set(-15,28,12);staticShadows(renderer,sun,48);}
   const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 1000);
-  const crowd = new CrowdRenderer(160, { lod0Budget: 12, lod1Budget: 160, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
+  const crowdSize=core&&!mobileGraphics()?240:160;const crowd = new CrowdRenderer(crowdSize, { lod0Budget: 12, lod1Budget: crowdSize, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
   scene.add(crowd.group);
   const playerQuality = {lod0Budget:1,lod1Budget:1,lod0Distance:100,lod1Distance:100,blobShadows:true};
   const male = new CrowdRenderer(1, playerQuality, {robeLength:0.19,coverHead:false,pilgrimStyle:'male'});
@@ -113,7 +114,7 @@ function boot(): void {
   function setBrisk(on:boolean):void{brisk=on&&avatar.value==='male';pace.setAttribute('aria-pressed',String(brisk));pace.textContent=brisk?'Kecepatan biasa':'Jalan lebih cepat';}
   pace.addEventListener('click',()=>setBrisk(!brisk));avatar.addEventListener('change',()=>setBrisk(false));
   const pressed=(k:string)=>input.has(k);
-  const npc=Array.from({length:78},(_,i)=>({t:i*2.399963%168,x:(i%2===0?1:-1)*(2.0+(i%5)*.95),s:0.9+(i%5)*.12,h:1.59+(i%7)*.035}));
+  const npc=Array.from({length:core&&!mobileGraphics()?144:78},(_,i)=>({t:i*2.399963%168,x:(i%2===0?1:-1)*(2.0+(i%5)*.95),s:0.9+(i%5)*.12,h:1.59+(i%7)*.035}));
   function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);

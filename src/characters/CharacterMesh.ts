@@ -471,7 +471,7 @@ export interface CharacterVariant {
 export const DEFAULT_VARIANT: CharacterVariant = { robeLength: 0.075, coverHead: true };
 
 export function buildCharacterMesh(lod: number, variant: CharacterVariant = DEFAULT_VARIANT): MeshData {
-  const spec = LOD_SPECS[Math.max(0, Math.min(LOD_SPECS.length - 1, lod))];
+  const spec = lod===0&&variant.pilgrimStyle?{...LOD_SPECS[0],bodySegments:18,bodyRings:15,limbSegments:8,limbRings:4,headBands:9,headSegments:12}:LOD_SPECS[Math.max(0, Math.min(LOD_SPECS.length - 1, lod))];
   const b = newBuilder();
 
   buildGarment(b, spec, variant.robeLength);

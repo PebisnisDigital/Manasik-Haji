@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {surfaceDetail} from './GraphicsDetail.ts';
 export const END=42;
 export const GREEN_START=7;
 export const GREEN_END=16;
@@ -7,13 +8,13 @@ export const WALK_WIDTH=7.1;
 export function buildSaiHall():THREE.Group {
  const group=new THREE.Group();
  const stone=new THREE.MeshStandardMaterial({color:0xe9e1d2,roughness:.65});
- const ivory=new THREE.MeshStandardMaterial({color:0xf6f1e6,roughness:.6});
+ const ivory=new THREE.MeshStandardMaterial({color:0xf6f1e6,roughness:.6});const paving=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.42});surfaceDetail(paving,'marble',8,32);surfaceDetail(stone,'stone',2,3);surfaceDetail(ivory,'marble',1,2);
  const gold=new THREE.MeshStandardMaterial({color:0xb9a574,roughness:.44,metalness:.15});
  const dark=new THREE.MeshStandardMaterial({color:0x484f49,roughness:.65});
  const green=new THREE.MeshStandardMaterial({color:0x15944d,emissive:0x20d469,emissiveIntensity:2.2});
  const white=new THREE.MeshBasicMaterial({color:0xfff9e6});
  function box(w:number,h:number,d:number,x:number,y:number,z:number,mat:THREE.Material):THREE.Mesh{
-   const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);group.add(o);return o;
+   const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);o.position.set(x,y,z);o.receiveShadow=true;if(h>1&&w<2&&d<3)o.castShadow=true;group.add(o);return o;
  }
  function sign(label:string,x:number,y:number,z:number,reverse=false):void{
    const c=document.createElement('canvas');c.width=768;c.height=192;
@@ -23,7 +24,7 @@ export function buildSaiHall():THREE.Group {
    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
    const m=new THREE.Mesh(new THREE.PlaneGeometry(5.7,1.42),new THREE.MeshBasicMaterial({map:t,side:THREE.FrontSide}));m.position.set(x,y,z);if(reverse)m.rotation.y=Math.PI;group.add(m);
  }
- box(21,.3,104,0,-.17,0,ivory);box(21,.35,104,0,8.8,0,stone);
+ box(21,.3,104,0,-.17,0,paving);box(21,.35,104,0,8.8,0,stone);
  for(const side of [-1,1]){
    box(.35,9,104,side*10.3,4.35,0,stone);
    box(.18,.2,104,side*9.9,.14,0,gold);
@@ -31,8 +32,8 @@ export function buildSaiHall():THREE.Group {
      box(.75,7.8,.75,side*8.7,3.9,z,ivory);
      box(1.1,.36,1.1,side*8.7,.18,z,gold);
      box(1.1,.55,1.1,side*8.7,7.45,z,gold);
-     box(2.4,.12,4.6,side*5.4,8.5,z,white);
-     if(z> -46&&z<46)box(.07,4.9,4.6,side*10.08,3.9,z+2.5,dark);
+     box(2.4,.12,4.6,side*5.4,8.5,z,white);box(1.1,.16,1.1,side*8.7,.48,z,stone);
+     if(z> -46&&z<46){box(.07,4.9,4.6,side*10.08,3.9,z+2.5,dark);for(const y of [1.55,4.0,6.35])box(.12,.075,4.65,side*10.01,y,z+2.5,gold);for(const dz of [-1.55,0,1.55])box(.12,4.75,.075,side*10.0,3.9,z+2.5+dz,gold);}
    }
    box(.2,.19,GREEN_END-GREEN_START,side*8.15,3.4,-(GREEN_START+GREEN_END)/2,green);
    box(.2,.13,GREEN_END-GREEN_START,side*8.15,6.7,-(GREEN_START+GREEN_END)/2,green);

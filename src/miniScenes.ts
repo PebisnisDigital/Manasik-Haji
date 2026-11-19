@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {surfaceDetail,staticShadows,disposeSurface} from './env/GraphicsDetail.ts';
 import {CrowdRenderer} from './characters/CrowdRenderer.ts';
 import {resolveFrames} from './characters/CrowdView.ts';
 import {Clip} from './sim/States.ts';
@@ -9,11 +10,12 @@ export interface Demo{setAvatar(a:Avatar):void;prayer():void;water():void;trim()
 export function mountMini(host:HTMLElement,kind:DemoKind,initial:Avatar,onDone:(action:string)=>void,walk?:WalkOptions):Demo{
  const canvas=document.createElement('canvas');canvas.setAttribute('aria-label','Adegan 3D ilustratif');host.replaceChildren(canvas);
  const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});r.setPixelRatio(Math.min(devicePixelRatio,1.4));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;
- const s=new THREE.Scene();s.background=new THREE.Color(0xe3e7dc);s.add(new THREE.HemisphereLight(0xffffff,0xa8b1a5,2.5));const sun=new THREE.DirectionalLight(0xfff5da,2);sun.position.set(4,7,5);s.add(sun);
+ const s=new THREE.Scene();s.background=new THREE.Color(0xe3e7dc);s.add(new THREE.HemisphereLight(0xffffff,0xa8b1a5,2.5));const sun=new THREE.DirectionalLight(0xfff5da,2);sun.position.set(-4,8,5);s.add(sun);if(walk)staticShadows(r,sun,8);
  const camera=new THREE.PerspectiveCamera(39,1,.1,60);camera.position.set(3.5,2.2,5.7);camera.lookAt(0,1,0);
  const mat=(color:number)=>new THREE.MeshStandardMaterial({color,roughness:.8});
  const floor=mat(0xd3d5cb),stone=mat(0xf1ecdf),dark=mat(0x26483e),gold=mat(0xc3a774),white=mat(0xf9f7ee),skin=mat(0xc89972),hairmat=mat(0x272e2b);
- function mesh(g:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number,group:THREE.Group|THREE.Scene=s):THREE.Mesh{const a=new THREE.Mesh(g,m);a.position.set(x,y,z);group.add(a);return a;}
+ surfaceDetail(floor,'marble',6,6);surfaceDetail(stone,'stone',3,2);surfaceDetail(white,'fabric',2,2);
+ function mesh(g:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number,group:THREE.Group|THREE.Scene=s):THREE.Mesh{const a=new THREE.Mesh(g,m);a.position.set(x,y,z);a.receiveShadow=true;a.castShadow=y>.2;group.add(a);return a;}
  function box(w:number,h:number,d:number,m:THREE.Material,x:number,y:number,z:number):THREE.Mesh{return mesh(new THREE.BoxGeometry(w,h,d),m,x,y,z);}
  box(12,.2,12,floor,0,-.12,0);const obstacles:Obstacle[]=[];box(12,4,.24,stone,0,1.8,-3.4);
  for(let x=-5;x<=5;x+=2){box(.22,3.8,.28,white,x,1.9,-3.2);box(.5,.1,.5,gold,x,3.3,-3.2);}
@@ -50,5 +52,5 @@ export function mountMini(host:HTMLElement,kind:DemoKind,initial:Avatar,onDone:(
   r.render(s,camera);
  }
  raf=requestAnimationFrame(frame);
- return{setAvatar(a){avatar=a;},near(){return walker?.near()??true;},approach(){walker?.approach();},target(action){const p=goals[action];walker?.setGoal(p[0],p[1]);},prayer(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.alignGoal();walker?.face(0,-3);walker?.lock(true);animation='prayer';elapsedAnimation=0;}},water(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.face(1.9,-.5);walker?.lock(true);animation='water';elapsedAnimation=0;}},trim(){if(kind==='trim'&&animation==='idle'&&(!walker||walker.near())){walker?.face(0,0);walker?.lock(true);animation='trim';elapsedAnimation=0;}},dispose(){disposed=true;walker?.dispose();cancelAnimationFrame(raf);observer.disconnect();for(const f of people.values()){s.remove(f.group);f.dispose();}s.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const mm=Array.isArray(o.material)?o.material:[o.material];for(const m of mm)m.dispose();}});r.dispose();}};
+ return{setAvatar(a){avatar=a;},near(){return walker?.near()??true;},approach(){walker?.approach();},target(action){const p=goals[action];walker?.setGoal(p[0],p[1]);},prayer(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.alignGoal();walker?.face(0,-3);walker?.lock(true);animation='prayer';elapsedAnimation=0;}},water(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.face(1.9,-.5);walker?.lock(true);animation='water';elapsedAnimation=0;}},trim(){if(kind==='trim'&&animation==='idle'&&(!walker||walker.near())){walker?.face(0,0);walker?.lock(true);animation='trim';elapsedAnimation=0;}},dispose(){disposed=true;walker?.dispose();cancelAnimationFrame(raf);observer.disconnect();for(const f of people.values()){s.remove(f.group);f.dispose();}s.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const mm=Array.isArray(o.material)?o.material:[o.material];for(const m of mm){disposeSurface(m);m.dispose();}}});r.dispose();}};
 }

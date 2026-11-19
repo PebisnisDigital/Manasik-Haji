@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mobileGraphics} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,type CoreGameStep} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
 import {tenantUrl} from './tenant.ts';
@@ -49,10 +50,10 @@ function boot(): void {
   renderer.toneMappingExposure = 0.94;
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xc8c2b4, 210, 900);
-  const environment = new Environment(renderer, scene, 'low');
+  const enhanced=!!core&&!mobileGraphics();if(enhanced){renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;}const environment = new Environment(renderer, scene, enhanced?'medium':'low');
   scene.add(environment.group);
   const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 1000);
-  const crowd = new CrowdRenderer(160, { lod0Budget: 12, lod1Budget: 160, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
+  const crowdSize=core&&!mobileGraphics()?240:160;const crowd = new CrowdRenderer(crowdSize, { lod0Budget: 12, lod1Budget: crowdSize, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
   scene.add(crowd.group);
   const playerQuality = {lod0Budget:1,lod1Budget:1,lod0Distance:100,lod1Distance:100,blobShadows:true};
   const male = new CrowdRenderer(1, playerQuality, {robeLength:0.19,coverHead:false,pilgrimStyle:'male'});
@@ -117,7 +118,7 @@ function boot(): void {
   autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)guide.announce("Mode otomatis aktif. Perhatikan arah tawaf dan posisi Ka'bah di kiri.",'auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
   const pressed=(k:string)=>input.has(k);
-  const npc=Array.from({length:124},(_,i)=>({a:i*2.399963,r:35.8+(i%9)*2.35,s:0.9+(i%5)*0.12,h:1.59+(i%7)*0.035}));
+  const npc=Array.from({length:core&&!mobileGraphics()?216:124},(_,i)=>({a:i*2.399963,r:35.8+(i%9)*2.35,s:0.9+(i%5)*0.12,h:1.59+(i%7)*0.035}));
   function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);

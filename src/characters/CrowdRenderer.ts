@@ -123,7 +123,7 @@ vec3 vatNrm(float frame) {
  */
 const VERTEX_BODY = /* glsl */ `
   vec3 pA = mix(vatPos(iAnim.x), vatPos(iAnim.y), iAnim.z);
-  vec3 nA = vatNrm(iAnim.x);
+  vec3 nA = normalize(mix(vatNrm(iAnim.x), vatNrm(iAnim.y), iAnim.z));
 
   vec3 p = pA;
   vec3 n = nA;
@@ -260,7 +260,7 @@ export class CrowdRenderer {
   if (aZone > 2.5) base = garment * 0.66;
   else if (aZone > 1.5) base = accent;
   else if (aZone > 0.5) base = skin;
-  vBaseColor = base * iMisc.y;
+  // Gentle folded-cloth shading in rest coordinates follows the animation.\n  float fold = 1.0;\n  if (aZone < 0.5) {\n    float a = atan(position.z, position.x);\n    fold = 0.955 + 0.045 * sin(a * 7.0 + position.y * 18.0);\n  }\n  vBaseColor = base * iMisc.y * fold;
   #include <project_vertex>
 `,
         );
