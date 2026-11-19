@@ -35,8 +35,8 @@ function boot(): void {
   const marker = new THREE.Mesh(new THREE.RingGeometry(0.44,0.54,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x216d55,side:THREE.DoubleSide,depthWrite:false}));
   marker.position.y=0.07;scene.add(marker);
   let x = Math.cos(START)*START_RADIUS, z = Math.sin(START)*START_RADIUS, yaw = Math.PI;
-  let orbit = Math.PI/2, walkPhase = 0, total = 0, completed = 0, auto = false, finished = false, last = performance.now();
-  let lastAngle = START;
+  let orbit = 0, walkPhase = 0, total = 0, completed = 0, auto = false, finished = false, last = performance.now();
+  let lastAngle: number = START;
   const input = new Set<string>();
   const pointerInput = new Map<number,string>();
   const frameState = {f0:0,f1:0,frac:0};
@@ -49,7 +49,7 @@ function boot(): void {
   }
   function resetAll():void {
     x=Math.cos(START)*START_RADIUS;z=Math.sin(START)*START_RADIUS;lastAngle=START;
-    yaw=Math.PI;orbit=Math.PI/2;total=0;completed=0;finished=false;walkPhase=0;input.clear();pointerInput.clear();setAuto(false);
+    yaw=Math.PI;orbit=0;total=0;completed=0;finished=false;walkPhase=0;input.clear();pointerInput.clear();setAuto(false);
     count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
   }
   function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
@@ -79,7 +79,7 @@ function boot(): void {
     if(auto&&!finished){
       const r=Math.hypot(x,z);const a=Math.atan2(z,x);const correction=(START_RADIUS-r)*0.8;
       dx=Math.sin(a)*3.5+Math.cos(a)*correction;dz=-Math.cos(a)*3.5+Math.sin(a)*correction;
-      orbit=Math.PI/2-a;
+      orbit=-a;
     }else{
       const f=(pressed('up')?1:0)-(pressed('down')?1:0);
       const s=(pressed('right')?1:0)-(pressed('left')?1:0);
