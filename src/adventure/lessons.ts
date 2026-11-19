@@ -1,5 +1,5 @@
 import type {PlayableLevel,Campaign} from './state.ts';
-export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker'|'Pembimbing'|'Asisten Manasik';
+export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker'|'Pembimbing'|'Asisten Manasik'|'Ketua Rombongan';
 export type Speaker=Npc|'Kamu';
 export type Line={speaker:Speaker;text:string};
 export type Lesson={title:string;body:string;points:string[];note?:string;lines:Line[];npc?:Npc};
@@ -430,9 +430,78 @@ export const LESSONS:Lesson[][]=[
     "note": "Miniatur dan diagram hanya peragaan hitungan, bukan ukuran atau rekonstruksi Masjidil Haram yang akurat. Poin bukan pahala atau penilaian sahnya ibadah.",
     "lines": []
   }
+],
+[
+  {
+    "title": "Pemeriksaan akhir keberangkatan",
+    "body": "Pastikan barang penting siap sebelum meninggalkan rumah.",
+    "points": [
+      "Periksa paspor, visa atau izin, tiket dan identitas jamaah. Simpan di tas yang mudah dijangkau.",
+      "Periksa obat rutin, kebutuhan pribadi, dan perlengkapan ibadah sesuai rute.",
+      "Cek label koper, berat bagasi, serta barang yang harus dibawa di kabin. Ikuti aturan maskapai."
+    ],
+    "note": "Jangan masukkan dokumen penting ke bagasi tercatat. Daftar dalam game merupakan latihan, bukan verifikasi berkas nyata.",
+    "lines": []
+  },
+  {
+    "title": "Berpamitan dan doa perjalanan",
+    "body": "Pamiti keluarga, mohon doa, lalu berangkat dengan tenang.",
+    "points": [
+      "Pastikan keluarga mengetahui jadwal, kontak pembimbing, dan kebutuhan rumah telah disiapkan.",
+      "Contoh doa pribadi: Ya Allah, lindungilah kami sepanjang perjalanan, mudahkan ibadah kami, dan jagalah keluarga yang kami tinggalkan.",
+      "Doa naik kendaraan (penggalan QS Az-Zukhruf 43:13–14): Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin, wa inna ila rabbina lamunqalibun.",
+      "Makna: Mahasuci Allah yang menundukkan kendaraan ini untuk kami, padahal kami tidak mampu menguasainya, dan kepada Tuhan kami akan kembali."
+    ],
+    "note": "Doa pribadi boleh menggunakan bahasa yang dipahami. Doa naik kendaraan dipanjatkan saat naik kendaraan; bukan syarat sah haji atau umroh.",
+    "npc": "Ibu",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Bu, waktunya berangkat. Mohon doa, ya."
+      },
+      {
+        "speaker": "Ibu",
+        "text": "Semoga Allah menjaga perjalananmu, memudahkan ibadahmu, dan mempertemukan kita kembali dalam keadaan sehat."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Aamiin. Aku pamit, Bu. Assalamualaikum."
+      },
+      {
+        "speaker": "Ibu",
+        "text": "Waalaikumsalam. Hati-hati, Nak."
+      }
+    ]
+  },
+  {
+    "title": "Bergabung dengan rombongan",
+    "body": "Ikuti arahan ketua rombongan sebelum bus berangkat.",
+    "points": [
+      "Datang tepat waktu dan cocokkan nama dengan daftar rombongan serta nomor bus.",
+      "Serahkan koper kepada petugas sesuai arahan; simpan tas kabin dan dokumen penting bersama diri.",
+      "Kenali pembimbing, titik kumpul, dan kontak darurat. Jangan berpindah bus tanpa konfirmasi."
+    ],
+    "note": "Bus dan daftar jamaah dalam game adalah simulasi. Tidak ada perjalanan atau pemesanan nyata.",
+    "npc": "Ketua Rombongan",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Assalamualaikum, saya sudah siap berangkat."
+      },
+      {
+        "speaker": "Ketua Rombongan",
+        "text": "Waalaikumsalam. Cocokkan kelompok dan nomor bus terlebih dahulu. Koper besar masuk bagasi, tas dokumen tetap kamu bawa."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Siap. Saya tetap bersama rombongan."
+      }
+    ]
+  }
 ]
 ];
 export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
+ if(level===8)return [{speaker:npc,text:npc==='Ketua Rombongan'?'Selamat datang. Ikuti arahan rombongan sebelum berangkat.':'Hati-hati di perjalanan. Semoga Allah menjagamu.'},{speaker:'Kamu',text:'Aamiin. Terima kasih.'}];
  if(level===7)return [{speaker:npc,text:npc==='Pembimbing'?'Silakan pelajari urutan ibadah sesuai jenis perjalanan.':'Mari kenali ihram dan latihan manasik.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===6)return [{speaker:npc,text:npc==='Ibu'?'Siapkan barang secukupnya, Nak. Jangan lupa dokumen.':'Periksa aturan bagasi sebelum berangkat, ya.'},{speaker:'Kamu',text:'Siap.'}];
  if(level===5)return [{speaker:npc,text:npc==='Dokter'?'Silakan pelajari kesiapan kesehatan sebelum berangkat.':npc==='Perawat'?'Mari kenali persyaratan vaksinasi.':'Mari siapkan obat rutin secara aman.'},{speaker:'Kamu',text:'Terima kasih.'}];
