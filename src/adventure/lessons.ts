@@ -332,9 +332,45 @@ export const LESSONS:Lesson[][]=[
       }
     ]
   }
+],
+[
+  {
+    "title": "Pakaian dan perlengkapan ibadah",
+    "body": "Kemas pakaian sesuai kebutuhan, cuaca, dan ketentuan ihram.",
+    "points": [
+      "Laki-laki: siapkan dua helai kain ihram; perempuan: pakaian yang sesuai ketentuan menutup aurat.",
+      "Bawa pakaian ganti dan perlengkapan salat secukupnya.",
+      "Siapkan pakaian ihram agar mudah dijangkau sebelum miqat bila diperlukan."
+    ],
+    "note": "Tidak ada warna khusus pakaian ihram perempuan yang wajib. Pelajari ketentuan ihram bersama pembimbing.",
+    "lines": []
+  },
+  {
+    "title": "Kebutuhan pribadi",
+    "body": "Bawa perlengkapan yang praktis dan sesuai kemampuan membawa bagasi.",
+    "points": [
+      "Siapkan alas kaki yang nyaman dan sesuai ketentuan ihram.",
+      "Kemas kebutuhan kebersihan; perhatikan larangan wewangian selama ihram.",
+      "Bawa handuk kecil dan perlengkapan pribadi secukupnya."
+    ],
+    "note": "Periksa aturan cairan, aerosol, dan barang yang dibatasi oleh maskapai.",
+    "lines": []
+  },
+  {
+    "title": "Tas kabin dan bagasi aman",
+    "body": "Pisahkan barang yang diperlukan sepanjang perjalanan.",
+    "points": [
+      "Simpan paspor, izin, tiket, identitas, dan kontak darurat dalam tas yang mudah dijangkau.",
+      "Bawa obat rutin dalam kemasan berlabel sesuai resep serta aturan perjalanan.",
+      "Beri tanda pengenal pada koper, kunci dengan aman, dan cek berat serta aturan bagasi maskapai."
+    ],
+    "note": "Power bank dan baterai cadangan mengikuti aturan kabin maskapai; jangan asal memasukkannya ke bagasi tercatat. Tidak ada dokumen atau obat nyata di game.",
+    "lines": []
+  }
 ]
 ];
 export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
+ if(level===6)return [{speaker:npc,text:npc==='Ibu'?'Siapkan barang secukupnya, Nak. Jangan lupa dokumen.':'Periksa aturan bagasi sebelum berangkat, ya.'},{speaker:'Kamu',text:'Siap.'}];
  if(level===5)return [{speaker:npc,text:npc==='Dokter'?'Silakan pelajari kesiapan kesehatan sebelum berangkat.':npc==='Perawat'?'Mari kenali persyaratan vaksinasi.':'Mari siapkan obat rutin secara aman.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===4)return [{speaker:npc,text:npc==='Petugas Paspor'?'Selamat datang. Mari pelajari persyaratan paspor.':npc==='Petugas Visa'?'Periksa izin perjalanan sesuai ibadah.':'Simpan berkas perjalanan dengan aman.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===3)return [{speaker:npc,text:npc==='Resepsionis'?'Selamat datang di kantor simulasi. Silakan cek informasi izin.':npc==='Konsultan'?'Silakan konsultasikan rencana perjalanan.':'Di sini kita belajar alur pendaftaran.'},{speaker:'Kamu',text:'Terima kasih.'}];

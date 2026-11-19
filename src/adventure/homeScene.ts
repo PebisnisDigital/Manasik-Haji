@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import type {Npc} from './lessons.ts';
+import {packingItems} from './packing.ts';
 import {brandName,brandAccent} from '../tenant.ts';
 import {missions,type Avatar,type Quest,type PlayableLevel} from './state.ts';
 export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onTask:()=>void;onNpc:(npc:Npc|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
-export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:Npc):void;unlockCoin():void;dispose():void}
+export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:Npc):void;unlockCoin():void;packItem(index:number):void;dispose():void}
 type Hit={x:number;z:number;w:number;d:number};
 export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks):HomeWorld{
  const QUESTS=missions(level);
@@ -89,7 +90,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  if(level===2){box(.47,.13,.34,white,5.8,.095,-3.65);box(.47,.025,.34,clothPattern,5.8,.17,-3.65);}
  // Office variant shares only the architecture and movement engine, not the home furnishings.
  let drawOfficeBrand:()=>void=()=>{};
- if(level>=3){
+ if(level>=3&&level<=5){
   const documents=level===4,clinic=level===5;
   for(const obj of s.children.slice(houseStart))obj.visible=false;obstacles.splice(houseObstacles);blockers.splice(houseBlockers);
   const officeAccent=mat(0x28634f),counter=mat(0xefebe0),metal=mat(0x7c8e8d),glass=new THREE.MeshStandardMaterial({color:0x9dbfc9,roughness:.24,metalness:.05}),monitor=mat(0x24312e);
@@ -131,6 +132,44 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   for(const px of [-4,0,4]){box(1.8,.06,.35,white,px,3.15,0).castShadow=false;box(1.6,.025,.23,new THREE.MeshBasicMaterial({color:0xffffe8}),px,3.10,0).castShadow=false;const light=new THREE.PointLight(0xfff5dc,12,8,2);light.position.set(px,2.95,0);s.add(light);}
   const poster=surface(512,640,g=>{g.fillStyle='#f2ede0';g.fillRect(0,0,512,640);g.fillStyle='#245846';g.fillRect(0,0,512,140);g.fillStyle='#fff';g.font='bold 35px sans-serif';g.textAlign='center';g.fillText(clinic?'BEKAL JEMAAH SEHAT':documents?'SIAPKAN DOKUMEN':'CEK SEBELUM DAFTAR',256,82,485);g.fillStyle='#29453a';g.textAlign='left';g.font='29px sans-serif';(clinic?['01  Konsultasi kesehatan','02  Cek vaksinasi','03  Latihan bertahap','04  Obat sesuai resep']:documents?['01  Identitas & paspor','02  Visa / izin','03  Salinan aman','04  Kontak darurat']:['01  Legalitas resmi','02  Rincian layanan','03  Bukti pendaftaran','04  Kontak pembimbing']).forEach((t,i)=>g.fillText(t,38,215+i*83));g.fillStyle='#99783f';g.font='19px sans-serif';g.fillText('Materi simulasi calon jamaah',38,600);});const p=box(.05,1.8,1.45,new THREE.MeshBasicMaterial({map:poster}),-7.35,1.95,-.8);p.castShadow=false;
  }
+ // Packing uses a separate furnished preparation room with three actual luggage stations.
+ type PackedProp={mesh:THREE.Object3D;from:THREE.Vector3;to:THREE.Vector3;start:number;inside:boolean};
+ const packingProps:PackedProp[][]=[];
+ if(level===6){
+  for(const obj of s.children.slice(houseStart))obj.visible=false;obstacles.splice(houseObstacles);blockers.splice(houseBlockers);
+  const textile=mat(0x837f9b),shell=mat(0x354d53),lining=mat(0xbbb7a9),metal=mat(0x9ba6a4);
+  const titleTex=surface(1024,230,g=>{g.fillStyle='#46594e';g.fillRect(0,0,1024,230);g.fillStyle='#ffedbd';g.textAlign='center';g.font='bold 60px sans-serif';g.fillText('RUANG PERSIAPAN KOPER',512,105,980);g.font='29px sans-serif';g.fillText('PAKAIAN • KEBUTUHAN PRIBADI • TAS KABIN',512,167,980);});
+  box(7.8,1.7,.04,new THREE.MeshBasicMaterial({map:titleTex}),0,2.35,-5.36).castShadow=false;
+  function station(q:number,x:number,z:number,label:string){
+   box(2.66,.11,1.12,oak,x,.78,z);for(const dx of [-1.15,1.15])for(const dz of [-.43,.43])box(.095,.72,.095,wood,x+dx,.36,z+dz);obstacle(x,z,2.66,1.12,1.5);
+   const t=surface(512,150,g=>{g.fillStyle='#394b42';g.fillRect(0,0,512,150);g.textAlign='center';g.fillStyle='#ffedc2';g.font='bold 39px sans-serif';g.fillText(label,256,89,490);});
+   box(2.25,.52,.05,new THREE.MeshBasicMaterial({map:t}),x,.43,z+.55).castShadow=false;
+   // Open suitcase base and upright lid, with handles and straps.
+   const bx=x+.62;box(1.12,.22,.87,shell,bx,.945,z);box(1.02,.027,.76,lining,bx,1.075,z);
+   for(const dx of [-.55,.55])box(.045,.16,.86,shell,bx+dx,1.085,z);
+   for(const dz of [-.42,.42])box(1.12,.16,.045,shell,bx,1.085,z+dz);
+   box(1.12,.82,.09,shell,bx,1.46,z-.44);box(.98,.70,.025,lining,bx,1.46,z-.385);
+   for(const dx of [-.34,.34])box(.055,.67,.028,textile,bx+dx,1.46,z-.365);
+   box(.26,.06,.075,metal,bx,.95,z+.49);
+   const items=packingItems(q,avatar);const props:PackedProp[]=[];
+   items.forEach((it,i)=>{
+    const group=new THREE.Group(),m=mat(it.color);s.add(group);
+    if(q===0){for(let j=0;j<3;j++)box(.3,.052,.30,m,0,j*.052,0,group);}
+    else if(q===1&&i===0){box(.18,.30,.19,m,0,.12,0,group);box(.09,.065,.10,white,0,.294,0,group);}
+    else if(q===1&&i===1){for(const dx of [-.08,.08]){box(.12,.05,.28,m,dx,.02,0,group);const strap=box(.11,.08,.035,dark,dx,.085,.02,group);strap.rotation.y=.2;}}
+    else if(q===2&&i===1){box(.26,.16,.22,m,0,.065,0,group);box(.25,.03,.12,green,0,.15,.025,group);}
+    else{box(.28,.08,.29,m,0,.035,0,group);box(.23,.022,.22,white,0,.085,.02,group);}
+    const from=new THREE.Vector3(x-.82,.88,z-.32+i*.32),to=new THREE.Vector3(bx-.29+i*.285,1.09,z+.02);group.position.copy(from);props.push({mesh:group,from,to,start:0,inside:false});
+   });packingProps.push(props);
+  }
+  station(0,-4,-3,'01 • PAKAIAN');station(1,3.5,-3,'02 • BARANG PRIBADI');station(2,4.5,1.05,'03 • TAS KABIN');
+  // Bedroom wardrobe, folded linen and home furnishings distinguish this room from service offices.
+  box(.78,2.25,2.2,wood,-6.9,1.125,-2);for(const z of [-2.56,-1.44]){box(.05,2.10,1.04,oak,-6.48,1.125,z);box(.055,.3,.07,metal,-6.43,1.1,z+.25);}obstacle(-6.9,-2,.83,2.2,2.3);
+  box(2.45,.4,1.05,wood,-4.5,.25,3.8);box(2.45,.19,1.05,textile,-4.5,.54,3.8);obstacle(-4.5,3.8,2.45,1.05,.8);
+  const matHome=box(3.3,.025,2.65,green,-.2,.025,.0);matHome.castShadow=false;
+  box(.7,.5,.7,cream,6.6,.25,-4.65);for(let i=0;i<5;i++){const p=sphere(.22,leaf,6.6+Math.cos(i*2.4)*.22,.65+(i%3)*.25,-4.65+Math.sin(i*2.4)*.22);p.scale.set(.65,1.7,.65);}obstacle(6.6,-4.65,.75,.75,1.35);
+  for(const px of [-4,0,4]){box(1.15,.07,.45,white,px,3.16,0).castShadow=false;const light=new THREE.PointLight(0xffefd9,10,8,2);light.position.set(px,2.95,0);s.add(light);}
+ }
  function capsule(radius:number,length:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length,5,10),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
  function person(female:boolean,color:number,height=1.7,sarong=false){
   const root=new THREE.Group();s.add(root);root.scale.setScalar(height/1.7);const cloth=mat(color),skin=mat(0xb98662),pants=mat(0x33464a),hair=mat(0x292823);
@@ -143,12 +182,12 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   return {root,body,legs,arms};
  }
  const hero=person(avatar==='female',avatar==='female'?0x69586d:0x597b89);
- const family=person(true,level===5?0xf3f1e9:level>=3?0x386957:0xa87864,1.58);
- const family2=person(false,level===5?0x4d9795:level>=3?0x587484:0xe5dfc8,1.68,level<3);
- family.root.position.set(level>=3?-4:-4.65,0,level>=3?-4.05:.47);family.root.rotation.y=level>=3?0:.65;
- family2.root.position.set(level>=3?3.5:-5.8,0,level>=3?-4.05:2.3);family2.root.rotation.y=level>=3?0:.9;
+ const family=person(true,level===5?0xf3f1e9:level===6?0xa87864:level>=3?0x386957:0xa87864,1.58);
+ const family2=person(false,level===5?0x4d9795:level===6?0xe5dfc8:level>=3?0x587484:0xe5dfc8,1.68,level<3||level===6);
+ family.root.position.set(level===6?-5.5:level>=3?-4:-4.65,0,level===6?1.7:level>=3?-4.05:.47);family.root.rotation.y=level>=3?0:.65;
+ family2.root.position.set(level===6?-.9:level>=3?3.5:-5.8,0,level===6?-3.8:level>=3?-4.05:2.3);family2.root.rotation.y=level>=3?0:.9;
  const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===5?'Dokter':level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===5?'Perawat':level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
- if(level>=3){const admin=person(true,level===5?0xe9f3eb:0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:level===5?'Apoteker':level===4?'Petugas Berkas':'Admin',actor:admin});}
+ if(level>=3&&level<=5){const admin=person(true,level===5?0xe9f3eb:0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:level===5?'Apoteker':level===4?'Petugas Berkas':'Admin',actor:admin});}
  for(const entry of actors){const p=entry.actor.root.position;obstacle(p.x,p.z,.45,.36,1.6);}
  const getActor=(name:string)=>name==='Kamu'?hero:actors.find(a=>a.name===name)?.actor??null;
  const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.63,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd8a62f,side:THREE.DoubleSide,transparent:true,opacity:.9}));ring.position.y=.065;s.add(ring);
@@ -179,7 +218,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  function lookUp(e:PointerEvent){if(e.pointerId===lookId)lookId=null;}
  canvas.addEventListener('pointerdown',lookDown);canvas.addEventListener('pointermove',lookMove);canvas.addEventListener('pointerup',lookUp);canvas.addEventListener('pointercancel',lookUp);canvas.addEventListener('lostpointercapture',lookUp);
  const ro=new ResizeObserver(resize);ro.observe(canvas);resize();window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',clear);joystick.addEventListener('pointerdown',jd);joystick.addEventListener('pointermove',jm);joystick.addEventListener('pointerup',ju);joystick.addEventListener('pointercancel',ju);joystick.addEventListener('lostpointercapture',ju);
- function syncTarget(){collected=false;taskStarted=false;coinReady=false;coinAt=0;taskHold=false;forcedNpc=null;talking='';const t=QUESTS[quest];ring.visible=!!t;pin.visible=false;if(t){ring.position.set(t.x,.065,t.z);pin.position.set(t.x,1.1,t.z);}near=false;callbacks.onNear(false);}
+ function syncTarget(){if(level===6)for(let q=0;q<packingProps.length;q++)for(const p of packingProps[q]){p.start=0;p.inside=q<quest;p.mesh.position.copy(p.inside?p.to:p.from);}collected=false;taskStarted=false;coinReady=false;coinAt=0;taskHold=false;forcedNpc=null;talking='';const t=QUESTS[quest];ring.visible=!!t;pin.visible=false;if(t){ring.position.set(t.x,.065,t.z);pin.position.set(t.x,1.1,t.z);}near=false;callbacks.onNear(false);}
  syncTarget();
  function frame(now:number){
   if(disposed)return;raf=requestAnimationFrame(frame);const dt=Math.min(.045,Math.max(0,(now-last)/1000));last=now;if(document.hidden)return;
@@ -223,7 +262,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   lookAt.set(x+forwardX*3.7+rightX*shoulder,1.45+Math.sin(pitch)*-.9,z+forwardZ*3.7+rightZ*shoulder);cam.lookAt(lookAt);cam.updateMatrixWorld();
   if(talking&&(forcedNpc||nearNpc)){const actor=getActor(talking);if(actor){bubbleAnchor.set(actor.root.position.x,actor.root.scale.y*1.76+.14,actor.root.position.z).project(cam);const visible=bubbleAnchor.z>-1&&bubbleAnchor.z<1&&Math.abs(bubbleAnchor.x)<1.08&&bubbleAnchor.y>-1.04;callbacks.onBubble((bubbleAnchor.x*.5+.5)*100,(.5-bubbleAnchor.y*.5)*100,visible);}else callbacks.onBubble(50,50,false);}else callbacks.onBubble(50,50,false);
   if(t){const bearing=Math.atan2(t.x-x,t.z-z);callbacks.onNav(angleDelta(cameraYaw,bearing),Math.hypot(t.x-x,t.z-z));}
-  if(level>=3)drawOfficeBrand();r.render(s,cam);
+  if(level===6)for(const group of packingProps)for(const p of group)if(p.start){const t=Math.min(1,Math.max(0,(now-p.start)/530));p.mesh.position.lerpVectors(p.from,p.to,t);p.mesh.position.y+=Math.sin(t*Math.PI)*.62;if(t>=1){p.start=0;p.inside=true;}}if(level>=3&&level<=5)drawOfficeBrand();r.render(s,cam);
  }raf=requestAnimationFrame(frame);
- return {talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
+ return {packItem(index){const p=packingProps[quest]?.[index];if(p&&!p.inside&&!p.start)p.start=performance.now();},talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
 }
