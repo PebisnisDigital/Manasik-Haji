@@ -1,0 +1,15 @@
+import './pwa.css';
+type InstallEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:'accepted'|'dismissed'}>};
+let promptEvent:InstallEvent|null=null;let installed=false;
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||(navigator as Navigator&{standalone?:boolean}).standalone===true;
+const ios=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1;
+export function mountPwa(){
+ const buttons=Array.from(document.querySelectorAll<HTMLButtonElement>('[data-install-app]'));
+ const dialog=document.createElement('dialog');dialog.className='pwaDialog';dialog.setAttribute('aria-label','Instal UMROH.DIGITAL');dialog.innerHTML='<div class="pwaDialogHead"><img src="./pwa-icon-192.png" alt=""><div><strong>UMROH.DIGITAL</strong><small>Manasik Haji & Umroh 3D</small></div></div><h2>Pasang aplikasi</h2><p id="pwaHelp"></p><p class="pwaNote">Tidak perlu Play Store. Internet dan browser dengan WebGL 2 tetap diperlukan. Aplikasi menggunakan brand utama UMROH.DIGITAL; link travel tetap dibuka melalui link mitra.</p><button type="button" id="pwaClose">Tutup</button>';document.body.append(dialog);
+ const help=dialog.querySelector<HTMLElement>('#pwaHelp')!;dialog.querySelector<HTMLButtonElement>('#pwaClose')!.onclick=()=>dialog.close();
+ function update(){for(const b of buttons){b.hidden=installed||standalone();b.textContent='Instal aplikasi';}}
+ function showHelp(){help.textContent=ios()?'Buka di Safari, tekan tombol Bagikan, lalu pilih Tambahkan ke Layar Utama. Jika opsi tidak ada, gunakan Safari langsung.':'Buka menu browser Chrome atau Edge, pilih Instal aplikasi atau Tambahkan ke layar utama jika tersedia. Jika sedang di browser dalam WhatsApp, buka dulu di browser utama.';try{dialog.showModal();}catch{}}
+ async function install(){if(standalone()||installed)return;if(!promptEvent){showHelp();return;}const current=promptEvent;promptEvent=null;try{await current.prompt();const choice=await current.userChoice;if(choice.outcome==='accepted')update();}catch{showHelp();}}
+ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptEvent=e as InstallEvent;update();});window.addEventListener('appinstalled',()=>{installed=true;promptEvent=null;dialog.close();update();});matchMedia('(display-mode: standalone)').addEventListener?.('change',update);for(const b of buttons)b.onclick=()=>void install();update();
+ const banner=document.querySelector<HTMLElement>('#pwaUpdate');if('serviceWorker' in navigator&&location.protocol==='https:'&&!import.meta.env.DEV){navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(reg=>{const show=()=>{if(reg.waiting&&navigator.serviceWorker.controller&&banner)banner.hidden=false;};show();reg.addEventListener('updatefound',()=>{reg.installing?.addEventListener('statechange',show);});}).catch(()=>{if(banner){banner.textContent='Instalasi aplikasi belum tersedia. Game browser tetap dapat digunakan.';banner.hidden=false;}});}
+}

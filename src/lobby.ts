@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {mountPwa} from './pwa.ts';
 import {graphicsTier,graphicsProfile,createRenderBudget,mountGraphics} from './graphicsQuality.ts';
 import {ImmersiveSound} from './audio/ImmersiveSound.ts';
 const lobbySound=new ImmersiveSound('lobby',document.querySelector('.menu nav'));
@@ -100,7 +101,7 @@ function frame(now:number){
  if(encounter&&encounterProgram===p){const bubble=$('bubble');bubble.style.left=THREE.MathUtils.clamp((pt.x*.5+.5)*100,23,77)+'%';bubble.style.top=THREE.MathUtils.clamp((.5-pt.y*.5)*100,22,69)+'%';}}
  budget.draw(now,s,cam,modal);
 }
-mountComfort($('comfortIntro'),{intro:true});mountComfort(document.querySelector<HTMLElement>('.menu nav')!);mountGraphics(document.querySelector<HTMLElement>('.menu nav')!);window.addEventListener('umroh-comfort-change',()=>{stopMotion();pid=null;cameraPointer=null;});
+mountPwa();mountComfort($('comfortIntro'),{intro:true});mountComfort(document.querySelector<HTMLElement>('.menu nav')!);mountGraphics(document.querySelector<HTMLElement>('.menu nav')!);window.addEventListener('umroh-comfort-change',()=>{stopMotion();pid=null;cameraPointer=null;});
 const tutorial=installSmartTutorial({kind:'lobby',host:document.querySelector<HTMLElement>('.headerRight')!,blocked:()=>portraitBlocked||modal||encounter,ready:()=>selected&&sceneReady});
 if(touchMode)$('movementHint').textContent='';syncOrientation();try{build();}catch{sceneReady=false;$('joystick').hidden=true;$('cameraReset').hidden=true;$('hajjLabel').hidden=true;$('umrahLabel').hidden=true;$('movementHint').textContent='Pilih Haji atau Umroh.';}
 installMissionMap({host:$('previewMap'),get:()=>({program:chosenProgram,save:readCore(chosenProgram)}),blocked:()=>portraitBlocked,keyboard:false,onChange:open=>{if(open){stopMotion();cameraPointer=null;pid=null;}tutorial.paint();}});
