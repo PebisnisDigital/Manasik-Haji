@@ -9,7 +9,7 @@ export const LEVELS=[
 export const QUESTS:ReadonlyArray<{title:string;label:string;hint:string;x:number;z:number}>=[
  {title:'Mohon doa orang tua',label:'Ibu',hint:'Datangi ibu untuk memohon doa dan restu.',x:-3.65,z:0.8},
  {title:'Bahas kesiapan keluarga',label:'Ayah',hint:'Temui ayah dan bicarakan tanggung jawab keluarga.',x:-5,z:2.5},
- {title:'Rencanakan biaya perjalanan',label:'Catatan',hint:'Datangi meja untuk menyusun rencana biaya.',x:-1.75,z:2.6}
+ {title:'Rencanakan biaya perjalanan',label:'Catatan',hint:'Datangi meja untuk melihat panduan rencana biaya.',x:-1.75,z:2.6}
 ] as const;
 export function makeSave(avatar:Avatar,campaign:Campaign):AdventureSave{return {version:1,avatar,campaign,quest:0,level:1};}
 export function decodeSave(raw:string|null):AdventureSave|null{try{const s=JSON.parse(raw??'null');if(!s||(s.level!==undefined&&s.level!==1&&s.level!==2)||s.version!==1||!['male','female'].includes(s.avatar)||!['umrah','hajj'].includes(s.campaign)||!Number.isInteger(s.quest)||s.quest<0||s.quest>3)return null;return {version:1,avatar:s.avatar,campaign:s.campaign,quest:s.quest,level:s.level===2?2:1};}catch{return null;}}
@@ -17,8 +17,8 @@ export function finishQuest(s:AdventureSave,expected:Quest):AdventureSave{return
 export function route(c:Campaign):number[]{return LEVELS.map((_,i)=>i+1).filter(n=>c==='hajj'||n<=18||n>=32);}
 
 export const PRAYER_QUESTS:typeof QUESTS=[
- {title:'Luruskan niat ibadah',label:'Sajadah',hint:'Datangi ruang ibadah untuk menentukan niat.',x:3.5,z:-2.5},
- {title:'Kenali kesiapan kesehatan',label:'Catatan',hint:'Datangi meja untuk memilih persiapan kesehatan.',x:-1.75,z:2.6},
+ {title:'Berdoa dan luruskan niat',label:'Sajadah',hint:'Datangi sajadah untuk membaca panduan doa persiapan.',x:3.5,z:-2.5},
+ {title:'Kenali kesiapan kesehatan',label:'Catatan',hint:'Datangi meja untuk mempelajari bekal kesehatan.',x:-1.75,z:2.6},
  {title:'Kenali jalur ibadah resmi',label:'Panduan',hint:'Datangi layar panduan untuk mengenali jalur pendaftaran.',x:0,z:-2.65}
 ];
 export function missions(level:PlayableLevel){return level===2?PRAYER_QUESTS:QUESTS;}

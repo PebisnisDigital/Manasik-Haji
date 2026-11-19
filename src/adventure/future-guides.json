@@ -1,0 +1,221 @@
+[
+  {
+    "level": 3,
+    "title": "Menemukan Travel",
+    "cards": [
+      {
+        "title": "Periksa legalitas",
+        "points": [
+          "Cocokkan nama badan usaha dengan izin resmi PPIU/PIHK sesuai layanan.",
+          "Jangan hanya percaya logo atau promo."
+        ]
+      },
+      {
+        "title": "Kenali paket",
+        "points": [
+          "Periksa jadwal, penerbangan, akomodasi, konsumsi, pembimbing dan biaya tambahan.",
+          "Minta rincian tertulis."
+        ]
+      },
+      {
+        "title": "Simulasi pendaftaran",
+        "points": [
+          "Gunakan identitas fiktif dalam game.",
+          "Pada pendaftaran nyata, gunakan kanal resmi dan minta bukti pembayaran."
+        ],
+        "note": "Haji reguler mengikuti jalur resmi pemerintah, bukan paket umroh."
+      }
+    ]
+  },
+  {
+    "level": 4,
+    "title": "Persiapan Dokumen",
+    "cards": [
+      {
+        "title": "Identitas dan paspor",
+        "points": [
+          "Cocokkan nama, tanggal lahir dan identitas pada berkas.",
+          "Periksa masa berlaku paspor sesuai syarat perjalanan."
+        ]
+      },
+      {
+        "title": "Visa dan izin perjalanan",
+        "points": [
+          "Pastikan izin perjalanan sesuai jenis ibadah dan rute.",
+          "Konfirmasi kelengkapan kepada penyelenggara resmi."
+        ]
+      },
+      {
+        "title": "Arsip dokumen",
+        "points": [
+          "Simpan salinan dokumen dengan aman.",
+          "Catat kontak pembimbing dan kontak darurat."
+        ],
+        "note": "Tidak mengunggah dokumen asli ke game."
+      }
+    ]
+  },
+  {
+    "level": 5,
+    "title": "Persiapan Kesehatan",
+    "cards": [
+      {
+        "title": "Pemeriksaan kesehatan",
+        "points": [
+          "Sampaikan riwayat penyakit dan obat kepada tenaga kesehatan.",
+          "Ikuti arahan pemeriksaan sesuai kondisi."
+        ]
+      },
+      {
+        "title": "Persyaratan kesehatan",
+        "points": [
+          "Periksa ketentuan vaksin, pemeriksaan dan bukti kesehatan terbaru.",
+          "Gunakan fasilitas kesehatan yang berwenang."
+        ]
+      },
+      {
+        "title": "Kebugaran dan obat",
+        "points": [
+          "Latih stamina sesuai kemampuan.",
+          "Siapkan obat rutin dan resep bila diperlukan, sesuai arahan dokter."
+        ]
+      }
+    ]
+  },
+  {
+    "level": 6,
+    "title": "Menyiapkan Koper",
+    "cards": [
+      {
+        "title": "Pakaian dan ihram",
+        "points": [
+          "Siapkan pakaian yang sesuai serta perlengkapan ihram/ibadah.",
+          "Sesuaikan pakaian dengan ketentuan ihram laki-laki atau perempuan."
+        ]
+      },
+      {
+        "title": "Peralatan pribadi",
+        "points": [
+          "Bawa alas kaki, perlengkapan kebersihan, obat pribadi dan tas kecil.",
+          "Pisahkan perlengkapan yang perlu digunakan selama penerbangan."
+        ]
+      },
+      {
+        "title": "Bagasi aman",
+        "points": [
+          "Periksa batas bagasi dan aturan barang terlarang maskapai.",
+          "Beri tanda pengenal koper."
+        ]
+      }
+    ]
+  },
+  {
+    "level": 7,
+    "title": "Kelas Manasik",
+    "cards": [
+      {
+        "title": "Urutan ibadah",
+        "points": [
+          "Pelajari rangkaian umroh atau jenis haji yang dipilih.",
+          "Kenali rukun, kewajiban, dan sunah dengan pembimbing."
+        ]
+      },
+      {
+        "title": "Ihram dan larangan",
+        "points": [
+          "Pahami miqat, niat ihram dan larangan selama ihram.",
+          "Tanyakan ketentuan khusus sesuai kondisi jamaah."
+        ]
+      },
+      {
+        "title": "Keselamatan rombongan",
+        "points": [
+          "Kenali titik kumpul dan kontak pembimbing.",
+          "Ketahui prosedur jika terpisah dari rombongan."
+        ]
+      }
+    ]
+  },
+  {
+    "level": 8,
+    "title": "Hari Keberangkatan",
+    "cards": [
+      {
+        "title": "Pemeriksaan akhir",
+        "points": [
+          "Periksa paspor, visa/izin, tiket, obat dan identitas jamaah.",
+          "Simpan dokumen penting dalam tas yang mudah dijangkau."
+        ]
+      },
+      {
+        "title": "Berpamitan dan doa",
+        "points": [
+          "Pamiti keluarga dan pastikan kebutuhan rumah terpenuhi.",
+          "Panjatkan doa memohon perlindungan selama perjalanan."
+        ]
+      },
+      {
+        "title": "Bergabung rombongan",
+        "points": [
+          "Datang sesuai jadwal kumpul.",
+          "Kenali pembimbing, nomor bus dan kelompok."
+        ]
+      }
+    ]
+  },
+  {
+    "level": 9,
+    "title": "Bandara",
+    "cards": [
+      {
+        "title": "Check-in",
+        "points": [
+          "Siapkan dokumen dan ikuti petugas maskapai.",
+          "Periksa nama dan tujuan pada boarding pass."
+        ]
+      },
+      {
+        "title": "Bagasi dan keamanan",
+        "points": [
+          "Serahkan bagasi sesuai aturan maskapai.",
+          "Ikuti pemeriksaan keamanan dan imigrasi."
+        ]
+      },
+      {
+        "title": "Menuju gate",
+        "points": [
+          "Cocokkan nomor gate dan waktu boarding.",
+          "Tetap bersama rombongan dan ikuti pengumuman."
+        ]
+      }
+    ]
+  },
+  {
+    "level": 10,
+    "title": "Terbang ke Saudi",
+    "cards": [
+      {
+        "title": "Doa perjalanan",
+        "points": [
+          "Panjatkan doa memohon keselamatan dan kemudahan.",
+          "Ikuti petunjuk awak kabin."
+        ]
+      },
+      {
+        "title": "Kesehatan di pesawat",
+        "points": [
+          "Minum cukup sesuai kondisi kesehatan.",
+          "Lakukan gerakan ringan bila aman dan ikuti arahan dokter."
+        ]
+      },
+      {
+        "title": "Persiapan miqat",
+        "points": [
+          "Jika rute langsung menuju Makkah melalui Jeddah, siapkan ihram dan niat sebelum melintasi miqat.",
+          "Jika melalui Madinah dahulu, ikuti miqat saat berangkat ke Makkah sesuai panduan pembimbing."
+        ],
+        "note": "Urutan misi dinamis sesuai rute; jangan menunggu tiba di hotel jika miqat telah dilewati."
+      }
+    ]
+  }
+]
