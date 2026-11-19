@@ -1,9 +1,19 @@
 import { readJourney,writeJourney,newJourney,advance,stageUrl,type Avatar,type Journey,type Stage } from './journey.ts';
+import {VoiceGuide} from './audio/VoiceGuide.ts';
 const lesson=document.querySelector<HTMLElement>('#lesson')!;
 const track=document.querySelector<HTMLElement>('#track')!;
 const saved=document.querySelector<HTMLElement>('#saved')!;
 let journey:Journey=readJourney()??newJourney('male');
 const stages=['Miqat & ihram','Tawaf','Salat & zamzam','Sa’i','Tahallul'];
+const narration=[
+'Selamat datang di latihan manasik umrah. Kita mulai dengan mengenal pakaian ihram, batas miqat, niat dan larangan ihram. Pilih model jamaah dan jawab pertanyaan di bawah.',
+'Sekarang tahap tawaf. Mulailah dari garis Hajar Aswad dan jaga Ka’bah di sebelah kiri. Lakukan tujuh putaran latihan.',
+'Setelah tawaf, pelajari salat sunah dua rakaat dan minum air zamzam. Jangan berdesakan atau mengganggu jamaah lain.',
+'Tahap sa’i dimulai di Safa, menuju Marwah. Satu perjalanan adalah satu lintasan. Selesaikan tujuh lintasan dan berakhir di Marwah.',
+'Setelah sa’i, pelajari tahallul dengan memotong rambut sesuai tuntunan pembimbing. Pilih jawaban yang tepat.',
+'Alhamdulillah, rangkaian pembelajaran telah selesai. Latihan ini tidak menggantikan pelaksanaan ibadah yang sebenarnya.'
+];
+const guide=new VoiceGuide(narration[journey.stage]);
 const icon=(female:boolean)=>female?'<svg viewBox="0 0 80 90" aria-hidden="true"><path d="M40 8Q24 8 22 26L15 43L8 85H72L65 43L58 26Q56 8 40 8" fill="#395b4d"/><ellipse cx="40" cy="29" rx="10" ry="13" fill="#d6a881"/><path d="M24 39Q40 53 56 39L62 64H18Z" fill="#577867"/></svg>':'<svg viewBox="0 0 80 90" aria-hidden="true"><circle cx="40" cy="17" r="12" fill="#d5a781"/><path d="M25 31L13 57L20 61L27 44L27 84H53V44L60 61L67 57L55 31" fill="#fffcf3" stroke="#c6c8bc" stroke-width="1.5"/><path d="M25 32L52 56H27L48 31" fill="#ece9df"/><path d="M26 55H54M40 56L49 82" stroke="#bfc3b7" fill="none"/></svg>';
 function persist(j:Journey):boolean{
  if(writeJourney(j)){journey=j;return true;}
@@ -11,7 +21,7 @@ function persist(j:Journey):boolean{
  message('Progress belum tersimpan. Periksa izin penyimpanan browser.');return false;
 }
 function message(text:string,ok=false):void{
- const n=lesson.querySelector<HTMLElement>('.notice');if(n){n.textContent=text;n.classList.toggle('ok',ok);}
+ const n=lesson.querySelector<HTMLElement>('.notice');if(n){n.textContent=text;n.classList.toggle('ok',ok);guide.announce(text,'feedback-'+text,1500,true);}
 }
 function move(expected:Stage):void{
  if(journey.stage!==expected)return;
@@ -28,7 +38,7 @@ function preparation():void{
  const clothing=lesson.querySelector<HTMLElement>('#clothing')!;
  const update=()=>{clothing.textContent=journey.avatar==='male'?'Laki-laki mengenakan dua lembar kain ihram; kepala tidak ditutup saat berihram.':'Perempuan mengenakan pakaian yang menutup aurat sesuai tuntunan, tanpa kewajiban warna tertentu; tidak memakai niqab atau sarung tangan saat ihram.';lesson.querySelectorAll<HTMLButtonElement>('[data-avatar]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.avatar===journey.avatar)));};
  update();
- lesson.querySelectorAll<HTMLButtonElement>('[data-avatar]').forEach(b=>b.onclick=()=>{journey={...journey,avatar:b.dataset.avatar as Avatar};update();});
+ lesson.querySelectorAll<HTMLButtonElement>('[data-avatar]').forEach(b=>b.onclick=()=>{journey={...journey,avatar:b.dataset.avatar as Avatar};update();guide.announce(clothing.textContent??'','clothing-'+journey.avatar,0,true);});
  lesson.querySelector<HTMLButtonElement>('#continue')!.onclick=()=>{
    if(!Array.from(lesson.querySelectorAll<HTMLInputElement>('[data-prep]')).every(c=>c.checked)){message('Pahami dan centang kedua persiapan dulu.');return;}
    if(lesson.querySelector<HTMLInputElement>('input[name=ihram]:checked')?.value!=='right'){message('Belum tepat. Pelajari larangan ihram, lalu pilih jawaban kembali.');return;}
@@ -57,7 +67,7 @@ function done():void{
  lesson.querySelector<HTMLButtonElement>('#restart')!.onclick=()=>{if(persist(newJourney(journey.avatar)))render();};
 }
 function render():void{
- drawTrack();
+ drawTrack();guide.announce(narration[journey.stage],'stage-'+journey.stage,0,true);
  switch(journey.stage){case 0:preparation();break;case 1:tawaf();break;case 2:post();break;case 3:sai();break;case 4:tahallul();break;case 5:done();break;}
  if(journey.stage>0&&journey.stage<5){
   const restart=document.createElement('button');restart.className='secondary';restart.textContent='Ulangi dari awal';

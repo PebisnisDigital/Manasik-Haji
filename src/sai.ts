@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { buildSaiHall, END, GREEN_START, GREEN_END, WALK_WIDTH } from './env/SaiHall.ts';
 import { SaiProgress } from './sim/SaiProgress.ts';
 import {guidedStage,completeStage} from './journey.ts';
+import {VoiceGuide} from './audio/VoiceGuide.ts';
 import { CrowdRenderer } from './characters/CrowdRenderer.ts';
 import { resolveFrames } from './characters/CrowdView.ts';
 import { Clip } from './sim/States.ts';
@@ -29,6 +30,8 @@ const guided=guidedStage(3);
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextLink.textContent='Lanjut ke tahallul →';nextLink.href='./umrah.html';}
 nextLink.addEventListener('click',e=>{if(guided&&!completeStage(3,guided.id)){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 
+const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintasan pertama. Lanjutkan bolak-balik hingga tujuh lintasan dan berakhir di Marwah.';
+const guide=new VoiceGuide(intro);
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
@@ -55,6 +58,7 @@ function boot(): void {
   marker.position.y=0.07;scene.add(marker);
   let x=3,z=END,yaw=Math.PI;
   const track=new SaiProgress();
+  let wasGreen=false,wrongSince=0,wrongAnnounced=false;
   let orbit=0,walkPhase=0,auto=false,finished=false,last=performance.now(),brisk=false;
   const input = new Set<string>();
   let joyId:number|null=null, joyX=0, joyY=0, paused=false;
@@ -73,7 +77,7 @@ function boot(): void {
   function stopJoy():void{joyId=null;joyX=0;joyY=0;knob.style.transform='translate(0px,0px)';}
   function setPause(on:boolean):void{paused=on;pauseButton.setAttribute('aria-pressed',String(on));pauseButton.textContent=on?'Lanjutkan':'Jeda';input.clear();stopJoy();}
   function resetAll():void {
-    x=3;z=END;track.reset();yaw=Math.PI;orbit=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);setBrisk(false);
+    x=3;z=END;track.reset();wasGreen=false;wrongSince=0;wrongAnnounced=false;guide.reset(intro);yaw=Math.PI;orbit=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);setBrisk(false);
     setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;targetLabel.textContent='Menuju Marwah';status.textContent='Mulai di Safa. Berjalan menuju Marwah.';nextLink.hidden=true;
   }
   function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
@@ -97,7 +101,7 @@ function boot(): void {
   canvas.addEventListener('pointerdown',e=>{if(dragId!==null)return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
   canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
-  autoButton.addEventListener('click',()=>setAuto(!auto));reset.addEventListener('click',resetAll);
+  autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)guide.announce('Mode otomatis aktif. Perhatikan tujuan setiap lintasan.','auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
   function setBrisk(on:boolean):void{brisk=on&&avatar.value==='male';pace.setAttribute('aria-pressed',String(brisk));pace.textContent=brisk?'Kecepatan biasa':'Jalan lebih cepat';}
   pace.addEventListener('click',()=>setBrisk(!brisk));avatar.addEventListener('change',()=>setBrisk(false));
@@ -110,6 +114,7 @@ function boot(): void {
   function frame(now:number):void {
     const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused?0:elapsed;animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
+    if(!finished&&inGreen!==wasGreen&&!paused){wasGreen=inGreen;if(inGreen)guide.announce(avatar.value==='male'?'Masuk area lampu hijau. Bagi laki-laki, dianjurkan berlari kecil bila mampu.':'Masuk area lampu hijau. Jamaah perempuan tetap berjalan biasa.','green-in-'+track.completed,5000,true);else guide.announce('Keluar area lampu hijau. Lanjutkan berjalan biasa menuju '+track.destination+'.','green-out-'+track.completed,5000);}
     pace.hidden=avatar.value!=='male'||!inGreen||finished;
     if(pace.hidden&&brisk)setBrisk(false);
     zoneLabel.textContent=inGreen?(avatar.value==='male'?'Area lampu hijau: dianjurkan lari kecil bila mampu.':'Area lampu hijau: tetap berjalan biasa.'):'Jalur sa’i • berjalan biasa';
@@ -132,9 +137,9 @@ function boot(): void {
       const arrived=track.update(z);
       count.textContent=track.completed+' / 7';progress.value=track.fraction(z);
       finished=track.finished;
-      if(finished){setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';nextLink.hidden=false;if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
-      else if(arrived){targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
-      else if(Math.abs(z-oldZ)>.001){status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
+      if(finished){guide.announce('Alhamdulillah, tujuh lintasan latihan selesai di Marwah. Berikutnya adalah tahallul.','complete',0,true);setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';nextLink.hidden=false;if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
+      else if(arrived){wrongSince=0;wrongAnnounced=false;guide.announce('Lintasan ke '+track.completed+' selesai di '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.','arrival-'+track.completed,0,true);targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
+      else if(Math.abs(z-oldZ)>.001){if((z-oldZ)*track.direction<0){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce('Arah berlawanan. Tujuan berikutnya adalah '+track.destination+'.','wrong',10000,true);}}else{if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar.','correct',10000);wrongSince=0;wrongAnnounced=false;}status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
     }
     const dist=Math.hypot(x-oldX,z-oldZ);
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}

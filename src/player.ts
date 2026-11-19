@@ -5,6 +5,7 @@ import { resolveFrames } from './characters/CrowdView.ts';
 import { Clip } from './sim/States.ts';
 import { MATAF } from './config/site.ts';
 import {guidedStage,completeStage} from './journey.ts';
+import {VoiceGuide} from './audio/VoiceGuide.ts';
 
 const TAU = Math.PI * 2;
 const START = MATAF.startLineBearing;
@@ -30,6 +31,8 @@ function updateSaiLink():void{saiLink.href='./sai.html?avatar='+encodeURICompone
 nextSai.addEventListener('click',e=>{if(guided&&!completeStage(1,guided.id)){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 
+const intro="Selamat datang di area latihan tawaf. Mulai dari garis Hajar Aswad, berjalan mengelilingi Ka'bah berlawanan arah jarum jam. Jaga Ka'bah di sebelah kiri. Selesaikan tujuh putaran.";
+const guide=new VoiceGuide(intro);
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
@@ -60,6 +63,7 @@ function boot(): void {
   let x = Math.cos(START)*START_RADIUS, z = Math.sin(START)*START_RADIUS, yaw = Math.PI;
   let orbit = 0, walkPhase = 0, total = 0, completed = 0, auto = false, finished = false, last = performance.now();
   let lastAngle: number = START;
+  let wrongSince=0,wrongAnnounced=false,announcedLap=0;
   const input = new Set<string>();
   let joyId:number|null=null, joyX=0, joyY=0, paused=false;
   let initializedCamera=false, animationTime=0;
@@ -79,7 +83,7 @@ function boot(): void {
   function resetAll():void {
     x=Math.cos(START)*START_RADIUS;z=Math.sin(START)*START_RADIUS;lastAngle=START;
     yaw=Math.PI;orbit=0;total=0;completed=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);
-    nextSai.hidden=true;setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
+    wrongSince=0;wrongAnnounced=false;announcedLap=0;guide.reset(intro);nextSai.hidden=true;setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
   }
   function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   resize();window.addEventListener('resize',resize);
@@ -102,7 +106,7 @@ function boot(): void {
   canvas.addEventListener('pointerdown',e=>{if(dragId!==null)return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
   canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
-  autoButton.addEventListener('click',()=>setAuto(!auto));reset.addEventListener('click',resetAll);
+  autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)guide.announce("Mode otomatis aktif. Perhatikan arah tawaf dan posisi Ka'bah di kiri.",'auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
   const pressed=(k:string)=>input.has(k);
   const npc=Array.from({length:124},(_,i)=>({a:i*2.399963,r:35.8+(i%9)*2.35,s:0.9+(i%5)*0.12,h:1.59+(i%7)*0.035}));
@@ -132,7 +136,9 @@ function boot(): void {
       const a=Math.atan2(z,x),delta=wrap(lastAngle-a);lastAngle=a;total+=delta;
       completed=Math.max(0,Math.min(7,Math.floor((total+1e-7)/TAU)));
       count.textContent=completed+' / 7';progress.value=Math.max(0,Math.min(7,total/TAU));
-      if(completed===7){finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';nextSai.hidden=false;if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
+      if(completed>announcedLap&&completed<7){announcedLap=completed;guide.announce('Putaran ke '+completed+' selesai. Lanjutkan hingga tujuh putaran.','lap-'+completed,0,true);}
+      if(delta < -0.0004){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce("Arah tawaf terbalik. Berbaliklah sehingga Ka'bah berada di sebelah kiri.",'wrong',10000,true);}}else if(delta>0.0004){if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar. Lanjutkan tawaf.','correct',10000);wrongSince=0;wrongAnnounced=false;}else if(!paused){wrongSince=0;}
+      if(completed===7){guide.announce('Alhamdulillah, tujuh putaran latihan selesai. Selanjutnya pelajari salat sunah tawaf dan minum air zamzam.','complete',0,true);finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';nextSai.hidden=false;if(guided&&!completeStage(1,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }
