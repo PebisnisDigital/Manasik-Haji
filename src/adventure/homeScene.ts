@@ -67,7 +67,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  function cylinder(rt:number,rb:number,h:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D=s){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,20),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
  // Water dispenser, blue refill gallon and red/blue taps.
  box(.49,.83,.48,plastic,6.72,.43,-2.75);box(.4,.21,.07,black,6.72,.63,-2.49);box(.09,.075,.16,red,6.61,.65,-2.45);box(.09,.075,.16,blue,6.83,.65,-2.45);box(.35,.07,.18,silver,6.72,.45,-2.42);
- const jugMat=new THREE.MeshStandardMaterial({color:0x4a9fd0,roughness:.29,metalness:.05});cylinder(.15,.15,.09,blue,6.72,.9,-2.75);const jug=cylinder(.23,.23,.43,jugMat,6.72,1.16,-2.75);sphere(.23,jugMat,6.72,1.36,-2.75).scale.y=.46;for(let k=0;k<3;k++)cylinder(.234,.234,.025,blue,6.72,1.01+k*.13,-2.75);obstacle(6.72,-2.75,.52,.55,1.5);
+ const jugMat=new THREE.MeshStandardMaterial({color:0x4a9fd0,roughness:.29,metalness:.05});cylinder(.15,.15,.09,blue,6.72,.9,-2.75);cylinder(.23,.23,.43,jugMat,6.72,1.16,-2.75);sphere(.23,jugMat,6.72,1.36,-2.75).scale.y=.46;for(let k=0;k<3;k++)cylinder(.234,.234,.025,blue,6.72,1.01+k*.13,-2.75);obstacle(6.72,-2.75,.52,.55,1.5);
  // Shoe rack beside entrance; colourful flip-flops, no collision in the doorway.
  box(.38,.12,1.48,wood,6.85,.1,4.45);box(.38,.08,1.48,wood,6.85,.46,4.45);box(.38,.08,1.48,wood,6.85,.8,4.45);for(const z of [3.76,5.12])box(.38,.8,.08,wood,6.85,.46,z);obstacle(6.85,4.45,.38,1.48,.84);
  for(let i=0;i<6;i++){const col=[red,dark,blue][Math.floor(i/2)];const z=3.99+i*.18;box(.28,.035,.11,col,6.84,.52,z);const strap=box(.13,.065,.028,black,6.78,.57,z);strap.rotation.y=.3;}
