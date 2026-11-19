@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {missions,type Avatar,type Quest,type PlayableLevel} from './state.ts';
-export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onNpc:(npc:'Ibu'|'Ayah'|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
-export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string):void;dispose():void}
+export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onTask:()=>void;onNpc:(npc:'Ibu'|'Ayah'|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
+export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:'Ibu'|'Ayah'):void;unlockCoin():void;dispose():void}
 type Hit={x:number;z:number;w:number;d:number};
 export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks):HomeWorld{
  const QUESTS=missions(level);
@@ -99,7 +99,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  const family2=person(false,0xe5dfc8,1.68,true);family2.root.position.set(-5.8,0,2.3);family2.root.rotation.y=.9;obstacle(-4.65,.47,.45,.36,1.58);obstacle(-5.8,2.3,.45,.36,1.68);
  const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.63,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd8a62f,side:THREE.DoubleSide,transparent:true,opacity:.9}));ring.position.y=.065;s.add(ring);
  const pin=new THREE.Group();s.add(pin);const coinGroup=new THREE.Group();pin.add(coinGroup);const coinMetal=new THREE.MeshStandardMaterial({color:0xeab63d,metalness:.55,roughness:.3,emissive:0x886019,emissiveIntensity:.35});const coinFace=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.075,40),coinMetal);coinFace.rotation.x=Math.PI/2;coinGroup.add(coinFace);for(const z of [-.047,.047]){const rim=new THREE.Mesh(new THREE.TorusGeometry(.194,.015,8,36),new THREE.MeshBasicMaterial({color:0xffedaa}));rim.position.z=z;coinGroup.add(rim);const center=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.012),new THREE.MeshBasicMaterial({color:0xffedaa}));center.position.z=z;center.rotation.z=Math.PI/4;coinGroup.add(center);}
- const cam=new THREE.PerspectiveCamera(60,1,.045,45);let x=0,z=1.85,yaw=Math.PI,cameraYaw=Math.PI,pitch=.16,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,disposed=false,doorOpen=level===1&&initial===3;let talking='',collected=false,nearNpc:'Ibu'|'Ayah'|null=null;const bubbleAnchor=new THREE.Vector3(),npcRay=new THREE.Ray(),npcDir=new THREE.Vector3(),npcStart=new THREE.Vector3(),npcHit=new THREE.Vector3();let cameraDistance=3.1,manualUntil=0,lastMotion=0,lookId:number|null=null,lookX=0,lookY=0;const pivotCam=new THREE.Vector3(),desiredCam=new THREE.Vector3(),direction=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(),lookAt=new THREE.Vector3();const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
+ const cam=new THREE.PerspectiveCamera(60,1,.045,45);let x=0,z=1.85,yaw=Math.PI,cameraYaw=Math.PI,pitch=.16,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,disposed=false,doorOpen=level===1&&initial===3;let talking='',collected=false,taskStarted=false,coinReady=false,coinAt=0,taskHold=false,forcedNpc:'Ibu'|'Ayah'|null=null,nearNpc:'Ibu'|'Ayah'|null=null;const bubbleAnchor=new THREE.Vector3(),npcRay=new THREE.Ray(),npcDir=new THREE.Vector3(),npcStart=new THREE.Vector3(),npcHit=new THREE.Vector3();let cameraDistance=3.1,manualUntil=0,lastMotion=0,lookId:number|null=null,lookX=0,lookY=0;const pivotCam=new THREE.Vector3(),desiredCam=new THREE.Vector3(),direction=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(),lookAt=new THREE.Vector3();const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
  const keys=new Set<string>();let waypoints:{x:number;z:number}[]=[];let jx=0,jz=0,pid:number|null=null;
  const bounds=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
  function valid(px:number,pz:number){return px>-7&&px<7&&pz>-5&&pz<5&&!obstacles.some(o=>Math.abs(px-o.x)<o.w/2+.26&&Math.abs(pz-o.z)<o.d/2+.26);}
@@ -112,11 +112,11 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   const route:{x:number;z:number}[]=[];if(goal>=0)for(let i=goal;i>=0;i=prev[i])route.push(point(i));return route.reverse();
  }
  const keymap:Record<string,string>={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
- function down(e:KeyboardEvent){if(!active||e.ctrlKey||e.metaKey||e.altKey||(e.target as HTMLElement)?.closest('input,select,textarea'))return;const key=keymap[e.code];if(key){e.preventDefault();keys.add(key);auto=false;}}
+ function down(e:KeyboardEvent){if(!active||taskHold||e.ctrlKey||e.metaKey||e.altKey||(e.target as HTMLElement)?.closest('input,select,textarea'))return;const key=keymap[e.code];if(key){e.preventDefault();keys.add(key);auto=false;}}
  function up(e:KeyboardEvent){keys.delete(keymap[e.code]);}
  function clear(){keys.clear();jx=jz=0;pid=null;lookId=null;auto=false;knob.style.transform='translate(-50%,-50%)';}
  function joy(e:PointerEvent){const q=joystick.getBoundingClientRect(),rad=q.width*.34,dx=e.clientX-q.left-q.width/2,dz=e.clientY-q.top-q.height/2,m=Math.max(rad,Math.hypot(dx,dz));jx=dx/m;jz=dz/m;knob.style.transform='translate(calc(-50% + '+jx*rad+'px),calc(-50% + '+jz*rad+'px))';}
- function jd(e:PointerEvent){if(!active||pid!==null)return;e.preventDefault();auto=false;pid=e.pointerId;joystick.setPointerCapture(pid);joy(e);}
+ function jd(e:PointerEvent){if(!active||taskHold||pid!==null)return;e.preventDefault();auto=false;pid=e.pointerId;joystick.setPointerCapture(pid);joy(e);}
  function jm(e:PointerEvent){if(e.pointerId===pid)joy(e);}
  function ju(e:PointerEvent){if(e.pointerId===pid)clear();}
  function resize(){const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);r.setSize(w,h,false);cam.aspect=w/h;cam.fov=cam.aspect<.85?70:60;cam.updateProjectionMatrix();}
@@ -125,12 +125,12 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  function lookUp(e:PointerEvent){if(e.pointerId===lookId)lookId=null;}
  canvas.addEventListener('pointerdown',lookDown);canvas.addEventListener('pointermove',lookMove);canvas.addEventListener('pointerup',lookUp);canvas.addEventListener('pointercancel',lookUp);canvas.addEventListener('lostpointercapture',lookUp);
  const ro=new ResizeObserver(resize);ro.observe(canvas);resize();window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',clear);joystick.addEventListener('pointerdown',jd);joystick.addEventListener('pointermove',jm);joystick.addEventListener('pointerup',ju);joystick.addEventListener('pointercancel',ju);joystick.addEventListener('lostpointercapture',ju);
- function syncTarget(){collected=false;talking='';const t=QUESTS[quest];ring.visible=pin.visible=!!t;if(t){ring.position.set(t.x,.065,t.z);pin.position.set(t.x,1.1,t.z);}near=false;callbacks.onNear(false);}
+ function syncTarget(){collected=false;taskStarted=false;coinReady=false;coinAt=0;taskHold=false;forcedNpc=null;talking='';const t=QUESTS[quest];ring.visible=!!t;pin.visible=false;if(t){ring.position.set(t.x,.065,t.z);pin.position.set(t.x,1.1,t.z);}near=false;callbacks.onNear(false);}
  syncTarget();
  function frame(now:number){
   if(disposed)return;raf=requestAnimationFrame(frame);const dt=Math.min(.045,Math.max(0,(now-last)/1000));last=now;if(document.hidden)return;
   const t=QUESTS[quest],cinema=now<cutUntil;
-  let dx=0,dz=0;if(active&&!cinema&&t){
+  let dx=0,dz=0;if(active&&!cinema&&t&&!taskHold){
    if(auto){if(Math.hypot(t.x-x,t.z-z)<.62){auto=false;waypoints=[];}else{while(waypoints.length&&Math.hypot(waypoints[0].x-x,waypoints[0].z-z)<.1)waypoints.shift();const p=waypoints[0];if(p){const d=Math.hypot(p.x-x,p.z-z);const speed=Math.min(2.5,d/Math.max(dt,.001));dx=(p.x-x)/Math.max(d,.001)*speed;dz=(p.z-z)/Math.max(d,.001)*speed;}else auto=false;}}
 
    else {const f=(keys.has('up')?1:0)-(keys.has('down')?1:0)-jz,side=(keys.has('right')?1:0)-(keys.has('left')?1:0)+jx,n=Math.max(1,Math.hypot(f,side));dx=(Math.sin(cameraYaw)*f-Math.cos(cameraYaw)*side)*2.65/n;dz=(Math.cos(cameraYaw)*f+Math.sin(cameraYaw)*side)*2.65/n;}
@@ -141,17 +141,18 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   family.body.rotation.z=Math.sin(now*.0013)*.027;family.arms[1].rotation.x=-.22+Math.sin(now*.002)*.12;family2.body.rotation.z=Math.sin(now*.0011)*.02;
   blades.rotation.z=now*.009;fan.rotation.y=.92+Math.sin(now*.0008)*.19;curtain.rotation.y=Math.sin(now*.001)*.012;beam.position.x=-3.7+Math.sin(now*.0002)*.23;pivot.rotation.z=-now*.000105;coinGroup.rotation.y=now*.0022;if(t)pin.position.y=1.1+Math.sin(now*.003)*.15;
   const isNear=!!t&&Math.hypot(t.x-x,t.z-z)<1.35&&active&&!cinema;if(isNear!==near){near=isNear;callbacks.onNear(near);}
-  if(t&&active&&!cinema&&!collected&&Math.hypot(t.x-x,t.z-z)<.7){collected=true;ring.visible=pin.visible=false;active=false;clear();callbacks.onCollect();}
+  if(t&&active&&!cinema&&!taskStarted&&Math.hypot(t.x-x,t.z-z)<.7){taskStarted=true;taskHold=true;clear();callbacks.onTask();}
+  if(t&&active&&coinReady&&!collected&&now>=coinAt&&Math.hypot(t.x-x,t.z-z)<.7){collected=true;ring.visible=pin.visible=false;active=false;clear();callbacks.onCollect();}
   // Proximity chat is independent of quest collection; hysteresis prevents flicker/retrigger.
   function visibleNpc(actor:typeof family,max:number){const p=actor.root.position;const dst=Math.hypot(p.x-x,p.z-z);if(dst>max)return Infinity;npcStart.set(x,1.45,z);npcDir.set(p.x-x,0,p.z-z).normalize();npcRay.set(npcStart,npcDir);for(const blocker of blockers){const at=npcRay.intersectBox(blocker,npcHit);if(at){const d=at.distanceTo(npcStart);if(d>.28&&d<dst-.45)return Infinity;}}return dst;}
   const di=active&&!cinema?visibleNpc(family,nearNpc==='Ibu'?2.65:2.2):Infinity;
   const da=active&&!cinema?visibleNpc(family2,nearNpc==='Ayah'?2.65:2.2):Infinity;
   const candidate:typeof nearNpc=Number.isFinite(di)||Number.isFinite(da)?(nearNpc==='Ibu'&&Number.isFinite(di)?'Ibu':nearNpc==='Ayah'&&Number.isFinite(da)?'Ayah':di<=da?'Ibu':'Ayah'):null;
-  if(candidate!==nearNpc){nearNpc=candidate;callbacks.onNpc(nearNpc);}
-  if(talking&&nearNpc){
-   const npc=nearNpc==='Ayah'?family2:family;
+  if(!taskHold&&candidate!==nearNpc){nearNpc=candidate;callbacks.onNpc(nearNpc);}
+  if(talking&&(forcedNpc||nearNpc)){
+   const npc=(forcedNpc||nearNpc)==='Ayah'?family2:family;
    npc.root.rotation.y=Math.atan2(x-npc.root.position.x,z-npc.root.position.z);
-   if(!moving){const face=Math.atan2(npc.root.position.x-x,npc.root.position.z-z);yaw+=angleDelta(yaw,face)*Math.min(1,dt*7);hero.root.rotation.y=yaw;}
+   if(!moving){const face=Math.atan2(npc.root.position.x-x,npc.root.position.z-z);yaw+=angleDelta(yaw,face)*Math.min(1,dt*7);hero.root.rotation.y=yaw;if(forcedNpc)cameraYaw+=angleDelta(cameraYaw,face)*Math.min(1,dt*5);}
    const actor=talking==='Kamu'?hero:talking==='Ibu'?family:talking==='Ayah'?family2:null;
    if(actor){actor.body.rotation.z=Math.sin(now*.004)*.025;actor.arms[1].rotation.x=-.28+Math.sin(now*.007)*.17;}
   }else hero.body.rotation.z=0;
@@ -168,9 +169,9 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   cam.position.copy(pivotCam).addScaledVector(direction,cameraDistance);
   hero.root.visible=cameraDistance>.72;
   lookAt.set(x+forwardX*3.7+rightX*shoulder,1.45+Math.sin(pitch)*-.9,z+forwardZ*3.7+rightZ*shoulder);cam.lookAt(lookAt);cam.updateMatrixWorld();
-  if(talking&&nearNpc){const actor=talking==='Kamu'?hero:talking==='Ibu'?family:talking==='Ayah'?family2:null;if(actor){bubbleAnchor.set(actor.root.position.x,actor.root.scale.y*1.76+.14,actor.root.position.z).project(cam);const visible=bubbleAnchor.z>-1&&bubbleAnchor.z<1&&Math.abs(bubbleAnchor.x)<1.08&&bubbleAnchor.y>-1.04;callbacks.onBubble((bubbleAnchor.x*.5+.5)*100,(.5-bubbleAnchor.y*.5)*100,visible);}else callbacks.onBubble(50,50,false);}else callbacks.onBubble(50,50,false);
+  if(talking&&(forcedNpc||nearNpc)){const actor=talking==='Kamu'?hero:talking==='Ibu'?family:talking==='Ayah'?family2:null;if(actor){bubbleAnchor.set(actor.root.position.x,actor.root.scale.y*1.76+.14,actor.root.position.z).project(cam);const visible=bubbleAnchor.z>-1&&bubbleAnchor.z<1&&Math.abs(bubbleAnchor.x)<1.08&&bubbleAnchor.y>-1.04;callbacks.onBubble((bubbleAnchor.x*.5+.5)*100,(.5-bubbleAnchor.y*.5)*100,visible);}else callbacks.onBubble(50,50,false);}else callbacks.onBubble(50,50,false);
   if(t){const bearing=Math.atan2(t.x-x,t.z-z);callbacks.onNav(angleDelta(cameraYaw,bearing),Math.hypot(t.x-x,t.z-z));}
   r.render(s,cam);
  }raf=requestAnimationFrame(frame);
- return {talk(speaker){talking=speaker;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
+ return {talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
 }

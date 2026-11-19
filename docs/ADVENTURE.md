@@ -12,3 +12,6 @@ Auto-collect 3D rotating coins via proximity (0.7m), scripted alternating charac
 
 ## V4.5
 NPC text-only ambient conversations on entering a 2.2m radius, 2.65m exit hysteresis, view-dependent world-space chat bubbles projected over the current speaker; no speech synthesis for NPC chat or lesson content. Coin pickup and lesson popup independent of conversation. Guide speech restricted to mission directions and level transitions. Same save format and two playable levels.
+
+## V4.6 meaningful mission gates
+Each coin represents a concrete learning objective, not a location. Level 1: parental prayers/restu (adab, not a validity condition), family responsibilities, budget planning. Level 2: intention, health preparation, official registration routes. NPC mandatory dialogue must finish; other tasks require correct educational choice before coin reveal and auto pickup. New version-scoped save preserves old checkpoint separately and carries avatar/campaign. Future chapters must use the same action → learning validation → reward → explanation pattern, with official guidance and qualified review. Reference: https://haji.go.id/berita/manasik-berbekal-al-fatihah-dirjen-pelayanan-haji-tekankan-kesiapan-jemaah-hingga-pascahaji-1792226604315 and https://haji.go.id/berita/kemenhaj-rilis-buku-paket-bimbingan-manasik-haji-dan-umrah-2026-1770184158036 .
