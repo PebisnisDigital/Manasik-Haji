@@ -7,10 +7,10 @@ interface Session{access_token:string;refresh_token:string;expires_at?:number;ex
 export function session():Session|null{try{return JSON.parse(sessionStorage.getItem(SESSION)??'null');}catch{return null;}}
 function store(s:Session){if(!s.expires_at)s.expires_at=Math.floor(Date.now()/1000)+(s.expires_in??3600);sessionStorage.setItem(SESSION,JSON.stringify(s));}
 export function logoutLocal(){sessionStorage.removeItem(SESSION);}
-async function request<T>(path:string,method='GET',body?:unknown,token?:string,prefer?:string):Promise<T>{
+async function request<T>(path:string,method='GET',body?:unknown,token?:string,prefer?:string,clientInfo?:string):Promise<T>{
  if(!configured)throw new Error('Database belum dikonfigurasi.');
  const headers:Record<string,string>={apikey:key,'Content-Type':'application/json'};
- if(token)headers.Authorization='Bearer '+token;if(prefer)headers.Prefer=prefer;
+ if(token)headers.Authorization='Bearer '+token;if(prefer)headers.Prefer=prefer;if(clientInfo)headers['x-client-info']=clientInfo;
  const res=await fetch(backendUrl+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
  const raw=await res.text();let data:any=null;try{data=raw?JSON.parse(raw):null;}catch{}
  if(!res.ok)throw new Error(data?.message??data?.msg??data?.error_description??'Permintaan gagal ('+res.status+').');
@@ -27,4 +27,4 @@ export async function token():Promise<string>{
 }
 export async function me(){return request<Account>('/auth/v1/user','GET',undefined,await token());}
 export async function logout(){try{if(session())await request('/auth/v1/logout','POST',undefined,await token());}catch{}finally{logoutLocal();}}
-export async function rest<T>(path:string,opts:{method?:string;body?:unknown;auth?:boolean;prefer?:string}={}):Promise<T>{return request<T>('/rest/v1/'+path,opts.method??'GET',opts.body,opts.auth?await token():undefined,opts.prefer);}
+export async function rest<T>(path:string,opts:{method?:string;body?:unknown;auth?:boolean;prefer?:string;clientInfo?:string}={}):Promise<T>{return request<T>('/rest/v1/'+path,opts.method??'GET',opts.body,opts.auth?await token():undefined,opts.prefer,opts.clientInfo);}
