@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {coreGame,completeCoreGame,coreUrl} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
+import {tenantUrl} from './tenant.ts';
 import { Environment } from './env/Environment.ts';
 import { CrowdRenderer } from './characters/CrowdRenderer.ts';
 import { resolveFrames } from './characters/CrowdView.ts';
@@ -33,8 +34,8 @@ const guided=core?null:guidedStage(1);
 const hajj=core?null:hajjGame('tawaf');
 if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent=hajj.stage==='wada'?'Latihan Tawaf Wada’':'Latihan Tawaf Ifadah';nextSai.textContent='Kembali ke perjalanan haji →';saiLink.textContent='Perjalanan haji';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextSai.textContent='Lanjut ke salat & zamzam →';}
-function updateSaiLink():void{saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);if(hajj)saiLink.href='./hajj.html';nextSai.href=hajj?'./hajj.html':guided?'./umrah.html':saiLink.href;}
-if(core){document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextSai.href=coreUrl(core);nextSai.textContent='Lanjut salat & Zamzam';const heading=document.querySelector('h1');if(heading)heading.textContent='Level 02 · Tawaf';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=coreUrl(core);back.textContent='Kembali';}isPortrait=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
+function updateSaiLink():void{if(core){nextSai.href=coreUrl(core);return;}saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);if(hajj)saiLink.href='./hajj.html';nextSai.href=hajj?'./hajj.html':guided?'./umrah.html':saiLink.href;}
+if(core){document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextSai.href=coreUrl(core);nextSai.textContent='Lanjut salat & Zamzam';const heading=document.querySelector('h1');if(heading)heading.textContent='Level 02 · Tawaf';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./index.html');back.textContent='Lobby';back.classList.add('coreExit');}isPortrait=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
 nextSai.addEventListener('click',e=>{if(core&&(!coreFinished||!completeCoreGame(core,1))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh putaran dahulu.';return;}if((guided&&!completeStage(1,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {coreGame,completeCoreGame,coreUrl} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
+import {tenantUrl} from './tenant.ts';
 import { buildSaiHall, END, GREEN_START, GREEN_END, WALK_WIDTH } from './env/SaiHall.ts';
 import { SaiProgress } from './sim/SaiProgress.ts';
 import {guidedStage,completeStage} from './journey.ts';
@@ -33,7 +34,7 @@ const core=coreGame(3);let coreFinished=false;let isPortrait=()=>false;
 const guided=core?null:guidedStage(3);
 const hajj=core?null:hajjGame('sai');if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent='Latihan Sa’i Haji';nextLink.textContent='Kembali ke perjalanan haji →';nextLink.href='./hajj.html';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextLink.textContent='Lanjut ke tahallul →';nextLink.href='./umrah.html';}
-if(core){document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextLink.href=coreUrl(core);nextLink.textContent='Lanjut tahallul';const heading=document.querySelector('h1');if(heading)heading.textContent='Level 03 · Sa’i';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=coreUrl(core);back.textContent='Kembali';}isPortrait=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
+if(core){document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextLink.href=coreUrl(core);nextLink.textContent='Lanjut tahallul';const heading=document.querySelector('h1');if(heading)heading.textContent='Level 03 · Sa’i';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./index.html');back.textContent='Lobby';back.classList.add('coreExit');}isPortrait=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
 nextLink.addEventListener('click',e=>{if(core&&(!coreFinished||!completeCoreGame(core,3))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh lintasan dahulu.';return;}if((guided&&!completeStage(3,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 
 const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintasan pertama. Lanjutkan bolak-balik hingga tujuh lintasan dan berakhir di Marwah.';
