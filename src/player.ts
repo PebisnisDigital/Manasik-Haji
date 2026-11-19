@@ -21,6 +21,10 @@ const avatar = document.querySelector<HTMLSelectElement>('#avatar')!;
 const cameraMode = document.querySelector<HTMLSelectElement>('#cameraMode')!;
 const pauseButton = document.querySelector<HTMLButtonElement>('#pause')!;
 const mapPlayer = document.querySelector<SVGGElement>('#mapPlayer')!;
+const nextSai=document.querySelector<HTMLAnchorElement>('#nextSai')!;
+const saiLink=document.querySelector<HTMLAnchorElement>('#saiLink')!;
+function updateSaiLink():void{nextSai.href=saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);}
+avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -71,7 +75,7 @@ function boot(): void {
   function resetAll():void {
     x=Math.cos(START)*START_RADIUS;z=Math.sin(START)*START_RADIUS;lastAngle=START;
     yaw=Math.PI;orbit=0;total=0;completed=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);
-    setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
+    nextSai.hidden=true;setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
   }
   function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   resize();window.addEventListener('resize',resize);
@@ -124,7 +128,7 @@ function boot(): void {
       const a=Math.atan2(z,x),delta=wrap(lastAngle-a);lastAngle=a;total+=delta;
       completed=Math.max(0,Math.min(7,Math.floor((total+1e-7)/TAU)));
       count.textContent=completed+' / 7';progress.value=Math.max(0,Math.min(7,total/TAU));
-      if(completed===7){finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Ini bukan pengesahan ibadah. Ulangi bila perlu.';}
+      if(completed===7){finished=true;setAuto(false);status.textContent='Tujuh putaran latihan selesai. Pelajari salat sunah tawaf dan zamzam, lalu lanjut ke sa’i.';nextSai.hidden=false;}
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }
