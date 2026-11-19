@@ -16,7 +16,7 @@
     "qa:mobile": "node tools/mobile-qa.mjs",
     "poses": "node --experimental-strip-types tools/pose-check.ts",
     "solve": "node --experimental-strip-types tools/solve-poses.ts",
-    "test:core": "vitest run tests/coreProgress.test.ts tests/coreWalk.test.ts tests/sai.test.ts tests/trainingCrowd.test.ts tests/coreRelease.test.ts tests/certificate.test.ts tests/playerCloud.test.ts tests/adminModel.test.ts"
+    "test:core": "vitest run tests/coreProgress.test.ts tests/coreWalk.test.ts tests/sai.test.ts tests/trainingCrowd.test.ts tests/coreRelease.test.ts tests/certificate.test.ts tests/playerCloud.test.ts tests/adminModel.test.ts tests/partnerModel.test.ts"
   },
   "dependencies": {
     "three": "^0.185.1"

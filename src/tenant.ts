@@ -34,15 +34,15 @@ export async function flush(){
 function apply(b:Brand,demo:boolean){
  brand=b;document.title=b.name+' — '+document.title.split('—').pop()?.trim();
  for(const el of document.querySelectorAll<HTMLElement>('[data-tenant-brand]')){el.textContent=b.name;if(b.logo_url){const img=document.createElement('img');img.src=b.logo_url;img.alt='';img.referrerPolicy='no-referrer';img.style.cssText='max-height:34px;max-width:100px;object-fit:contain;vertical-align:middle;margin-right:7px';el.prepend(img);}}
- const panel=document.querySelector<HTMLElement>('header');if(panel)panel.style.background=b.accent;
+ document.documentElement.style.setProperty('--tenant-accent',b.accent);const panel=document.querySelector<HTMLElement>('header');if(panel)panel.style.background=b.accent;
  const style=document.createElement('style');style.textContent='.action,.primary{background:'+b.accent+'!important;color:white!important}.tenant-chip{margin:7px 0;font-size:12px;font-weight:700;color:inherit}';document.head.append(style);
  const slot=document.querySelector<HTMLElement>('[data-tenant-menu]');
  if(slot){const d=document.createElement('div');d.className='tenant-chip';d.textContent=demo?'DEMO IDENTITAS MITRA • data contoh, bukan akun sungguhan':b.description;
- const a=document.createElement('a');a.className='secondary';a.href=tenantUrl('./peserta.html');a.textContent=demo?'Demo akun peserta':'Akun & izin progress';slot.append(d,a);if(b.whatsapp){const w=document.createElement('a');w.className='secondary';w.href='https://wa.me/'+b.whatsapp;w.textContent='Hubungi travel';w.target='_blank';w.rel='noopener noreferrer';slot.append(w);}}
+ const a=document.createElement('a');a.className='secondary';a.href=tenantUrl('./account.html');a.textContent=demo?'Demo akun peserta':'Akun & izin progress';slot.append(d,a);if(b.whatsapp){const w=document.createElement('a');w.className='secondary';w.href='https://wa.me/'+b.whatsapp;w.textContent='Hubungi travel';w.target='_blank';w.rel='noopener noreferrer';slot.append(w);}}
 }
 export function bootTenant(){
  if(!slug)return;
- const rewire=(a:HTMLAnchorElement)=>{if(!new URL(a.href).searchParams.has('mitra')&&a.origin===location.origin&&/\/(index|umrah|hajj|player|sai|explore|peserta|adventure)\.html$|\/$/.test(a.pathname))a.href=tenantUrl(a.href);};
+ const rewire=(a:HTMLAnchorElement)=>{if(!new URL(a.href).searchParams.has('mitra')&&a.origin===location.origin&&/\/(index|umrah|hajj|player|sai|explore|peserta|adventure|account|manasik)\.html$|\/$/.test(a.pathname))a.href=tenantUrl(a.href);};
  document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(rewire);
  document.addEventListener('click',e=>{const a=(e.target as Element|null)?.closest('a[href]') as HTMLAnchorElement|null;if(a)rewire(a);},true);
  void lookup().then(p=>{if(p)apply(p.brand,p.demo);else{const el=document.querySelector<HTMLElement>('[data-tenant-brand]');if(el)el.textContent='Mitra tidak tersedia';}}).catch(()=>{});

@@ -2,7 +2,7 @@ import {coreSession,coreUrl,commitCore,readCheckpoint,saveCheckpoint,levelNumber
 import {mountCertificate,downloadCertificate} from './certificateRender.ts';
 import type {Certificate} from './certificateModel.ts';
 import {syncRuns,accountId} from './playerCloud.ts';
-import {tenantUrl} from './tenant.ts';
+import {tenantUrl,bootTenant} from './tenant.ts';
 import {mountMini,type Demo,type DemoKind} from './miniScenes.ts';
 import {ImmersiveSound} from './audio/ImmersiveSound.ts';
 import {VoiceGuide} from './audio/VoiceGuide.ts';
@@ -14,6 +14,7 @@ const $=(id:string)=>document.getElementById(id)!;
 const initial=coreSession();
 if(!initial){location.replace(tenantUrl('./index.html'));}else run(initial);
 function run(initial:CoreSave){
+ bootTenant();
  
  let onSiteNear:(()=>void)|null=null;let onMiniNear:(()=>void)|null=null;let miniGoal:'prayer'|'water'|'trim'|'prep'|null=null;let j=initial,demo:Demo|null=null,siteView:SiteView|null=null,cardIndex=0,postDone=new Set<string>(),busy=false,trimmed=false;
  const guide=new VoiceGuide('Selamat datang di latihan manasik.');

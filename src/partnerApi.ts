@@ -1,0 +1,6 @@
+import {rest,session} from './commercialApi.ts';import type {PartnerReport} from './partnerModel.ts';
+export const partnerReport=(id:string,search='',offset=0)=>rest<PartnerReport>('rpc/umroh_partner_progress',{auth:true,method:'POST',body:{p_partner:id,p_search:search.trim().slice(0,80),p_offset:offset}});
+export interface Share{partner_id:string;user_id:string;alias:string;consent_at:string}
+export const readShare=(id:string)=>rest<Share[]>('umroh_partner_shares?partner_id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+session()?.user.id+'&select=partner_id,user_id,alias,consent_at',{auth:true});
+export async function enableShare(id:string,alias:string){const uid=session()?.user.id;if(!uid)throw Error('Masuk dahulu.');await rest('umroh_partner_shares?on_conflict=partner_id,user_id',{auth:true,method:'POST',prefer:'resolution=ignore-duplicates,return=minimal',body:{partner_id:id,user_id:uid,alias}});const rows=await rest<Share[]>('umroh_partner_shares?partner_id=eq.'+id+'&user_id=eq.'+uid,{auth:true,method:'PATCH',body:{alias},prefer:'return=representation'});if(!rows.length)throw Error('Izin belum tersimpan.');}
+export async function disableShare(id:string){const uid=session()?.user.id;if(!uid)throw Error('Masuk dahulu.');await rest('umroh_partner_shares?partner_id=eq.'+id+'&user_id=eq.'+uid,{auth:true,method:'DELETE'});}
