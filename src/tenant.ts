@@ -2,8 +2,8 @@ import {configured,rest,session} from './commercialApi.ts';
 export interface Brand{slug:string;name:string;logo_url:string;accent:string;whatsapp:string;description:string}
 export const SAMPLE:Brand={slug:'demo-travel',name:'Demo Travel Manasik',logo_url:'',accent:'#246648',whatsapp:'',description:'Contoh identitas mitra • bukan travel nyata.'};
 const PREVIEW='manasik-preview-v3';
-export const slug=(()=>{const s=new URLSearchParams(location.search).get('mitra')??'';return /^[a-z0-9][a-z0-9-]{1,49}$/.test(s)?s:'';})();
-export function scopedKey(k:string):string{return slug?k+':'+slug+':'+(session()?.user.id??'guest'):k;}
+export const slug=(()=>{const s=typeof location==='undefined'?'':new URLSearchParams(location.search).get('mitra')??'';return /^[a-z0-9][a-z0-9-]{1,49}$/.test(s)?s:'';})();
+export function scopedKey(k:string):string{return slug?k+':'+slug+':'+(session()?.user?.id??'guest'):k;}
 export function tenantUrl(path:string):string{if(!slug)return path;const u=new URL(path,location.href);if(u.origin!==location.origin)return path;u.searchParams.set('mitra',slug);return u.pathname+u.search+u.hash;}
 export function previewBrand():Brand{try{const v=JSON.parse(localStorage.getItem(PREVIEW)??'null');if(v&&v.slug===SAMPLE.slug)return cleanBrand(v);}catch{}return SAMPLE;}
 export function savePreview(b:Brand){localStorage.setItem(PREVIEW,JSON.stringify(cleanBrand({...b,slug:SAMPLE.slug})));}
@@ -41,7 +41,7 @@ function apply(b:Brand,demo:boolean){
 }
 export function bootTenant(){
  if(!slug)return;
- const rewire=(a:HTMLAnchorElement)=>{if(a.origin===location.origin&&/\/(index|umrah|hajj|player|sai|explore|peserta)\.html$|\/$/.test(a.pathname))a.href=tenantUrl(a.href);};
+ const rewire=(a:HTMLAnchorElement)=>{if(!new URL(a.href).searchParams.has('mitra')&&a.origin===location.origin&&/\/(index|umrah|hajj|player|sai|explore|peserta)\.html$|\/$/.test(a.pathname))a.href=tenantUrl(a.href);};
  document.querySelectorAll<HTMLAnchorElement>('a[href]').forEach(rewire);
  document.addEventListener('click',e=>{const a=(e.target as Element|null)?.closest('a[href]') as HTMLAnchorElement|null;if(a)rewire(a);},true);
  void lookup().then(p=>{if(p)apply(p.brand,p.demo);else{const el=document.querySelector<HTMLElement>('[data-tenant-brand]');if(el)el.textContent='Mitra tidak tersedia';}}).catch(()=>{});
