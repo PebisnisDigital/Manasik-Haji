@@ -3,6 +3,8 @@ import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {staticShadows} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
 import {graphicsTier,graphicsProfile,createRenderBudget,mountGraphics} from './graphicsQuality.ts';
+import {mountReading} from './ritualReadings.ts';
+import {saiReading} from './readingModel.ts';
 import {mountComfort,walkFactor,lookFactor,comfortablePace} from './comfortMode.ts';
 import {installSmartTutorial} from './smartTutorial.ts';
 import {installMissionMap} from './missionMap.ts';
@@ -49,6 +51,7 @@ const guide=new VoiceGuide(intro);
 const sound=core?new ImmersiveSound('sai',document.querySelector('.voice-controls')):null;
 if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));tutorial?.paint();}});
 if(core){const host=document.querySelector<HTMLElement>('.voice-controls')!;mountComfort(host,{more:true});mountGraphics(host);}
+const reading=core?mountReading(document.querySelector<HTMLElement>('.voice-controls')!,guide,isPortrait):null;
 const tutorial=core?installSmartTutorial({kind:'sai',host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,blocked:isPortrait,ready:()=>loading.hidden&&!coreFinished}):null;
 function boot(): void {
   const tier=core?graphicsTier():'medium';const profile=graphicsProfile();const renderer = new THREE.WebGLRenderer({ canvas, antialias: !core||tier!=='low', powerPreference: core&&tier==='low'?'low-power':'high-performance' });
@@ -94,7 +97,7 @@ function boot(): void {
   }
   function stopJoy():void{joyId=null;joyX=0;joyY=0;knob.style.transform='translate(0px,0px)';}
   function setPause(on:boolean):void{paused=on;pauseButton.setAttribute('aria-pressed',String(on));pauseButton.textContent=on?'Lanjutkan':'Jeda';input.clear();stopJoy();}
-  function resetAll():void {if(core&& !confirm('Ulangi lintasan dari awal? Hitungan latihan ini akan dihapus.'))return;if(core&&!saveCheckpoint(core,0)){status.textContent='Progress belum tersimpan. Kembali ke lobby.';return;}coreFinished=false;lastSaved=0;
+  function resetAll():void {if(core&& !confirm('Ulangi lintasan dari awal? Hitungan latihan ini akan dihapus.'))return;if(core&&!saveCheckpoint(core,0)){status.textContent='Progress belum tersimpan. Kembali ke lobby.';return;}coreFinished=false;lastSaved=0;reading?.set('sai',false);
     x=3;z=END;track.reset();wasGreen=false;wrongSince=0;wrongAnnounced=false;guide.reset(intro);yaw=Math.PI;orbit=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);setBrisk(false);
     setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;targetLabel.textContent='Menuju Marwah';status.textContent='Mulai di Safa. Berjalan menuju Marwah.';nextLink.hidden=true;
   }
@@ -132,7 +135,7 @@ function boot(): void {
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);animationTime+=dt;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
     if(!finished&&inGreen!==wasGreen&&!paused){wasGreen=inGreen;if(inGreen)guide.announce(avatar.value==='male'?'Masuk area lampu hijau. Bagi laki-laki, dianjurkan berlari kecil bila mampu.':'Masuk area lampu hijau. Jamaah perempuan tetap berjalan biasa.','green-in-'+track.completed,5000,true);else guide.announce('Keluar area lampu hijau. Lanjutkan berjalan biasa menuju '+track.destination+'.','green-out-'+track.completed,5000);}
     pace.hidden=avatar.value!=='male'||!inGreen||finished||(!!core&&comfortablePace(2.4,3.5,true)===2.4);
@@ -155,11 +158,11 @@ function boot(): void {
     const oldX=x,oldZ=z;
     if(!finished){
       x=THREE.MathUtils.clamp(x+dx*dt,-WALK_WIDTH,WALK_WIDTH);z=THREE.MathUtils.clamp(z+dz*dt,-END,END);
-      const arrived=track.update(z);
+      const arrived=track.update(z);if(dt>0)reading?.set(saiReading(z,END));
       if(track.completed>0)tutorial?.event({type:'route'});if(core&&track.completed!==lastSaved&&saveCheckpoint(core,track.completed))lastSaved=track.completed;
       count.textContent=track.completed+' / 7';progress.value=track.fraction(z);
       finished=track.finished;
-      if(finished){guide.announce(core?.step===11?'Sa’i haji selesai. Pelajari tahallul akhir sesuai ketentuan, lanjut Mina.':hajj?'Tujuh lintasan latihan haji selesai di Marwah. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh lintasan latihan selesai di Marwah. Berikutnya adalah tahallul.','complete',0,true);setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';if(hajj||core?.step===11)status.textContent=core?.step===11?'Sa’i haji selesai. Ikuti ketentuan tahallul akhir, lanjut Mina.':'Tujuh lintasan selesai. Kembali ke perjalanan haji.';nextLink.hidden=false;coreFinished=true;tutorial?.finish();if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
+      if(finished){reading?.stop();guide.announce(core?.step===11?'Sa’i haji selesai. Pelajari tahallul akhir sesuai ketentuan, lanjut Mina.':hajj?'Tujuh lintasan latihan haji selesai di Marwah. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh lintasan latihan selesai di Marwah. Berikutnya adalah tahallul.','complete',0,true);setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';if(hajj||core?.step===11)status.textContent=core?.step===11?'Sa’i haji selesai. Ikuti ketentuan tahallul akhir, lanjut Mina.':'Tujuh lintasan selesai. Kembali ke perjalanan haji.';nextLink.hidden=false;coreFinished=true;tutorial?.finish();if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
       else if(arrived){wrongSince=0;wrongAnnounced=false;guide.announce('Lintasan ke '+track.completed+' selesai di '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.','arrival-'+track.completed,0,true);targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
       else if(Math.abs(z-oldZ)>.001){if((z-oldZ)*track.direction<0){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce('Arah berlawanan. Tujuan berikutnya adalah '+track.destination+'.','wrong',10000,true);}}else{if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar.','correct',10000);wrongSince=0;wrongAnnounced=false;}status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
     }
@@ -197,6 +200,6 @@ function boot(): void {
     crowd.endFrame();budget.draw(now,scene,camera,stopped);requestAnimationFrame(frame);
   }
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();loading.hidden=false;loading.textContent='Konteks grafis terputus. Muat ulang halaman.';});
-  loading.hidden=true;tutorial?.paint();requestAnimationFrame(frame);
+  loading.hidden=true;reading?.set('sai',false);tutorial?.paint();requestAnimationFrame(frame);
 }
 if(core||!new URLSearchParams(location.search).has('core'))requestAnimationFrame(()=>{try{boot();}catch(e){console.error(e);loading.hidden=false;loading.textContent='Simulasi gagal dimulai. Gunakan browser dengan WebGL 2 lalu muat ulang.';}});

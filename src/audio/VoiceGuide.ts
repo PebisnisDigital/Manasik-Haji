@@ -20,7 +20,7 @@ export class VoiceGuide {
     this.replay.addEventListener('click',()=>{if(!this.enabled)this.setEnabled(true);else this.speak();});
     // Browsers often require a new user gesture after navigation.
     const unlock=(e:Event)=>{if(!e.isTrusted||!this.preferred||this.enabled)return;
-      if((e.target as Element|null)?.closest('#voiceToggle,#voiceReplay,a'))return;
+      if((e.target as Element|null)?.closest('#voiceToggle,#voiceReplay,a,.readingControl,.readingPanel'))return;
       this.enabled=true;this.render();this.speak();
     };
     document.addEventListener('click',unlock,true);
@@ -41,7 +41,7 @@ export class VoiceGuide {
   }
   stop():void{if(this.active){this.active=null;this.engine?.cancel();document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:false}));}}
   private speak():void{
-    if(!this.enabled||!this.engine||!this.current||document.hidden)return;
+    if(!this.enabled||!this.engine||!this.current||document.hidden||document.documentElement.classList.contains('readingSpeaking'))return;
     this.stop();
     const voices=this.engine.getVoices();
     const idVoice=voices.find(v=>v.lang.toLowerCase().replace('_','-')==='id-id')??voices.find(v=>/^id(?:[-_]|$)/i.test(v.lang));
