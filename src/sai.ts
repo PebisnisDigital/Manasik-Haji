@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {mobileGraphics,staticShadows} from './env/GraphicsDetail.ts';
-import {coreGameFor,completeCoreGame,coreUrl,type CoreGameStep} from './coreProgress.ts';
+import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
 import {tenantUrl} from './tenant.ts';
 import { buildSaiHall, END, GREEN_START, GREEN_END, WALK_WIDTH } from './env/SaiHall.ts';
@@ -33,12 +33,12 @@ const pace = document.querySelector<HTMLButtonElement>('#pace')!;
 const nextLink = document.querySelector<HTMLAnchorElement>('#next')!;
 const avatarPref=new URLSearchParams(location.search).get('avatar');
 if(avatarPref==='male'||avatarPref==='female')avatar.value=avatarPref;
-const core=coreGameFor('sai');let coreFinished=false;let isPortrait=()=>false;
+const core=coreGameFor('sai');let coreFinished=false;let isPortrait=()=>false;if(core)watchCore(core);
 const guided=core?null:guidedStage(3);
 const hajj=core?null:hajjGame('sai');if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent='Latihan Sa’i Haji';nextLink.textContent='Kembali ke perjalanan haji →';nextLink.href='./hajj.html';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextLink.textContent='Lanjut ke tahallul →';nextLink.href='./umrah.html';}
 if(core){document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextLink.href=coreUrl(core);nextLink.textContent=core.step===11?'Lanjut Mina':'Lanjut tahallul';const heading=document.querySelector('h1');if(heading)heading.textContent=core.step===11?'Level 09 · Sa’i Haji':'Level 03 · Sa’i';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./index.html');back.textContent='Lobby';back.classList.add('coreExit');}isPortrait=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
-nextLink.addEventListener('click',e=>{if(core&&(!coreFinished||!completeCoreGame(core,core.step as CoreGameStep))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh lintasan dahulu.';return;}if((guided&&!completeStage(3,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
+nextLink.addEventListener('click',e=>{if(core&&(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh lintasan dahulu.';return;}if((guided&&!completeStage(3,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 
 const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintasan pertama. Lanjutkan bolak-balik hingga tujuh lintasan dan berakhir di Marwah.';
 const guide=new VoiceGuide(intro);
@@ -87,15 +87,15 @@ function boot(): void {
   }
   function stopJoy():void{joyId=null;joyX=0;joyY=0;knob.style.transform='translate(0px,0px)';}
   function setPause(on:boolean):void{paused=on;pauseButton.setAttribute('aria-pressed',String(on));pauseButton.textContent=on?'Lanjutkan':'Jeda';input.clear();stopJoy();}
-  function resetAll():void {coreFinished=false;
+  function resetAll():void {if(core&& !confirm('Ulangi lintasan dari awal? Hitungan latihan ini akan dihapus.'))return;if(core&&!saveCheckpoint(core,0)){status.textContent='Progress belum tersimpan. Kembali ke lobby.';return;}coreFinished=false;lastSaved=0;
     x=3;z=END;track.reset();wasGreen=false;wrongSince=0;wrongAnnounced=false;guide.reset(intro);yaw=Math.PI;orbit=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);setBrisk(false);
     setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;targetLabel.textContent='Menuju Marwah';status.textContent='Mulai di Safa. Berjalan menuju Marwah.';nextLink.hidden=true;
   }
   function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   resize();window.addEventListener('resize',resize);
-  window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.closest('select,input,textarea'))return;const k=keyMap[e.code];if(k&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();input.add(k);setAuto(false);}});
+  window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.closest('select,input,textarea'))return;const k=keyMap[e.code];if(k&&!paused&&!isPortrait()&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();input.add(k);setAuto(false);}});
   window.addEventListener('keyup',e=>{const k=keyMap[e.code];if(k)input.delete(k);});
-  window.addEventListener('blur',()=>{input.clear();stopJoy();setAuto(false);});
+  window.addEventListener('blur',()=>{input.clear();stopJoy();setAuto(false);dragId=null;guide.stop();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){input.clear();stopJoy();setAuto(false);}last=performance.now();});
   function moveJoy(e:PointerEvent):void{
     const rect=joy.getBoundingClientRect(),r=rect.width*0.35;
@@ -105,11 +105,11 @@ function boot(): void {
     if(mag<r*.1){joyX=0;joyY=0;}
     knob.style.transform='translate('+joyX*r+'px,'+joyY*r+'px)';
   }
-  joy.addEventListener('pointerdown',e=>{if(joyId!==null)return;e.preventDefault();joyId=e.pointerId;joy.setPointerCapture(e.pointerId);setAuto(false);moveJoy(e);});
+  joy.addEventListener('pointerdown',e=>{if(joyId!==null||paused||isPortrait())return;e.preventDefault();joyId=e.pointerId;joy.setPointerCapture(e.pointerId);setAuto(false);moveJoy(e);});
   joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)moveJoy(e);});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===joyId)stopJoy();});
   let dragId:number|null=null,dragX=0;
-  canvas.addEventListener('pointerdown',e=>{if(dragId!==null)return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointerdown',e=>{if(dragId!==null||isPortrait())return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
   canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008;dragX=e.clientX;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
   autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)guide.announce('Mode otomatis aktif. Perhatikan tujuan setiap lintasan.','auto',3000);});reset.addEventListener('click',resetAll);
@@ -117,13 +117,15 @@ function boot(): void {
   function setBrisk(on:boolean):void{brisk=on&&avatar.value==='male';pace.setAttribute('aria-pressed',String(brisk));pace.textContent=brisk?'Kecepatan biasa':'Jalan lebih cepat';}
   pace.addEventListener('click',()=>setBrisk(!brisk));avatar.addEventListener('change',()=>setBrisk(false));
   const pressed=(k:string)=>input.has(k);
+  let lastSaved=core?readCheckpoint(core):0;
+  if(core&&lastSaved>0){track.completed=lastSaved;x=lastSaved%2===0?3:-3;z=lastSaved%2===0?END:-END;finished=track.finished;coreFinished=finished;count.textContent=lastSaved+' / 7';progress.value=lastSaved;targetLabel.textContent=finished?'Selesai di Marwah':'Menuju '+track.destination;nextLink.hidden=!finished;status.textContent=finished?'Tujuh lintasan tersimpan. Lanjutkan.':lastSaved+' lintasan tersimpan. Lanjut dari tujuan terakhir.';}
   const npc=createLaneAgents('sai',core&&!mobileGraphics()?144:78,END);
   function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const dt=paused||isPortrait()?0:elapsed;sound?.setPaused(paused||isPortrait());animationTime+=dt;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden;const dt=stopped?0:elapsed;sound?.setPaused(stopped);animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
     if(!finished&&inGreen!==wasGreen&&!paused){wasGreen=inGreen;if(inGreen)guide.announce(avatar.value==='male'?'Masuk area lampu hijau. Bagi laki-laki, dianjurkan berlari kecil bila mampu.':'Masuk area lampu hijau. Jamaah perempuan tetap berjalan biasa.','green-in-'+track.completed,5000,true);else guide.announce('Keluar area lampu hijau. Lanjutkan berjalan biasa menuju '+track.destination+'.','green-out-'+track.completed,5000);}
     pace.hidden=avatar.value!=='male'||!inGreen||finished;
@@ -146,6 +148,7 @@ function boot(): void {
     if(!finished){
       x=THREE.MathUtils.clamp(x+dx*dt,-WALK_WIDTH,WALK_WIDTH);z=THREE.MathUtils.clamp(z+dz*dt,-END,END);
       const arrived=track.update(z);
+      if(core&&track.completed!==lastSaved&&saveCheckpoint(core,track.completed))lastSaved=track.completed;
       count.textContent=track.completed+' / 7';progress.value=track.fraction(z);
       finished=track.finished;
       if(finished){guide.announce(core?.step===11?'Sa’i haji selesai. Pelajari tahallul akhir sesuai ketentuan, lanjut Mina.':hajj?'Tujuh lintasan latihan haji selesai di Marwah. Kembali ke perjalanan haji.':'Alhamdulillah, tujuh lintasan latihan selesai di Marwah. Berikutnya adalah tahallul.','complete',0,true);setAuto(false);setBrisk(false);targetLabel.textContent='Selesai di Marwah';status.textContent='Tujuh lintasan selesai di Marwah. Selanjutnya tahallul dalam rangkaian umrah.';if(hajj||core?.step===11)status.textContent=core?.step===11?'Sa’i haji selesai. Ikuti ketentuan tahallul akhir, lanjut Mina.':'Tujuh lintasan selesai. Kembali ke perjalanan haji.';nextLink.hidden=false;coreFinished=true;if(guided&&!completeStage(3,guided.id))status.textContent='Latihan selesai. Progress belum tersimpan; periksa penyimpanan browser.';}
@@ -188,4 +191,4 @@ function boot(): void {
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();loading.hidden=false;loading.textContent='Konteks grafis terputus. Muat ulang halaman.';});
   loading.hidden=true;requestAnimationFrame(frame);
 }
-requestAnimationFrame(()=>{try{boot();}catch(e){console.error(e);loading.hidden=false;loading.textContent='Simulasi gagal dimulai. Gunakan browser dengan WebGL 2 lalu muat ulang.';}});
+if(core||!new URLSearchParams(location.search).has('core'))requestAnimationFrame(()=>{try{boot();}catch(e){console.error(e);loading.hidden=false;loading.textContent='Simulasi gagal dimulai. Gunakan browser dengan WebGL 2 lalu muat ulang.';}});
