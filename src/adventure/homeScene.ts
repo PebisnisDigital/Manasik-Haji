@@ -42,7 +42,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  box(1.6,.035,.85,green,5.9,.03,2.7);
  // Pendulum-like clock, Islamic geometric framed decor (no rendered sacred text).
  box(.72,.72,.08,wood,2.65,2.58,-5.27);const clock=new THREE.Mesh(new THREE.CircleGeometry(.31,28),new THREE.MeshBasicMaterial({color:0xf8f1d8}));clock.position.set(2.65,2.58,-5.215);s.add(clock);const hand=box(.028,.25,.025,dark,0,.1,0);const pivot=new THREE.Group();pivot.position.set(2.65,2.58,-5.18);s.add(pivot);pivot.add(hand);
- box(1.15,1,.1,wood,4.2,2.45,-5.29);const frame=box(.65,.65,.07,green,4.2,2.45,-5.2);frame.rotation.z=Math.PI/4;
+ box(1.15,1,.1,wood,4.2,2.45,-5.29);const wallArt=box(.65,.65,.07,green,4.2,2.45,-5.2);wallArt.rotation.z=Math.PI/4;
  function person(female:boolean,color:number,height=1.7){
   const root=new THREE.Group();s.add(root);root.scale.setScalar(height/1.7);const cloth=mat(color),skin=mat(0xb98662),pants=mat(0x33464a),hair=mat(0x292823);
   const shadow=new THREE.Mesh(new THREE.CircleGeometry(.34,24).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x372a20,transparent:true,opacity:.2,depthWrite:false}));shadow.position.y=.017;root.add(shadow);
@@ -57,11 +57,19 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.63,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd8a62f,side:THREE.DoubleSide,transparent:true,opacity:.9}));ring.position.y=.065;s.add(ring);
  const pin=new THREE.Group();s.add(pin);const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.19),new THREE.MeshBasicMaterial({color:0xffd25c}));pin.add(gem);
  const cam=new THREE.PerspectiveCamera(45,1,.1,70);let x=0,z=3.65,yaw=Math.PI,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,cutStart=0,disposed=false;
- const keys=new Set<string>();let jx=0,jz=0,pid:number|null=null;
+ const keys=new Set<string>();let waypoints:{x:number;z:number}[]=[];let jx=0,jz=0,pid:number|null=null;
  const bounds=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
  function valid(px:number,pz:number){return px>-7&&px<7&&pz>-5&&pz<5&&!obstacles.some(o=>Math.abs(px-o.x)<o.w/2+.26&&Math.abs(pz-o.z)<o.d/2+.26);}
+ // Navigate on a bounded half-metre grid. A nearby reachable point is sufficient for interaction.
+ function plan(tx:number,tz:number){
+  const step=.5,cols=27,rows=19,point=(i:number)=>({x:(i%cols-13)*step,z:(Math.floor(i/cols)-9)*step});
+  let start=-1,best=Infinity;for(let i=0;i<cols*rows;i++){const p=point(i),d=Math.hypot(p.x-x,p.z-z);if(valid(p.x,p.z)&&d<best){best=d;start=i;}}
+  if(start<0)return [];const prev=new Int32Array(cols*rows).fill(-2),queue=[start];prev[start]=-1;let goal=-1;
+  for(let k=0;k<queue.length;k++){const i=queue[k],p=point(i);if(Math.hypot(p.x-tx,p.z-tz)<.9){goal=i;break;}const c=i%cols,row=Math.floor(i/cols);for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){const nc=c+dc,nr=row+dr;if(nc<0||nc>=cols||nr<0||nr>=rows)continue;const j=nr*cols+nc,n=point(j);if(prev[j]!==-2||!valid(n.x,n.z)||!valid((p.x+n.x)/2,(p.z+n.z)/2))continue;prev[j]=i;queue.push(j);}}
+  const route:{x:number;z:number}[]=[];if(goal>=0)for(let i=goal;i>=0;i=prev[i])route.push(point(i));return route.reverse();
+ }
  const keymap:Record<string,string>={KeyW:'up',ArrowUp:'up',KeyS:'down',ArrowDown:'down',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right'};
- function down(e:KeyboardEvent){if(!active||e.ctrlKey||e.metaKey||e.altKey||(e.target as HTMLElement)?.closest('input,select,button,a,textarea'))return;const key=keymap[e.code];if(key){e.preventDefault();keys.add(key);auto=false;}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();callbacks.onInteract();}}
+ function down(e:KeyboardEvent){if(!active||e.ctrlKey||e.metaKey||e.altKey||(e.target as HTMLElement)?.closest('input,select,textarea'))return;const key=keymap[e.code];if(key){e.preventDefault();keys.add(key);auto=false;}if(e.code==='KeyE'&&!e.repeat){e.preventDefault();callbacks.onInteract();}}
  function up(e:KeyboardEvent){keys.delete(keymap[e.code]);}
  function clear(){keys.clear();jx=jz=0;pid=null;auto=false;knob.style.transform='translate(-50%,-50%)';}
  function joy(e:PointerEvent){const q=joystick.getBoundingClientRect(),rad=q.width*.34,dx=e.clientX-q.left-q.width/2,dz=e.clientY-q.top-q.height/2,m=Math.max(rad,Math.hypot(dx,dz));jx=dx/m;jz=dz/m;knob.style.transform='translate(calc(-50% + '+jx*rad+'px),calc(-50% + '+jz*rad+'px))';}
@@ -76,7 +84,8 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   if(disposed)return;raf=requestAnimationFrame(frame);const dt=Math.min(.045,Math.max(0,(now-last)/1000));last=now;if(document.hidden)return;
   const t=QUESTS[quest],cinema=now<cutUntil;
   let dx=0,dz=0;if(active&&!cinema&&t){
-   if(auto){const d=Math.hypot(t.x-x,t.z-z);if(d>1.02){const ax=(t.x-x)/d,az=(t.z-z)/d;dx=ax*2.5;dz=az*2.5;if(!valid(x+dx*.34,z+dz*.34)){const options=[{x:x+az*.65,z:z-ax*.65},{x:x-az*.65,z:z+ax*.65}].filter(p=>valid(p.x,p.z));if(options.length){options.sort((a,b)=>Math.hypot(t.x-a.x,t.z-a.z)-Math.hypot(t.x-b.x,t.z-b.z));dx=(options[0].x-x)*3;dz=(options[0].z-z)*3;}}}else auto=false;}
+   if(auto){if(Math.hypot(t.x-x,t.z-z)<1.02){auto=false;waypoints=[];}else{while(waypoints.length&&Math.hypot(waypoints[0].x-x,waypoints[0].z-z)<.1)waypoints.shift();const p=waypoints[0];if(p){const d=Math.hypot(p.x-x,p.z-z);const speed=Math.min(2.5,d/Math.max(dt,.001));dx=(p.x-x)/Math.max(d,.001)*speed;dz=(p.z-z)/Math.max(d,.001)*speed;}else auto=false;}}
+
    else {const f=(keys.has('up')?1:0)-(keys.has('down')?1:0)-jz,side=(keys.has('right')?1:0)-(keys.has('left')?1:0)+jx,n=Math.max(1,Math.hypot(f,side));dx=(-.49*f+.872*side)*2.65/n;dz=(-.872*f-.49*side)*2.65/n;}
   }
   const ox=x,oz=z;if(valid(x+dx*dt,z))x+=dx*dt;if(valid(x,z+dz*dt))z+=dz*dt;
@@ -90,5 +99,5 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   else{cam.position.set(x+5.5*scale,7.8*scale,z+9.8*scale);cam.lookAt(x*.55,0.8,z*.55);}
   r.render(s,cam);
  }raf=requestAnimationFrame(frame);
- return {target(q){quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on)clear();},walkToTarget(){if(active&&quest<3){auto=true;keys.clear();}},cinematic(seconds){clear();cutStart=performance.now();cutUntil=cutStart+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
+ return {target(q){quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on)clear();},walkToTarget(){const t=QUESTS[quest];if(active&&t){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutStart=performance.now();cutUntil=cutStart+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
 }

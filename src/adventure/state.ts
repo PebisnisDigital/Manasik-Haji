@@ -5,7 +5,7 @@ export interface AdventureSave {version:1;avatar:Avatar;campaign:Campaign;quest:
 export const LEVELS=[
  'Sebuah Impian','Niat dan Doa','Menemukan Travel','Persiapan Dokumen','Persiapan Kesehatan','Menyiapkan Koper','Kelas Manasik','Hari Keberangkatan','Bandara','Terbang ke Saudi','Perjalanan dan Miqat','Tiba dan Bersiap','Perjalanan Ihram','Melihat Ka’bah','Tawaf','Salat dan Zamzam','Sa’i','Tahallul','Menanti Hari Haji','Ihram Haji','Tarwiyah','Wukuf Arafah','Muzdalifah','Jumrah Aqabah','Tahallul Awal','Tawaf Ifadah','Sa’i Haji','Mina Hari Pertama','Mina Hari Kedua','Mina Hari Ketiga','Tawaf Wada’','Hari Terakhir','Terbang Pulang','Pelukan Keluarga','Sebuah Perubahan'
 ] as const;
-export const QUESTS=[
+export const QUESTS:ReadonlyArray<{title:string;label:string;hint:string;x:number;z:number}>=[
  {title:'Temui keluarga',label:'Keluarga',hint:'Dekati anggota keluarga bertanda emas, lalu tekan Interaksi.',x:-3.65,z:0.8},
  {title:'Lihat tayangan Baitullah',label:'Televisi',hint:'Dekati televisi bertanda emas, lalu tekan Interaksi.',x:0,z:-2.65},
  {title:'Mulai persiapan perjalanan',label:'Pintu',hint:'Dekati pintu bertanda emas dan tekan Interaksi.',x:5.35,z:2.6}
