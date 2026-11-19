@@ -21,7 +21,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  const ground=box(15,.36,11,floor,0,-.2,0);ground.castShadow=false;
  const ceiling=box(15,.14,11,mat(0xf3eee1),0,3.37,0);ceiling.castShadow=false;
  function wall(x:number,z:number,w:number,d:number,h=3.3){const o=box(w,h,d,cream,x,h/2,z);o.castShadow=false;obstacle(x,z,w,d,h);box(w+.025,.12,d+.025,wood,x,.06,z).castShadow=false;}
- wall(0,-5.5,15,.18);wall(-7.5,0,.18,11);wall(0,5.5,15,.18);wall(7.5,0,.18,11);
+ wall(0,-5.5,15,.18);wall(-7.5,0,.18,11);wall(0,5.5,15,.18);wall(7.5,-1.75,.18,7.5);wall(7.5,4.48,.18,2.04);box(.18,.68,1.5,cream,7.5,2.96,2.75).castShadow=false;box(2.4,.28,2.4,oak,8.55,-.16,2.75).castShadow=false;box(.18,3.3,2.4,cream,9.6,1.65,2.75).castShadow=false;blockers.push(new THREE.Box3(new THREE.Vector3(7.17,0,1.95),new THREE.Vector3(7.65,3.3,3.55)));
  // Interior divider: a generous opening near z=0 keeps every mission reachable.
  wall(2.45,-3.45,.14,4.1);wall(2.45,3.9,.14,3.2);
  const lintel=box(.16,.65,3.5,cream,2.45,2.98,.55);lintel.castShadow=false;
@@ -48,7 +48,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  box(.8,1.8,2.6,oak,-6.9,.9,3);for(let i=0;i<5;i++)box(.86,.045,2.64,wood,-6.9,.16+i*.36,3);for(let i=0;i<12;i++)box(.34,.25,.12,i%2?rose:green,-6.75,.32+Math.floor(i/4)*.36,2.35+(i%4)*.32);obstacle(-6.9,3,.8,2.6,1.8);
  function plant(x:number,z:number){box(.6,.45,.6,rose,x,.23,z);for(let i=0;i<7;i++){const p=sphere(.28,leaf,x+Math.cos(i*2.4)*.28,.6+(i%3)*.25,z+Math.sin(i*2.4)*.25);p.scale.set(.65,1.85,.65);}obstacle(x,z,.65,.65,1.4);}
  plant(6.5,-4.65);plant(-6.6,-4.7);
- box(.18,2.7,1.65,wood,7.27,1.35,2.7);const door=new THREE.Group();door.position.set(7.1,0,3.37);s.add(door);box(.115,2.42,1.34,oak,0,1.21,-.67,door);box(.05,1.65,1.03,wood,-.065,1.27,-.67,door);box(.035,1.5,.88,oak,-.1,1.27,-.67,door);sphere(.05,gold,-.12,1.08,-1.12,door);
+ box(.18,2.7,.14,wood,7.27,1.35,1.97);box(.18,2.7,.14,wood,7.27,1.35,3.43);box(.18,.14,1.6,wood,7.27,2.64,2.7);const door=new THREE.Group();door.position.set(7.1,0,3.37);s.add(door);box(.115,2.42,1.34,oak,0,1.21,-.67,door);box(.05,1.65,1.03,wood,-.065,1.27,-.67,door);box(.035,1.5,.88,oak,-.1,1.27,-.67,door);sphere(.05,gold,-.12,1.08,-1.12,door);
  box(1.6,.035,.85,green,5.9,.03,2.7);
  // Pendulum-like clock, Islamic geometric framed decor (no rendered sacred text).
  box(.72,.72,.08,wood,2.65,2.58,-5.27);const clock=new THREE.Mesh(new THREE.CircleGeometry(.31,28),new THREE.MeshBasicMaterial({color:0xf8f1d8}));clock.position.set(2.65,2.58,-5.215);s.add(clock);const hand=box(.028,.25,.025,dark,0,.1,0);const pivot=new THREE.Group();pivot.position.set(2.65,2.58,-5.18);s.add(pivot);pivot.add(hand);
@@ -67,7 +67,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  const family2=person(false,0xb0a58a,1.68);family2.root.position.set(-5.8,0,2.3);family2.root.rotation.y=.9;obstacle(-4.65,.47,.45,.36,1.58);obstacle(-5.8,2.3,.45,.36,1.68);
  const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.63,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd8a62f,side:THREE.DoubleSide,transparent:true,opacity:.9}));ring.position.y=.065;s.add(ring);
  const pin=new THREE.Group();s.add(pin);const gem=new THREE.Mesh(new THREE.OctahedronGeometry(.19),new THREE.MeshBasicMaterial({color:0xffd25c}));pin.add(gem);
- const cam=new THREE.PerspectiveCamera(60,1,.045,45);let x=0,z=3.65,yaw=Math.PI,cameraYaw=Math.PI,pitch=.16,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,disposed=false,doorOpen=level===1&&initial===3;let cameraDistance=3.1,manualUntil=0,lookId:number|null=null,lookX=0,lookY=0;const pivotCam=new THREE.Vector3(),desiredCam=new THREE.Vector3(),direction=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(),lookAt=new THREE.Vector3();const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
+ const cam=new THREE.PerspectiveCamera(60,1,.045,45);let x=0,z=1.85,yaw=Math.PI,cameraYaw=Math.PI,pitch=.16,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,disposed=false,doorOpen=level===1&&initial===3;let cameraDistance=3.1,manualUntil=0,lastMotion=0,lookId:number|null=null,lookX=0,lookY=0;const pivotCam=new THREE.Vector3(),desiredCam=new THREE.Vector3(),direction=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(),lookAt=new THREE.Vector3();const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
  const keys=new Set<string>();let waypoints:{x:number;z:number}[]=[];let jx=0,jz=0,pid:number|null=null;
  const bounds=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
  function valid(px:number,pz:number){return px>-7&&px<7&&pz>-5&&pz<5&&!obstacles.some(o=>Math.abs(px-o.x)<o.w/2+.26&&Math.abs(pz-o.z)<o.d/2+.26);}
@@ -104,7 +104,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
    else {const f=(keys.has('up')?1:0)-(keys.has('down')?1:0)-jz,side=(keys.has('right')?1:0)-(keys.has('left')?1:0)+jx,n=Math.max(1,Math.hypot(f,side));dx=(Math.sin(cameraYaw)*f-Math.cos(cameraYaw)*side)*2.65/n;dz=(Math.cos(cameraYaw)*f+Math.sin(cameraYaw)*side)*2.65/n;}
   }
   const ox=x,oz=z;if(valid(x+dx*dt,z))x+=dx*dt;if(valid(x,z+dz*dt))z+=dz*dt;
-  const moving=Math.hypot(x-ox,z-oz)>.002;if(moving){const heading=Math.atan2(x-ox,z-oz);yaw+=angleDelta(yaw,heading)*Math.min(1,dt*13);if(auto&&now> manualUntil&&lookId===null)cameraYaw+=angleDelta(cameraYaw,heading)*Math.min(1,dt*4);phase+=dt*9;callbacks.onStep();}
+  const moving=Math.hypot(x-ox,z-oz)>.002;if(moving){lastMotion=now;const heading=Math.atan2(x-ox,z-oz);yaw+=angleDelta(yaw,heading)*Math.min(1,dt*13);if(auto&&now> manualUntil&&lookId===null)cameraYaw+=angleDelta(cameraYaw,heading)*Math.min(1,dt*4);phase+=dt*9;callbacks.onStep();}else if(active&&lastMotion>0&&now-lastMotion>500&&now>manualUntil&&lookId===null){cameraYaw+=angleDelta(cameraYaw,yaw)*Math.min(1,dt*2.2);}
   hero.root.position.set(x,0,z);hero.root.rotation.y=yaw;hero.body.position.y=moving?Math.abs(Math.sin(phase))*.035:0;for(let i=0;i<2;i++){const swing=moving?Math.sin(phase+i*Math.PI)*.5:0;hero.legs[i].rotation.x=swing;hero.arms[i].rotation.x=-swing*.7;}
   family.body.rotation.z=Math.sin(now*.0013)*.027;family.arms[1].rotation.x=-.22+Math.sin(now*.002)*.12;family2.body.rotation.z=Math.sin(now*.0011)*.02;
   curtain.rotation.y=Math.sin(now*.001)*.035;beam.position.x=-3.7+Math.sin(now*.0002)*.23;pivot.rotation.z=-now*.000105;gem.rotation.y=now*.0018;if(t)pin.position.y=1.1+Math.sin(now*.003)*.15;
