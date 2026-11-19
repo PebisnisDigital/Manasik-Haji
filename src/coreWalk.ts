@@ -4,7 +4,7 @@ import {resolveFrames} from './characters/CrowdView.ts';
 import {Clip} from './sim/States.ts';
 import type {Avatar} from './coreProgress.ts';
 export type Obstacle={x:number;z:number;w:number;d:number};
-export interface WalkOptions{avatar:Avatar;blocked:()=>boolean;onNear:()=>void;onWalk?:(metres:number)=>void}
+export interface WalkOptions{avatar:Avatar;blocked:()=>boolean;onNear:()=>void;onWalk?:(metres:number)=>void;onApproach?:(near:boolean)=>void}
 export function safePosition(x:number,z:number,obs:readonly Obstacle[],bounds:readonly [number,number,number,number]):boolean{return x>=bounds[0]&&x<=bounds[1]&&z>=bounds[2]&&z<=bounds[3]&&!obs.some(o=>Math.abs(x-o.x)<o.w/2+.32&&Math.abs(z-o.z)<o.d/2+.32);}
 // Grid search prevents auto-approach from getting stuck behind a tent.
 export function walkPath(start:readonly [number,number],goal:readonly [number,number],obs:readonly Obstacle[],bounds:readonly [number,number,number,number]):[number,number][]{
@@ -40,7 +40,7 @@ export function attachWalker(scene:THREE.Scene,cam:THREE.PerspectiveCamera,canva
  const n=Math.hypot(dx,dz);v.lerp(new THREE.Vector2(dx,dz).multiplyScalar(2.8/Math.max(1,n)),1-Math.exp(-dt*12));if(locked)v.set(0,0);const ox=pos.x,oz=pos.z;moveAxis(pos.x+v.x*dt,pos.z+v.y*dt);const dist=Math.hypot(pos.x-ox,pos.z-oz);if(dist>.001&&!isBlocked())options.onWalk?.(dist);
  if(dist>.001){heading+=angle(heading,Math.atan2(pos.x-ox,pos.z-oz))*(1-Math.exp(-dt*14));phase=(phase+dist/1.42)%1;}
  if(auto&&drag===null&&now-manualAt>1000)yaw+=angle(yaw,heading)*(1-Math.exp(-dt*4));
- const d=Math.hypot(pos.x-goal.x,pos.z-goal.y),next=d<=1.15;if(next!==near){near=next;options.onNear();}ring.visible=!near;arrow.visible=!near;arrow.position.y=.74+Math.sin(now*.004)*.13;info.textContent=near?'✓ Di lokasi':Math.ceil(d)+' m';
+ const d=Math.hypot(pos.x-goal.x,pos.z-goal.y),next=d<=1.15;if(next!==near){near=next;options.onNear();options.onApproach?.(near);}ring.visible=!near;arrow.visible=!near;arrow.position.y=.74+Math.sin(now*.004)*.13;info.textContent=near?'✓ Di lokasi':Math.ceil(d)+' m';
  const fx=Math.sin(yaw),fz=Math.cos(yaw),rightX=-Math.cos(yaw),rightZ=Math.sin(yaw),pivot=new THREE.Vector3(pos.x,1.30,pos.z);const dest=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(pitch)*radius+rightX*.32,Math.sin(pitch)*radius+.15,-fz*Math.cos(pitch)*radius+rightZ*.32));
  // Shorten camera boom for solid arena obstacles (not NPCs).
  for(let i=1;i<=16;i++){const q=pivot.clone().lerp(dest,i/16);if(obstacles.some(o=>Math.abs(q.x-o.x)<o.w/2+.08&&Math.abs(q.z-o.z)<o.d/2+.08)){dest.copy(pivot.clone().lerp(dest,Math.max(.14,(i-1)/16)));break;}}

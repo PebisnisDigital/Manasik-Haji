@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {patrolClear,updatePatrols,type Patrol,type Position} from './sim/TrainingCrowd.ts';
 import {surfaceDetail,staticShadows,disposeSurface,mobileGraphics} from './env/GraphicsDetail.ts';
 import {attachWalker,type Obstacle,type WalkOptions} from './coreWalk.ts';
 export type Site='arafah'|'muzdalifah'|'mina'|'jamarat';
@@ -18,13 +19,25 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteVie
  const obstacles:Obstacle[]=[];
  function tent(x:number,z:number,size=1):void{obstacles.push({x,z,w:3.7*size,d:3.7*size});box(3.7*size,1.35*size,3.7*size,white,x,.68*size,z);const roof=mesh(new THREE.ConeGeometry(2.66*size,1.7*size,4),white,x,2.17*size,z);roof.rotation.y=Math.PI/4;for(const side of [-1,1]){box(3.83*size,.075,.055,base,x,1.37*size,z+side*1.89*size);box(.055,.075,3.83*size,base,x+side*1.89*size,1.37*size,z);}box(.66*size,1.2*size,.05,dark,x,.6*size,z+1.86*size);}
  function sign(label:string,x:number,y:number,z:number):void{const c=document.createElement('canvas');c.width=512;c.height=128;const a=c.getContext('2d')!;a.fillStyle='#24533f';a.fillRect(0,0,512,128);a.fillStyle='#fff';a.font='bold 42px sans-serif';a.textAlign='center';a.textBaseline='middle';a.fillText(label,256,64);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;mesh(new THREE.PlaneGeometry(5,1.25),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}),x,y,z);}
+ let updatePeople:(dt:number,player?:Position)=>void=()=>{};
  function people(n:number):void{
-  const candidates:Array<{x:number;z:number;h:number;yaw:number}>=[];const limit=mobileGraphics()?n:Math.round(n*1.45);
-  for(let i=0;i<limit*3&&candidates.length<limit;i++){const x=(Math.sin(i*2.31)*.5+.5)*42-21,z=(Math.cos(i*4.19)*.5+.5)*24-9;if(walk&&Math.abs(x)<2.5||obstacles.some(o=>Math.abs(x-o.x)<o.w/2+.65&&Math.abs(z-o.z)<o.d/2+.65)||candidates.some(p=>Math.hypot(p.x-x,p.z-z)<.9))continue;candidates.push({x,z,h:1.56+(i%8)*.027,yaw:i*2.39});}
-  const count=candidates.length;if(!count)return;const skinMat=mat(0xbc9979),robeMat=mat(0xf4f0e4);surfaceDetail(robeMat,'fabric');
-  const specs=[{g:new THREE.CylinderGeometry(.18,.26,.96,10),m:robeMat,x:0,y:.41,z:0,sx:1,sy:1,sz:.82},{g:new THREE.CapsuleGeometry(.19,.17,4,10),m:robeMat,x:0,y:.72,z:0,sx:1.05,sy:1,sz:.79},{g:new THREE.SphereGeometry(.14,12,8),m:skinMat,x:0,y:.9,z:0,sx:1,sy:1.08,sz:.93},{g:new THREE.CapsuleGeometry(.055,.33,3,8),m:robeMat,x:-.23,y:.66,z:0,sx:1,sy:1,sz:1},{g:new THREE.CapsuleGeometry(.055,.33,3,8),m:robeMat,x:.23,y:.66,z:0,sx:1,sy:1,sz:1}];
-  const pos=new THREE.Object3D();for(const spec of specs){const group=new THREE.InstancedMesh(spec.g,spec.m,count);group.receiveShadow=true;for(let i=0;i<count;i++){const p=candidates[i],scale=p.h/1.65;pos.position.set(p.x+Math.cos(p.yaw)*spec.x*scale,p.h*spec.y,p.z-Math.sin(p.yaw)*spec.x*scale);pos.rotation.set(0,p.yaw,0);pos.scale.set(spec.sx*scale,spec.sy*scale,spec.sz*scale);pos.updateMatrix();group.setMatrixAt(i,pos.matrix);}s.add(group);}
-  const shadows=new THREE.InstancedMesh(new THREE.CircleGeometry(.36,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x514b40,transparent:true,opacity:.13,depthWrite:false}),count);for(let i=0;i<count;i++){const p=candidates[i];pos.position.set(p.x,.012,p.z);pos.rotation.set(0,0,0);pos.scale.set(1,1,.7);pos.updateMatrix();shadows.setMatrixAt(i,pos.matrix);}s.add(shadows);
+  const candidates:Patrol[]=[];const limit=mobileGraphics()?n:Math.round(n*1.45);
+  const reserved:Position[]=site==='jamarat'?[-8,0,8].map(x=>({x,z:4.5})):[{x:0,z:site==='muzdalifah'?3.5:-3},{x:0,z:12}];
+  for(let i=0;i<limit*8&&candidates.length<limit;i++){
+    const x=site==='jamarat'?(Math.sin(i*2.31)*.5+.5)*26-13:(Math.sin(i*2.31)*.5+.5)*42-21,z=site==='jamarat'?6.6+(Math.cos(i*4.19)*.5+.5)*2.5:(Math.cos(i*4.19)*.5+.5)*24-9;
+    if(walk&&Math.abs(x)<2.5||!patrolClear(x,z,obstacles,reserved)||candidates.some(p=>Math.hypot(p.x-x,p.z-z)<1.1))continue;
+    candidates.push({x,z,homeX:x,homeZ:z,h:1.56+(i%8)*.027,yaw:i*2.39,phase:i*.13%1,moving:false,rest:site==='muzdalifah'?i%4!==0:i%5===0});
+  }
+  const count=candidates.length;if(!count)return;const skinMat=mat(0xbc9979),robeMat=mat(0xf4f0e4),legMat=mat(0xe5e0d5);surfaceDetail(robeMat,'fabric');
+  const specs=[{g:new THREE.CylinderGeometry(.19,.25,.84,10),m:robeMat,x:0,y:.39,z:0,sx:1,sy:1,sz:.82,limb:0},{g:new THREE.CapsuleGeometry(.19,.19,4,10),m:robeMat,x:0,y:.68,z:0,sx:1.05,sy:1,sz:.79,limb:0},{g:new THREE.SphereGeometry(.14,12,8),m:skinMat,x:0,y:.9,z:0,sx:1,sy:1.08,sz:.93,limb:0},{g:new THREE.CapsuleGeometry(.055,.32,3,8),m:robeMat,x:-.23,y:.65,z:0,sx:1,sy:1,sz:1,limb:-1},{g:new THREE.CapsuleGeometry(.055,.32,3,8),m:robeMat,x:.23,y:.65,z:0,sx:1,sy:1,sz:1,limb:1},{g:new THREE.CapsuleGeometry(.065,.26,3,8),m:legMat,x:-.105,y:.17,z:0,sx:1,sy:1,sz:1,limb:2},{g:new THREE.CapsuleGeometry(.065,.26,3,8),m:legMat,x:.105,y:.17,z:0,sx:1,sy:1,sz:1,limb:-2}];
+  const groups=specs.map(spec=>{const group=new THREE.InstancedMesh(spec.g,spec.m,count);group.receiveShadow=true;group.instanceMatrix.setUsage(THREE.DynamicDrawUsage);group.frustumCulled=false;s.add(group);return group;});
+  const shadows=new THREE.InstancedMesh(new THREE.CircleGeometry(.36,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x514b40,transparent:true,opacity:.13,depthWrite:false}),count);shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);shadows.frustumCulled=false;s.add(shadows);
+  const pos=new THREE.Object3D(),axis=new THREE.Vector3(0,1,0),rotation=new THREE.Quaternion(),swing=new THREE.Quaternion(),xAxis=new THREE.Vector3(1,0,0);
+  let seconds=0,acc=0;const paint=()=>{for(let i=0;i<count;i++){const p=candidates[i],scale=p.h/1.65,cy=Math.cos(p.yaw),sy=Math.sin(p.yaw);
+    for(let k=0;k<specs.length;k++){const q=specs[k],step=p.moving?Math.sin(p.phase*Math.PI*2)*.33*Math.sign(q.limb):0;pos.position.set(p.x+cy*q.x*scale,p.h*q.y,p.z-sy*q.x*scale);rotation.setFromAxisAngle(axis,p.yaw);swing.setFromAxisAngle(xAxis,step);pos.quaternion.copy(rotation).multiply(swing);pos.scale.set(q.sx*scale,q.sy*scale,q.sz*scale);pos.updateMatrix();groups[k].setMatrixAt(i,pos.matrix);}
+    pos.position.set(p.x,.012,p.z);pos.rotation.set(0,0,0);pos.scale.set(1,1,.7);pos.updateMatrix();shadows.setMatrixAt(i,pos.matrix);
+  }for(const m of groups)m.instanceMatrix.needsUpdate=true;shadows.instanceMatrix.needsUpdate=true;};paint();
+  updatePeople=(dt,player)=>{if(!walk)return;acc+=dt;if(acc<.055)return;const elapsed=Math.min(.1,acc);acc=0;seconds+=elapsed;updatePatrols(candidates,seconds,elapsed,player,obstacles,reserved);paint();};
  }
  const targets=[-8,0,8];
  if(site==='arafah'){for(let i=0;i<24;i++){const m=mesh(new THREE.DodecahedronGeometry(2.1+(i%5)*.95,0),rock,(i%8-3.5)*3.2,1.5+Math.sin(i)*.7,-18-Math.floor(i/8)*3);m.scale.set(1.3,1.3,1.3);m.rotation.set(i*.31,i*.37,i*.1);}for(let i=0;i<8;i++)tent(walk?[-9,-4.7,4.7,9][i%4]:(i%4-1.5)*5,5+Math.floor(i/4)*6);sign('ARAFAH • WUKUF',0,3.5,-7);people(42);}
@@ -33,7 +46,7 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteVie
  if(site==='jamarat'){
   box(32,.2,27,base,0,-.02,0);box(32,.25,1,white,0,5.1,-10);
   for(let i=0;i<3;i++){const x=targets[i];obstacles.push({x,z:0,w:5.8,d:5.8});mesh(new THREE.CylinderGeometry(2.9,2.9,.22,40),base,x,.11,0);mesh(new THREE.TorusGeometry(2.6,.17,8,44).rotateX(Math.PI/2),white,x,.23,0);box(3.5,4.2,.8,white,x,2.1,0);sign(['ULA','WUSTHA','AQABAH'][i],x,4.9,.5);}
-  for(let i=0;i<7;i++){box(.25,5,.25,white,i*5-15,2.5,-10);box(.29,.85,.29,white,i*5-15,.42,10);}
+  for(let i=0;i<7;i++){box(.25,5,.25,white,i*5-15,2.5,-10);box(.29,.85,.29,white,i*5-15,.42,10);}people(20);
  }
  const cam=new THREE.PerspectiveCamera(47,1,.1,180);let orbit=.2,elev=.43,dist=site==='jamarat'?22:34,focusX=0;const center=new THREE.Vector3(0,1.5,0);
  const walker=walk?attachWalker(s,cam,canvas,host,walk,site==='jamarat'?[-14,14,3.45,10]:[-18,18,-10,13],obstacles,site==='jamarat'?[0,9]:[0,12],site==='jamarat'?[8,4.5]:site==='muzdalifah'?[0,3.5]:[0,-3]):null;if(walker)cam.fov=58;
@@ -43,7 +56,7 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteVie
  canvas.addEventListener('pointermove',e=>{if(walker||drag!==e.pointerId)return;orbit-=(e.clientX-px)*.009;elev=THREE.MathUtils.clamp(elev+(e.clientY-py)*.006,.15,1.1);px=e.clientX;py=e.clientY;});
  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if((e as PointerEvent).pointerId===drag)drag=null;});
  function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(host);resize();
- function frame(now:number){if(disposed)return;raf=requestAnimationFrame(frame);const delta=lastTime?Math.min(80,now-lastTime):0;lastTime=now;if(document.hidden||walk?.blocked())return;if(walker)walker.update(now);else{center.x+=(focusX-center.x)*.12;cam.position.set(center.x+Math.sin(orbit)*Math.cos(elev)*dist,1.5+Math.sin(elev)*dist,Math.cos(orbit)*Math.cos(elev)*dist);cam.lookAt(center);}
+ function frame(now:number){if(disposed)return;raf=requestAnimationFrame(frame);const delta=lastTime?Math.min(80,now-lastTime):0;lastTime=now;if(document.hidden||walk?.blocked())return;if(walker){walker.update(now);updatePeople(delta/1000,walker.position);}else{center.x+=(focusX-center.x)*.12;cam.position.set(center.x+Math.sin(orbit)*Math.cos(elev)*dist,1.5+Math.sin(elev)*dist,Math.cos(orbit)*Math.cos(elev)*dist);cam.lookAt(center);}
  if(shot){shot.elapsed+=delta;const t=Math.min(1,shot.elapsed/720);stone.position.set(THREE.MathUtils.lerp(shot.origin.x,targets[shot.i],t),THREE.MathUtils.lerp(shot.origin.y,.29,t)+Math.sin(t*Math.PI)*2.6,THREE.MathUtils.lerp(shot.origin.z,.8,t));if(t>=1){const cb=shot.finish;shot=null;stone.visible=false;walker?.lock(false);cb();}}
  r.render(s,cam);}
  raf=requestAnimationFrame(frame);

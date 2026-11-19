@@ -9,3 +9,5 @@
 .walkInfo{pointer-events:none}.coreBlocked .top{visibility:hidden}.card .arabic{font-size:clamp(18px,3vw,24px)}.card .primary:disabled{opacity:.7}.card .notice:empty{display:none}
 
 .ambienceToggle{font-size:11px!important;white-space:nowrap;min-height:36px}.ambienceToggle[aria-pressed=true]{border-color:#c8d8a0!important;color:#e5f2c9!important;background:#315540!important}.coreVoice{flex-wrap:wrap;max-width:min(48vw,390px)}@media(orientation:landscape) and (max-height:480px){.coreVoice{max-width:55vw}.coreVoice button{font-size:10px;padding:7px;min-height:35px}}
+
+.guideArrival{position:fixed;left:max(15px,env(safe-area-inset-left));top:84px;max-width:min(300px,43vw);background:#fff8e6ed;color:#234438;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.4;pointer-events:none;box-shadow:0 3px 8px #0003;z-index:3}.coreBlocked .guideArrival{visibility:hidden}@media(max-height:480px){.guideArrival{top:68px;font-size:11px;max-width:36vw;padding:8px}}

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {mobileGraphics} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,type CoreGameStep} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
@@ -120,7 +121,7 @@ function boot(): void {
   autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)guide.announce("Mode otomatis aktif. Perhatikan arah tawaf dan posisi Ka'bah di kiri.",'auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
   const pressed=(k:string)=>input.has(k);
-  const npc=Array.from({length:core&&!mobileGraphics()?216:124},(_,i)=>({a:i*2.399963,r:35.8+(i%9)*2.35,s:0.9+(i%5)*0.12,h:1.59+(i%7)*0.035}));
+  const npc=createLaneAgents('tawaf',core&&!mobileGraphics()?216:124);
   function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
@@ -179,10 +180,10 @@ function boot(): void {
     if(cameraMode.value!=='first')submit(active,0,x,z,yaw,avatar.value==='female'?1.62:1.74,avatar.value==='female'?8:0,dist>0.0001?Clip.WALK:Clip.IDLE,dist>0.0001?walkPhase:animationTime/3%1);
     active.endFrame();
     crowd.beginFrame();
-    for(let i=0;i<npc.length;i++){
-      const n=npc[i];n.a-=n.s/n.r*dt;const px=Math.cos(n.a)*n.r,pz=Math.sin(n.a)*n.r;
-      if(Math.hypot(px-x,pz-z)<0.7)continue;
-      submit(crowd,1,px,pz,Math.atan2(Math.sin(n.a),-Math.cos(n.a)),n.h,i%7,Clip.WALK,(animationTime*n.s/1.42+i*.13)%1);
+    updateLanes('tawaf',npc,dt,{x,z});
+    for(const n of npc){const p=pathPoint('tawaf',n.lane,n.s);
+      const near=Math.hypot(p.x-x,p.z-z)<8;
+      submit(crowd,near?0:1,p.x,p.z,p.yaw,n.height,n.palette,n.speed>.04?Clip.WALK:Clip.IDLE,n.speed>.04?n.phase:animationTime/3%1);
     }
     crowd.endFrame();renderer.render(scene,camera);requestAnimationFrame(frame);
   }

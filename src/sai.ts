@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {mobileGraphics,staticShadows} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,type CoreGameStep} from './coreProgress.ts';
 import {installLandscape} from './coreLandscape.ts';
@@ -116,7 +117,7 @@ function boot(): void {
   function setBrisk(on:boolean):void{brisk=on&&avatar.value==='male';pace.setAttribute('aria-pressed',String(brisk));pace.textContent=brisk?'Kecepatan biasa':'Jalan lebih cepat';}
   pace.addEventListener('click',()=>setBrisk(!brisk));avatar.addEventListener('change',()=>setBrisk(false));
   const pressed=(k:string)=>input.has(k);
-  const npc=Array.from({length:core&&!mobileGraphics()?144:78},(_,i)=>({t:i*2.399963%168,x:(i%2===0?1:-1)*(2.0+(i%5)*.95),s:0.9+(i%5)*.12,h:1.59+(i%7)*.035}));
+  const npc=createLaneAgents('sai',core&&!mobileGraphics()?144:78,END);
   function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
@@ -177,10 +178,10 @@ function boot(): void {
     if(cameraMode.value!=='first')submit(active,0,x,z,yaw,avatar.value==='female'?1.62:1.74,avatar.value==='female'?8:0,dist>0.0001?Clip.WALK:Clip.IDLE,dist>0.0001?walkPhase:animationTime/3%1);
     active.endFrame();
     crowd.beginFrame();
-    for(let i=0;i<npc.length;i++){
-      const n=npc[i];n.t=(n.t+n.s*dt)%168;const forward=n.t<84;const pz=forward?END-n.t:-END+n.t-84;const px=forward?Math.abs(n.x):-Math.abs(n.x);
-      if(Math.hypot(px-x,pz-z)<0.7)continue;
-      submit(crowd,1,px,pz,forward?Math.PI:0,n.h,i%7,Clip.WALK,(animationTime*n.s/1.42+i*.13)%1);
+    updateLanes('sai',npc,dt,{x,z},END);
+    for(const n of npc){const p=pathPoint('sai',n.lane,n.s,END);
+      const near=Math.hypot(p.x-x,p.z-z)<8;
+      submit(crowd,near?0:1,p.x,p.z,p.yaw,n.height,n.palette,n.speed>.04?Clip.WALK:Clip.IDLE,n.speed>.04?n.phase:animationTime/3%1);
     }
     crowd.endFrame();renderer.render(scene,camera);requestAnimationFrame(frame);
   }
