@@ -10,8 +10,8 @@ try{save=decodeSave(localStorage.getItem(KEY))??save;}catch{}
 const guide=new VoiceGuide('Selamat datang! Ikuti penanda emas untuk menyelesaikan misi.');
 const ambience=new Ambience();let world:HomeWorld|null=null,near=false,fallback=false,settings=false,audioStarted=false,sound=false,transition=false,rewardTimer=0,mapTimer=0;
 const prompts=[
- ['Temui keluarga. Dekati penanda emas, lalu tekan Interaksi.','Bagus! Sekarang pergi ke televisi. Lihat gambaran Baitullah.','Hebat! Dekati pintu untuk memulai persiapan perjalanan.'],
- ['Temukan sajadah di ruang ibadah. Pelajari pentingnya niat dan doa.','Sekarang pergi ke meja catatan. Kenali tujuan perjalanan: belajar dan mempersiapkan ibadah.','Temui keluarga lagi. Sampaikan bahwa kamu siap belajar manasik.']
+ ['Yuk, temui keluarga dulu. Dekati ibu atau ayah di ruang tamu, lalu tekan Interaksi.','Alhamdulillah. Sekarang ke televisi, yuk. Lihat gambaran Baitullah.','Bagus! Sekarang menuju pintu rumah. Kita mulai persiapan perjalanan.'],
+ ['Yuk, cari sajadah di ruang ibadah. Ingat pentingnya niat dan doa.','Sekarang ke meja ruang tamu. Kenali tujuan perjalanan dan persiapan ibadah.','Temui keluarga lagi, ya. Sampaikan bahwa kamu siap belajar manasik.']
 ];
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(save));$('checkpoint').textContent='Checkpoint lokal tersimpan.';}catch{$('checkpoint').textContent='Checkpoint tidak dapat disimpan.';}}
 function instruct(){const text=prompts[save.level-1][save.quest];if(text){guide.announce(text,'mission-'+save.level+'-'+save.quest,0,true);$('fallbackHint').textContent=text;}}

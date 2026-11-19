@@ -3,3 +3,6 @@ Level 1 has three ordered objectives, procedural low-poly house, manually contro
 
 ## V4.2
 Close third-person shoulder camera with drag orbit, camera-relative movement, collision boom, enclosed room and prayer alcove with doorway, procedural wood texture, soft shadows, directional mission arrow. Existing levels 1–2 and checkpoints stay compatible. Models remain stylized, not photorealistic. Real-browser visual and control testing required.
+
+## V4.3 Indonesian home
+Original procedural ceramic floor, woven mat, batik motifs, Indonesian calendar, street and roof-tile window illustration, water dispenser, fan, sandal rack, household objects, sarong and peci. Synthetic ambient motor/fan/birds and conversational Indonesian guide. No outside recordings, photographs or assets. Existing save, levels, quests and camera are unchanged. Stylized art, not a photorealistic reconstruction.
