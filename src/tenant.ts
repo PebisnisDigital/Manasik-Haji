@@ -15,6 +15,7 @@ export async function lookup():Promise<{brand:Brand;id:string|null;demo:boolean}
  const p=rows[0];if(!p)return null;const b=Array.isArray(p.manasik_brand)?p.manasik_brand[0]:p.manasik_brand;if(!b)return null;return {brand:cleanBrand({...b,slug:p.slug}),id:p.id,demo:false};
 }
 let brand:Brand|null=null;
+export function brandAccent(){return brand?.accent??(slug===SAMPLE.slug?previewBrand().accent:'#28634f');}
 export function brandName(){return brand?.name??(slug===SAMPLE.slug?previewBrand().name:'MANASIK 3D');}
 export function reportProgress(mode:'umrah'|'hajj',n:number):void{
  if(!configured||!slug||slug===SAMPLE.slug||!session())return;

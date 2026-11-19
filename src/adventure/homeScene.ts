@@ -1,7 +1,9 @@
 import * as THREE from 'three';
+import type {Npc} from './lessons.ts';
+import {brandName,brandAccent} from '../tenant.ts';
 import {missions,type Avatar,type Quest,type PlayableLevel} from './state.ts';
-export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onTask:()=>void;onNpc:(npc:'Ibu'|'Ayah'|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
-export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:'Ibu'|'Ayah'):void;unlockCoin():void;dispose():void}
+export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onTask:()=>void;onNpc:(npc:Npc|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
+export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:Npc):void;unlockCoin():void;dispose():void}
 type Hit={x:number;z:number;w:number;d:number};
 export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks):HomeWorld{
  const QUESTS=missions(level);
@@ -24,6 +26,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  const ceiling=box(15,.14,11,mat(0xf3eee1),0,3.37,0);ceiling.castShadow=false;
  function wall(x:number,z:number,w:number,d:number,h=3.3){const o=box(w,h,d,cream,x,h/2,z);o.castShadow=false;obstacle(x,z,w,d,h);box(w+.025,.12,d+.025,wood,x,.06,z).castShadow=false;}
  wall(0,-5.5,15,.18);wall(-7.5,0,.18,11);wall(0,5.5,15,.18);wall(7.5,-1.75,.18,7.5);wall(7.5,4.48,.18,2.04);box(.18,.68,1.5,cream,7.5,2.96,2.75).castShadow=false;box(2.4,.28,2.4,oak,8.55,-.16,2.75).castShadow=false;box(.18,3.3,2.4,cream,9.6,1.65,2.75).castShadow=false;blockers.push(new THREE.Box3(new THREE.Vector3(7.17,0,1.95),new THREE.Vector3(7.65,3.3,3.55)));
+ const houseStart=s.children.length,houseObstacles=obstacles.length,houseBlockers=blockers.length;
  // Interior divider: a generous opening near z=0 keeps every mission reachable.
  wall(2.45,-3.45,.14,4.1);wall(2.45,3.9,.14,3.2);
  const lintel=box(.16,.65,3.5,cream,2.45,2.98,.55);lintel.castShadow=false;
@@ -84,6 +87,24 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  box(.28,.14,.17,plastic,-3.37,.66,2.66);box(.04,.12,.12,white,-3.37,.77,2.66);cylinder(.075,.052,.12,white,-2.69,.66,2.66);cylinder(.062,.062,.007,mat(0x8d512e),-2.69,.724,2.66);
  box(.19,.035,.055,black,-.79,.79,-4.35);for(let j=0;j<5;j++)box(.02,.008,.025,plastic,-.86+j*.027,.812,-4.35);
  if(level===2){box(.47,.13,.34,white,5.8,.095,-3.65);box(.47,.025,.34,clothPattern,5.8,.17,-3.65);}
+ // Office variant shares only the architecture and movement engine, not the home furnishings.
+ let drawOfficeBrand:()=>void=()=>{};
+ if(level===3){
+  for(const obj of s.children.slice(houseStart))obj.visible=false;obstacles.splice(houseObstacles);blockers.splice(houseBlockers);
+  const officeAccent=mat(0x28634f),counter=mat(0xefebe0),metal=mat(0x7c8e8d),glass=new THREE.MeshStandardMaterial({color:0x9dbfc9,roughness:.24,metalness:.05}),monitor=mat(0x24312e);
+  const signCanvas=document.createElement('canvas');signCanvas.width=1024;signCanvas.height=256;const og=signCanvas.getContext('2d')!;const signTex=new THREE.CanvasTexture(signCanvas);signTex.colorSpace=THREE.SRGBColorSpace;let prev='';
+  drawOfficeBrand=()=>{const name=brandName()==='MANASIK 3D'?'MANASIK TRAVEL • DEMO':brandName();const accent=brandAccent(),key=name+accent;if(key===prev)return;prev=key;officeAccent.color.set(accent);og.fillStyle=accent;og.fillRect(0,0,1024,256);og.fillStyle='#fff4da';og.textAlign='center';og.font='bold 62px sans-serif';og.fillText(name.slice(0,60),512,104,960);og.font='30px sans-serif';og.fillText('KANTOR LAYANAN HAJI & UMRAH',512,163,960);og.font='21px sans-serif';og.fillText('SIMULASI EDUKASI • BUKAN BUKTI IZIN',512,213,960);signTex.needsUpdate=true;};
+  drawOfficeBrand();box(7.5,1.85,.04,new THREE.MeshBasicMaterial({map:signTex}),0,2.36,-5.35).castShadow=false;
+  function sign(text:string,sub:string,x:number,y:number,z:number,w=2.1){const t=surface(512,180,g=>{g.fillStyle='#153d31';g.fillRect(0,0,512,180);g.fillStyle='#f4dc9b';g.font='bold 34px sans-serif';g.textAlign='center';g.fillText(text,256,72,490);g.fillStyle='#fff';g.font='22px sans-serif';g.fillText(sub,256,123,490);});box(w,w*.35,.04,new THREE.MeshBasicMaterial({map:t}),x,y,z).castShadow=false;}
+  function service(x:number,z:number,label:string,subtitle:string){box(2.5,.9,.82,wood,x,.45,z);box(2.66,.09,1,counter,x,.94,z);box(2.18,.65,.045,officeAccent,x,.47,z+.43);sign(label,subtitle,x,.55,z+.47,1.85);box(.48,.35,.09,monitor,x-.72,1.19,z-.04);box(.25,.04,.18,metal,x-.72,1.01,z);box(.34,.025,.23,white,x+.63,1.01,z+.17);obstacle(x,z,2.66,1,1.45);}
+  service(-4,-3,'01 • INFORMASI','Cek legalitas');service(3.5,-3,'02 • KONSULTASI','Rencana perjalanan');service(4.5,1.05,'03 • PENDAFTARAN','Data contoh saja');
+  // Rear opening and glass partitions, seating and brochure rack.
+  box(.12,2.45,2.1,glass,-7.35,1.24,2.3);box(2.6,.13,1.1,officeAccent,-4,.075,2.9);for(const cx of [-5.2,-4,-2.8]){box(.92,.12,.75,officeAccent,cx,.48,3.75);box(.92,.57,.12,officeAccent,cx,.78,4.1);for(const dx of [-.34,.34])for(const dz of [-.25,.25])box(.052,.4,.052,metal,cx+dx,.21,3.75+dz);obstacle(cx,3.75,.94,.8,.99);}
+  for(const x of [-2.2,2.25]){box(.65,.05,.48,oak,x,.9,-4.3);for(let j=0;j<4;j++)box(.4,.018,.3,j%2?white:blue,x,.94+j*.024,-4.3+j*.025);box(.09,1,.09,wood,x,.5,-4.3);obstacle(x,-4.3,.66,.5,1);}
+  for(const px of [-6.5,6.6]){box(.6,.45,.6,cream,px,.23,-4.55);for(let j=0;j<6;j++){const p=sphere(.23,leaf,px+Math.sin(j*2.4)*.22,.6+(j%3)*.24,-4.55+Math.cos(j*2.4)*.22);p.scale.set(.65,1.7,.65);}obstacle(px,-4.55,.65,.65,1.4);}
+  for(const px of [-4,0,4]){box(1.8,.06,.35,white,px,3.15,0).castShadow=false;box(1.6,.025,.23,new THREE.MeshBasicMaterial({color:0xffffe8}),px,3.10,0).castShadow=false;const light=new THREE.PointLight(0xfff5dc,12,8,2);light.position.set(px,2.95,0);s.add(light);}
+  const poster=surface(512,640,g=>{g.fillStyle='#f2ede0';g.fillRect(0,0,512,640);g.fillStyle='#245846';g.fillRect(0,0,512,140);g.fillStyle='#fff';g.font='bold 35px sans-serif';g.textAlign='center';g.fillText('CEK SEBELUM DAFTAR',256,82,485);g.fillStyle='#29453a';g.textAlign='left';g.font='29px sans-serif';['01  Legalitas resmi','02  Rincian layanan','03  Bukti pendaftaran','04  Kontak pembimbing'].forEach((t,i)=>g.fillText(t,38,215+i*83));g.fillStyle='#99783f';g.font='19px sans-serif';g.fillText('Materi simulasi calon jamaah',38,600);});const p=box(.05,1.8,1.45,new THREE.MeshBasicMaterial({map:poster}),-7.35,1.95,-.8);p.castShadow=false;
+ }
  function capsule(radius:number,length:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length,5,10),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
  function person(female:boolean,color:number,height=1.7,sarong=false){
   const root=new THREE.Group();s.add(root);root.scale.setScalar(height/1.7);const cloth=mat(color),skin=mat(0xb98662),pants=mat(0x33464a),hair=mat(0x292823);
@@ -95,11 +116,18 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   for(const side of [-1,1]){const leg=new THREE.Group();leg.position.set(side*.12,.76,0);body.add(leg);capsule(.082,.44,pants,0,-.29,0,leg);const shoe=capsule(.09,.11,dark,0,-.65,.055,leg);shoe.rotation.x=Math.PI*.5;shoe.scale.set(1,.95,.65);legs.push(leg);const arm=new THREE.Group();arm.position.set(side*.29,1.27,0);body.add(arm);capsule(.076,.32,cloth,0,-.22,0,arm);sphere(.066,skin,0,-.46,0,arm);arms.push(arm);}
   return {root,body,legs,arms};
  }
- const hero=person(avatar==='female',avatar==='female'?0x69586d:0x597b89);const family=person(true,0xa87864,1.58);family.root.position.set(-4.65,0,.47);family.root.rotation.y=.65;
- const family2=person(false,0xe5dfc8,1.68,true);family2.root.position.set(-5.8,0,2.3);family2.root.rotation.y=.9;obstacle(-4.65,.47,.45,.36,1.58);obstacle(-5.8,2.3,.45,.36,1.68);
+ const hero=person(avatar==='female',avatar==='female'?0x69586d:0x597b89);
+ const family=person(true,level===3?0x386957:0xa87864,1.58);
+ const family2=person(false,level===3?0x587484:0xe5dfc8,1.68,level!==3);
+ family.root.position.set(level===3?-4:-4.65,0,level===3?-4.05:.47);family.root.rotation.y=level===3?0:.65;
+ family2.root.position.set(level===3?3.5:-5.8,0,level===3?-4.05:2.3);family2.root.rotation.y=level===3?0:.9;
+ const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===3?'Resepsionis':'Ibu',actor:family},{name:level===3?'Konsultan':'Ayah',actor:family2}];
+ if(level===3){const admin=person(true,0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:'Admin',actor:admin});}
+ for(const entry of actors){const p=entry.actor.root.position;obstacle(p.x,p.z,.45,.36,1.6);}
+ const getActor=(name:string)=>name==='Kamu'?hero:actors.find(a=>a.name===name)?.actor??null;
  const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.63,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd8a62f,side:THREE.DoubleSide,transparent:true,opacity:.9}));ring.position.y=.065;s.add(ring);
  const pin=new THREE.Group();s.add(pin);const coinGroup=new THREE.Group();pin.add(coinGroup);const coinMetal=new THREE.MeshStandardMaterial({color:0xeab63d,metalness:.55,roughness:.3,emissive:0x886019,emissiveIntensity:.35});const coinFace=new THREE.Mesh(new THREE.CylinderGeometry(.24,.24,.075,40),coinMetal);coinFace.rotation.x=Math.PI/2;coinGroup.add(coinFace);for(const z of [-.047,.047]){const rim=new THREE.Mesh(new THREE.TorusGeometry(.194,.015,8,36),new THREE.MeshBasicMaterial({color:0xffedaa}));rim.position.z=z;coinGroup.add(rim);const center=new THREE.Mesh(new THREE.BoxGeometry(.12,.12,.012),new THREE.MeshBasicMaterial({color:0xffedaa}));center.position.z=z;center.rotation.z=Math.PI/4;coinGroup.add(center);}
- const cam=new THREE.PerspectiveCamera(60,1,.045,45);let x=0,z=1.85,yaw=Math.PI,cameraYaw=Math.PI,pitch=.16,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,disposed=false,doorOpen=level===1&&initial===3;let talking='',collected=false,taskStarted=false,coinReady=false,coinAt=0,taskHold=false,forcedNpc:'Ibu'|'Ayah'|null=null,nearNpc:'Ibu'|'Ayah'|null=null;const bubbleAnchor=new THREE.Vector3(),npcRay=new THREE.Ray(),npcDir=new THREE.Vector3(),npcStart=new THREE.Vector3(),npcHit=new THREE.Vector3();let cameraDistance=3.1,manualUntil=0,lastMotion=0,lookId:number|null=null,lookX=0,lookY=0;const pivotCam=new THREE.Vector3(),desiredCam=new THREE.Vector3(),direction=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(),lookAt=new THREE.Vector3();const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
+ const cam=new THREE.PerspectiveCamera(60,1,.045,45);let x=0,z=level===3?3.6:1.85,yaw=Math.PI,cameraYaw=Math.PI,pitch=.16,quest=initial,near=false,active=false,auto=false,raf=0,last=performance.now(),phase=0,cutUntil=0,disposed=false,doorOpen=level===1&&initial===3;let talking='',collected=false,taskStarted=false,coinReady=false,coinAt=0,taskHold=false,forcedNpc:Npc|null=null,nearNpc:Npc|null=null;const bubbleAnchor=new THREE.Vector3(),npcRay=new THREE.Ray(),npcDir=new THREE.Vector3(),npcStart=new THREE.Vector3(),npcHit=new THREE.Vector3();let cameraDistance=3.1,manualUntil=0,lastMotion=0,lookId:number|null=null,lookX=0,lookY=0;const pivotCam=new THREE.Vector3(),desiredCam=new THREE.Vector3(),direction=new THREE.Vector3(),hit=new THREE.Vector3(),ray=new THREE.Ray(),lookAt=new THREE.Vector3();const angleDelta=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
  const keys=new Set<string>();let waypoints:{x:number;z:number}[]=[];let jx=0,jz=0,pid:number|null=null;
  const bounds=(v:number,a:number,b:number)=>Math.max(a,Math.min(b,v));
  function valid(px:number,pz:number){return px>-7&&px<7&&pz>-5&&pz<5&&!obstacles.some(o=>Math.abs(px-o.x)<o.w/2+.26&&Math.abs(pz-o.z)<o.d/2+.26);}
@@ -145,15 +173,13 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   if(t&&active&&coinReady&&!collected&&now>=coinAt&&Math.hypot(t.x-x,t.z-z)<.7){collected=true;ring.visible=pin.visible=false;active=false;clear();callbacks.onCollect();}
   // Proximity chat is independent of quest collection; hysteresis prevents flicker/retrigger.
   function visibleNpc(actor:typeof family,max:number){const p=actor.root.position;const dst=Math.hypot(p.x-x,p.z-z);if(dst>max)return Infinity;npcStart.set(x,1.45,z);npcDir.set(p.x-x,0,p.z-z).normalize();npcRay.set(npcStart,npcDir);for(const blocker of blockers){const at=npcRay.intersectBox(blocker,npcHit);if(at){const d=at.distanceTo(npcStart);if(d>.28&&d<dst-.45)return Infinity;}}return dst;}
-  const di=active&&!cinema?visibleNpc(family,nearNpc==='Ibu'?2.65:2.2):Infinity;
-  const da=active&&!cinema?visibleNpc(family2,nearNpc==='Ayah'?2.65:2.2):Infinity;
-  const candidate:typeof nearNpc=Number.isFinite(di)||Number.isFinite(da)?(nearNpc==='Ibu'&&Number.isFinite(di)?'Ibu':nearNpc==='Ayah'&&Number.isFinite(da)?'Ayah':di<=da?'Ibu':'Ayah'):null;
+  let candidate:Npc|null=null,bestNpc=Infinity;if(active&&!cinema){for(const {name,actor} of actors){const distance=visibleNpc(actor,nearNpc===name?2.65:2.2);if(Number.isFinite(distance)&&(nearNpc===name||distance<bestNpc)){candidate=name;bestNpc=distance;if(nearNpc===name)break;}}}
   if(!taskHold&&candidate!==nearNpc){nearNpc=candidate;callbacks.onNpc(nearNpc);}
   if(talking&&(forcedNpc||nearNpc)){
-   const npc=(forcedNpc||nearNpc)==='Ayah'?family2:family;
+   const npc=getActor(forcedNpc||nearNpc||'')??family;
    npc.root.rotation.y=Math.atan2(x-npc.root.position.x,z-npc.root.position.z);
    if(!moving){const face=Math.atan2(npc.root.position.x-x,npc.root.position.z-z);yaw+=angleDelta(yaw,face)*Math.min(1,dt*7);hero.root.rotation.y=yaw;if(forcedNpc)cameraYaw+=angleDelta(cameraYaw,face)*Math.min(1,dt*5);}
-   const actor=talking==='Kamu'?hero:talking==='Ibu'?family:talking==='Ayah'?family2:null;
+   const actor=getActor(talking);
    if(actor){actor.body.rotation.z=Math.sin(now*.004)*.025;actor.arms[1].rotation.x=-.28+Math.sin(now*.007)*.17;}
   }else hero.body.rotation.z=0;
   // Shoulder camera: use an indoor collision ray to shorten the boom before walls/furniture.
@@ -169,9 +195,9 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   cam.position.copy(pivotCam).addScaledVector(direction,cameraDistance);
   hero.root.visible=cameraDistance>.72;
   lookAt.set(x+forwardX*3.7+rightX*shoulder,1.45+Math.sin(pitch)*-.9,z+forwardZ*3.7+rightZ*shoulder);cam.lookAt(lookAt);cam.updateMatrixWorld();
-  if(talking&&(forcedNpc||nearNpc)){const actor=talking==='Kamu'?hero:talking==='Ibu'?family:talking==='Ayah'?family2:null;if(actor){bubbleAnchor.set(actor.root.position.x,actor.root.scale.y*1.76+.14,actor.root.position.z).project(cam);const visible=bubbleAnchor.z>-1&&bubbleAnchor.z<1&&Math.abs(bubbleAnchor.x)<1.08&&bubbleAnchor.y>-1.04;callbacks.onBubble((bubbleAnchor.x*.5+.5)*100,(.5-bubbleAnchor.y*.5)*100,visible);}else callbacks.onBubble(50,50,false);}else callbacks.onBubble(50,50,false);
+  if(talking&&(forcedNpc||nearNpc)){const actor=getActor(talking);if(actor){bubbleAnchor.set(actor.root.position.x,actor.root.scale.y*1.76+.14,actor.root.position.z).project(cam);const visible=bubbleAnchor.z>-1&&bubbleAnchor.z<1&&Math.abs(bubbleAnchor.x)<1.08&&bubbleAnchor.y>-1.04;callbacks.onBubble((bubbleAnchor.x*.5+.5)*100,(.5-bubbleAnchor.y*.5)*100,visible);}else callbacks.onBubble(50,50,false);}else callbacks.onBubble(50,50,false);
   if(t){const bearing=Math.atan2(t.x-x,t.z-z);callbacks.onNav(angleDelta(cameraYaw,bearing),Math.hypot(t.x-x,t.z-z));}
-  r.render(s,cam);
+  if(level===3)drawOfficeBrand();r.render(s,cam);
  }raf=requestAnimationFrame(frame);
  return {talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
 }
