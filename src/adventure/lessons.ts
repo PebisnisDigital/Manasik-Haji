@@ -1,5 +1,5 @@
 import type {PlayableLevel,Campaign} from './state.ts';
-export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas';
+export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker';
 export type Speaker=Npc|'Kamu';
 export type Line={speaker:Speaker;text:string};
 export type Lesson={title:string;body:string;points:string[];note?:string;lines:Line[];npc?:Npc};
@@ -255,9 +255,87 @@ export const LESSONS:Lesson[][]=[
       }
     ]
   }
+],
+[
+  {
+    "title": "Pemeriksaan kesiapan kesehatan",
+    "body": "Lakukan konsultasi dan pemeriksaan kesehatan sebelum berangkat.",
+    "points": [
+      "Sampaikan riwayat penyakit, alergi, obat dan keluhan kepada dokter.",
+      "Ikuti pemeriksaan yang ditentukan tenaga kesehatan, termasuk tekanan darah dan penilaian kemampuan fisik bila diperlukan.",
+      "Untuk haji, ikuti pemeriksaan dan penetapan istitaah kesehatan oleh petugas berwenang."
+    ],
+    "note": "Hasil pemeriksaan dalam game tidak menentukan kelayakan kesehatan sebenarnya.",
+    "npc": "Dokter",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Dok, saya ingin mempersiapkan kesehatan sebelum ibadah."
+      },
+      {
+        "speaker": "Dokter",
+        "text": "Mulailah dengan konsultasi. Sampaikan kondisi kesehatan, obat rutin dan kemampuan fisikmu."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik, Dok. Saya akan mengikuti pemeriksaan sesuai arahan."
+      }
+    ]
+  },
+  {
+    "title": "Vaksinasi dan bukti kesehatan",
+    "body": "Cek syarat kesehatan Arab Saudi sesuai jenis ibadah dan jadwal perjalanan.",
+    "points": [
+      "Tanyakan vaksin meningokokus ACWY dan vaksin lain yang diwajibkan atau dianjurkan sesuai ketentuan terbaru.",
+      "Lakukan vaksinasi di fasilitas berwenang, dengan penilaian kondisi dan waktu pemberian oleh tenaga kesehatan.",
+      "Simpan bukti vaksinasi atau sertifikat yang dipersyaratkan, dan periksa masa berlakunya."
+    ],
+    "note": "Ketentuan bisa berubah menurut musim, asal perjalanan, usia dan kondisi kesehatan. Tidak ada tindakan vaksinasi nyata di game.",
+    "npc": "Perawat",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Bu, bagaimana mempersiapkan vaksinasi sebelum berangkat?"
+      },
+      {
+        "speaker": "Perawat",
+        "text": "Periksa syarat terbaru untuk haji atau umroh. Kami akan membantu menjelaskan vaksin, jadwal, dan bukti yang diperlukan."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik, saya akan berkonsultasi sebelum vaksinasi."
+      }
+    ]
+  },
+  {
+    "title": "Kebugaran dan obat pribadi",
+    "body": "Siapkan stamina dan obat rutin sesuai anjuran tenaga kesehatan.",
+    "points": [
+      "Latih jalan kaki secara bertahap sesuai kondisi; cukup istirahat dan minum sesuai kebutuhan kesehatan.",
+      "Siapkan obat resep dalam kemasan berlabel, daftar obat, serta resep atau surat dokter bila diperlukan.",
+      "Jangan menghentikan atau mengubah dosis obat sendiri. Tanyakan aturan membawa obat ke negara tujuan."
+    ],
+    "note": "Bila muncul nyeri dada, sesak berat, atau pingsan, cari pertolongan medis segera. Game bukan konsultasi medis.",
+    "npc": "Apoteker",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Apa bekal kesehatan yang harus dibawa?"
+      },
+      {
+        "speaker": "Apoteker",
+        "text": "Bawa obat rutin sesuai resep dan daftar obat. Untuk latihan fisik, sesuaikan dengan kemampuan dan arahan dokter."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Siap. Saya tidak akan mengubah obat tanpa arahan dokter."
+      }
+    ]
+  }
 ]
 ];
 export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
+ if(level===5)return [{speaker:npc,text:npc==='Dokter'?'Silakan pelajari kesiapan kesehatan sebelum berangkat.':npc==='Perawat'?'Mari kenali persyaratan vaksinasi.':'Mari siapkan obat rutin secara aman.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===4)return [{speaker:npc,text:npc==='Petugas Paspor'?'Selamat datang. Mari pelajari persyaratan paspor.':npc==='Petugas Visa'?'Periksa izin perjalanan sesuai ibadah.':'Simpan berkas perjalanan dengan aman.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(level===3)return [{speaker:npc,text:npc==='Resepsionis'?'Selamat datang di kantor simulasi. Silakan cek informasi izin.':npc==='Konsultan'?'Silakan konsultasikan rencana perjalanan.':'Di sini kita belajar alur pendaftaran.'},{speaker:'Kamu',text:'Terima kasih.'}];
  if(npc==='Ibu')return [{speaker:'Ibu',text:level===1&&quest===0?'Ada yang ingin kamu bicarakan, Nak?':'Semoga persiapanmu lancar, Nak.'},{speaker:'Kamu',text:'Aamiin, Bu.'}];

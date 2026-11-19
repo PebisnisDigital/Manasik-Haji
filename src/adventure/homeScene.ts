@@ -90,15 +90,30 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
  // Office variant shares only the architecture and movement engine, not the home furnishings.
  let drawOfficeBrand:()=>void=()=>{};
  if(level>=3){
-  const documents=level===4;
+  const documents=level===4,clinic=level===5;
   for(const obj of s.children.slice(houseStart))obj.visible=false;obstacles.splice(houseObstacles);blockers.splice(houseBlockers);
   const officeAccent=mat(0x28634f),counter=mat(0xefebe0),metal=mat(0x7c8e8d),glass=new THREE.MeshStandardMaterial({color:0x9dbfc9,roughness:.24,metalness:.05}),monitor=mat(0x24312e);
   const signCanvas=document.createElement('canvas');signCanvas.width=1024;signCanvas.height=256;const og=signCanvas.getContext('2d')!;const signTex=new THREE.CanvasTexture(signCanvas);signTex.colorSpace=THREE.SRGBColorSpace;let prev='';
-  drawOfficeBrand=()=>{const name=brandName()==='MANASIK 3D'?'MANASIK TRAVEL • DEMO':brandName();const accent=documents?'#305777':brandAccent(),key=name+accent;if(key===prev)return;prev=key;officeAccent.color.set(accent);og.fillStyle=accent;og.fillRect(0,0,1024,256);og.fillStyle='#fff4da';og.textAlign='center';og.font='bold 62px sans-serif';og.fillText(documents?'PUSAT PERSIAPAN DOKUMEN':name.slice(0,60),512,104,960);og.font='30px sans-serif';og.fillText(documents?'PASPOR • VISA • ARSIP':'KANTOR LAYANAN HAJI & UMRAH',512,163,960);og.font='21px sans-serif';og.fillText(documents?'SIMULASI • BUKAN KANTOR PEMERINTAH':'SIMULASI EDUKASI • BUKAN BUKTI IZIN',512,213,960);signTex.needsUpdate=true;};
+  drawOfficeBrand=()=>{const name=brandName()==='MANASIK 3D'?'MANASIK TRAVEL • DEMO':brandName();const accent=clinic?'#217c79':documents?'#305777':brandAccent(),key=name+accent;if(key===prev)return;prev=key;officeAccent.color.set(accent);og.fillStyle=accent;og.fillRect(0,0,1024,256);og.fillStyle='#fff4da';og.textAlign='center';og.font='bold 62px sans-serif';og.fillText(clinic?'KLINIK PERSIAPAN IBADAH':documents?'PUSAT PERSIAPAN DOKUMEN':name.slice(0,60),512,104,960);og.font='30px sans-serif';og.fillText(clinic?'PEMERIKSAAN • VAKSINASI • BEKAL SEHAT':documents?'PASPOR • VISA • ARSIP':'KANTOR LAYANAN HAJI & UMRAH',512,163,960);og.font='21px sans-serif';og.fillText(clinic?'SIMULASI EDUKASI • BUKAN LAYANAN MEDIS':documents?'SIMULASI • BUKAN KANTOR PEMERINTAH':'SIMULASI EDUKASI • BUKAN BUKTI IZIN',512,213,960);signTex.needsUpdate=true;};
   drawOfficeBrand();box(7.5,1.85,.04,new THREE.MeshBasicMaterial({map:signTex}),0,2.36,-5.35).castShadow=false;
-  function sign(text:string,sub:string,x:number,y:number,z:number,w=2.1){const t=surface(512,180,g=>{g.fillStyle=documents?'#254966':'#153d31';g.fillRect(0,0,512,180);g.fillStyle='#f4dc9b';g.font='bold 34px sans-serif';g.textAlign='center';g.fillText(text,256,72,490);g.fillStyle='#fff';g.font='22px sans-serif';g.fillText(sub,256,123,490);});box(w,w*.35,.04,new THREE.MeshBasicMaterial({map:t}),x,y,z).castShadow=false;}
+  function sign(text:string,sub:string,x:number,y:number,z:number,w=2.1){const t=surface(512,180,g=>{g.fillStyle=clinic?'#236966':documents?'#254966':'#153d31';g.fillRect(0,0,512,180);g.fillStyle='#f4dc9b';g.font='bold 34px sans-serif';g.textAlign='center';g.fillText(text,256,72,490);g.fillStyle='#fff';g.font='22px sans-serif';g.fillText(sub,256,123,490);});box(w,w*.35,.04,new THREE.MeshBasicMaterial({map:t}),x,y,z).castShadow=false;}
   function service(x:number,z:number,label:string,subtitle:string){box(2.5,.9,.82,wood,x,.45,z);box(2.66,.09,1,counter,x,.94,z);box(2.18,.65,.045,officeAccent,x,.47,z+.43);sign(label,subtitle,x,.55,z+.47,1.85);box(.48,.35,.09,monitor,x-.72,1.19,z-.04);box(.25,.04,.18,metal,x-.72,1.01,z);box(.34,.025,.23,white,x+.63,1.01,z+.17);obstacle(x,z,2.66,1,1.45);}
-  if(documents){
+  if(clinic){
+   service(-4,-3,'01 • PEMERIKSAAN','Kesiapan kesehatan');service(3.5,-3,'02 • VAKSINASI','Panduan persyaratan');service(4.5,1.05,'03 • FARMASI','Obat dan kebugaran');
+   const teal=mat(0x3f9695),steel=mat(0x9daea9),linen=mat(0xf6f8e9);
+   // Examination bed, pillow, modest privacy screen alongside the doctor's area.
+   box(.82,.12,1.84,steel,-6.2,.66,-.4);box(.82,.16,1.76,teal,-6.2,.81,-.4);box(.7,.13,.4,linen,-6.2,.98,-1.02);for(const z of [-1.12,.32])for(const x of [-6.5,-5.9])box(.055,.65,.055,steel,x,.34,z);obstacle(-6.2,-.4,.88,1.9,1.05);
+   box(.05,1.7,1.3,linen,-6.98,1.2,-.45);box(.065,1.98,.065,steel,-7,1,-1.13);box(.065,1.98,.065,steel,-7,1,.23);
+   // Blood pressure training monitor; no invented patient value or diagnosis.
+   const display=surface(384,220,g=>{g.fillStyle='#bfddd1';g.fillRect(0,0,384,220);g.textAlign='center';g.fillStyle='#315b54';g.font='bold 28px sans-serif';g.fillText('TENSIMETER DEMO',192,42);g.font='bold 58px monospace';g.fillText('-- / --',192,121);g.font='24px sans-serif';g.fillText('mmHg • SIMULASI',192,183);});
+   box(.48,.23,.32,linen,-3.38,1.10,-2.85);box(.39,.16,.018,new THREE.MeshBasicMaterial({map:display}),-3.38,1.15,-2.675);box(.26,.10,.20,dark,-4.1,1.04,-2.68);
+   // Model medical refrigerator and vaccine information board, no brand/dose claims.
+   box(.78,1.72,.66,linen,6.35,.86,-3.95);box(.67,1.22,.035,glass,6.35,1.06,-3.58);box(.055,.32,.055,steel,6.68,.92,-3.55);obstacle(6.35,-3.95,.8,.7,1.8);
+   for(let j=0;j<3;j++){box(.17,.22,.22,white,3.85+j*.21,1.1,-2.82);box(.17,.06,.225,teal,3.85+j*.21,1.17,-2.82);}
+   // Pharmacy shelves, unbranded demonstration cartons, small exercise area.
+   box(.58,1.65,1.55,linen,6.72,.825,1.0);for(let j=0;j<3;j++){box(.63,.06,1.58,steel,6.72,.38+j*.45,1.0);for(let k=0;k<4;k++)box(.24,.22,.18,k%2?white:blue,6.5,.52+j*.45,.45+k*.32);}obstacle(6.72,1,.63,1.58,1.7);
+   box(1.5,.035,.95,teal,.0,.045,-4.05).castShadow=false;box(.14,.62,.14,steel,.0,.33,-4.45);box(.62,.08,.18,steel,0,.68,-4.45);obstacle(0,-4.45,.66,.3,.7);
+  }else if(documents){
    service(-4,-3,'01 • PASPOR','Pemeriksaan identitas');service(3.5,-3,'02 • VISA','Periksa izin ibadah');service(4.5,1.05,'03 • ARSIP','Kelengkapan berkas');
    // Large, unambiguously fictional training specimens on the visitor side of each service counter.
    function specimen(title:string,lines:string[],x:number,z:number,color:string){const t=surface(512,320,g=>{g.fillStyle='#f4efe1';g.fillRect(0,0,512,320);g.fillStyle=color;g.fillRect(0,0,512,78);g.fillStyle='#fff';g.font='bold 28px sans-serif';g.textAlign='center';g.fillText(title,256,47,480);g.fillStyle='#35474e';g.textAlign='left';g.font='23px sans-serif';lines.forEach((line,i)=>g.fillText(line,27,114+i*42,460));g.save();g.translate(256,177);g.rotate(-.28);g.fillStyle='#8e303099';g.font='bold 43px sans-serif';g.textAlign='center';g.fillText('CONTOH',0,0);g.restore();g.fillStyle='#852f30';g.textAlign='center';g.font='bold 18px sans-serif';g.fillText('TIDAK BERLAKU • SIMULASI GAME',256,299);});const doc=new THREE.Mesh(new THREE.PlaneGeometry(.75,.47).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}));doc.position.set(x,1.00,z);s.add(doc);}
@@ -114,7 +129,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   for(const x of [-2.2,2.25]){box(.65,.05,.48,oak,x,.9,-4.3);for(let j=0;j<4;j++)box(.4,.018,.3,j%2?white:blue,x,.94+j*.024,-4.3+j*.025);box(.09,1,.09,wood,x,.5,-4.3);obstacle(x,-4.3,.66,.5,1);}
   for(const px of [-6.5,6.6]){box(.6,.45,.6,cream,px,.23,-4.55);for(let j=0;j<6;j++){const p=sphere(.23,leaf,px+Math.sin(j*2.4)*.22,.6+(j%3)*.24,-4.55+Math.cos(j*2.4)*.22);p.scale.set(.65,1.7,.65);}obstacle(px,-4.55,.65,.65,1.4);}
   for(const px of [-4,0,4]){box(1.8,.06,.35,white,px,3.15,0).castShadow=false;box(1.6,.025,.23,new THREE.MeshBasicMaterial({color:0xffffe8}),px,3.10,0).castShadow=false;const light=new THREE.PointLight(0xfff5dc,12,8,2);light.position.set(px,2.95,0);s.add(light);}
-  const poster=surface(512,640,g=>{g.fillStyle='#f2ede0';g.fillRect(0,0,512,640);g.fillStyle='#245846';g.fillRect(0,0,512,140);g.fillStyle='#fff';g.font='bold 35px sans-serif';g.textAlign='center';g.fillText(documents?'SIAPKAN DOKUMEN':'CEK SEBELUM DAFTAR',256,82,485);g.fillStyle='#29453a';g.textAlign='left';g.font='29px sans-serif';(documents?['01  Identitas & paspor','02  Visa / izin','03  Salinan aman','04  Kontak darurat']:['01  Legalitas resmi','02  Rincian layanan','03  Bukti pendaftaran','04  Kontak pembimbing']).forEach((t,i)=>g.fillText(t,38,215+i*83));g.fillStyle='#99783f';g.font='19px sans-serif';g.fillText('Materi simulasi calon jamaah',38,600);});const p=box(.05,1.8,1.45,new THREE.MeshBasicMaterial({map:poster}),-7.35,1.95,-.8);p.castShadow=false;
+  const poster=surface(512,640,g=>{g.fillStyle='#f2ede0';g.fillRect(0,0,512,640);g.fillStyle='#245846';g.fillRect(0,0,512,140);g.fillStyle='#fff';g.font='bold 35px sans-serif';g.textAlign='center';g.fillText(clinic?'BEKAL JEMAAH SEHAT':documents?'SIAPKAN DOKUMEN':'CEK SEBELUM DAFTAR',256,82,485);g.fillStyle='#29453a';g.textAlign='left';g.font='29px sans-serif';(clinic?['01  Konsultasi kesehatan','02  Cek vaksinasi','03  Latihan bertahap','04  Obat sesuai resep']:documents?['01  Identitas & paspor','02  Visa / izin','03  Salinan aman','04  Kontak darurat']:['01  Legalitas resmi','02  Rincian layanan','03  Bukti pendaftaran','04  Kontak pembimbing']).forEach((t,i)=>g.fillText(t,38,215+i*83));g.fillStyle='#99783f';g.font='19px sans-serif';g.fillText('Materi simulasi calon jamaah',38,600);});const p=box(.05,1.8,1.45,new THREE.MeshBasicMaterial({map:poster}),-7.35,1.95,-.8);p.castShadow=false;
  }
  function capsule(radius:number,length:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length,5,10),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
  function person(female:boolean,color:number,height=1.7,sarong=false){
@@ -128,12 +143,12 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   return {root,body,legs,arms};
  }
  const hero=person(avatar==='female',avatar==='female'?0x69586d:0x597b89);
- const family=person(true,level>=3?0x386957:0xa87864,1.58);
- const family2=person(false,level>=3?0x587484:0xe5dfc8,1.68,level<3);
+ const family=person(true,level===5?0xf3f1e9:level>=3?0x386957:0xa87864,1.58);
+ const family2=person(false,level===5?0x4d9795:level>=3?0x587484:0xe5dfc8,1.68,level<3);
  family.root.position.set(level>=3?-4:-4.65,0,level>=3?-4.05:.47);family.root.rotation.y=level>=3?0:.65;
  family2.root.position.set(level>=3?3.5:-5.8,0,level>=3?-4.05:2.3);family2.root.rotation.y=level>=3?0:.9;
- const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
- if(level>=3){const admin=person(true,0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:level===4?'Petugas Berkas':'Admin',actor:admin});}
+ const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===5?'Dokter':level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===5?'Perawat':level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
+ if(level>=3){const admin=person(true,level===5?0xe9f3eb:0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:level===5?'Apoteker':level===4?'Petugas Berkas':'Admin',actor:admin});}
  for(const entry of actors){const p=entry.actor.root.position;obstacle(p.x,p.z,.45,.36,1.6);}
  const getActor=(name:string)=>name==='Kamu'?hero:actors.find(a=>a.name===name)?.actor??null;
  const ring=new THREE.Mesh(new THREE.RingGeometry(.45,.63,48).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd8a62f,side:THREE.DoubleSide,transparent:true,opacity:.9}));ring.position.y=.065;s.add(ring);
