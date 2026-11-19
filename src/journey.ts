@@ -1,7 +1,8 @@
 export type Avatar='male'|'female';
 export type Stage=0|1|2|3|4|5;
 export interface Journey{version:1;avatar:Avatar;stage:Stage;id:string}
-const KEY='manasik-umrah-v1';
+import {scopedKey,tenantUrl,reportProgress} from './tenant.ts';
+const KEY=()=>scopedKey('manasik-umrah-v1');
 export function decodeJourney(raw:string|null):Journey|null{
   if(!raw)return null;
   try{
@@ -11,10 +12,10 @@ export function decodeJourney(raw:string|null):Journey|null{
   }catch{return null;}
 }
 export function readJourney():Journey|null{
-  try{return decodeJourney(localStorage.getItem(KEY));}catch{return null;}
+  try{return decodeJourney(localStorage.getItem(KEY()));}catch{return null;}
 }
 export function writeJourney(j:Journey):boolean{
-  try{localStorage.setItem(KEY,JSON.stringify(j));return true;}catch{return false;}
+  try{localStorage.setItem(KEY(),JSON.stringify(j));reportProgress('umrah',j.stage);return true;}catch{return false;}
 }
 export function newJourney(avatar:Avatar):Journey{
   return {version:1,avatar,stage:0,id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9)};
@@ -32,9 +33,9 @@ export function guidedStage(expected:Stage):Journey|null{
   const param=new URLSearchParams(location.search).get('journey');
   if(!param)return null;
   const j=readJourney();
-  if(!j||j.id!==param||j.stage!==expected){location.replace('./umrah.html');return null;}
+  if(!j||j.id!==param||j.stage!==expected){location.replace(tenantUrl('./umrah.html'));return null;}
   return j;
 }
 export function stageUrl(page:string,j:Journey):string{
-  return './'+page+'?journey='+encodeURIComponent(j.id)+'&avatar='+j.avatar;
+  return tenantUrl('./'+page+'?journey='+encodeURIComponent(j.id)+'&avatar='+j.avatar);
 }
