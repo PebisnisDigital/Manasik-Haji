@@ -156,10 +156,10 @@ function boot(): void {
     if(cameraMode.value==='first'){
       desiredCamera.set(x,1.61,z);desiredLook.set(x-viewX*8,1.61,z-viewZ*8);
     }else if(cameraMode.value==='follow'){
-      desiredCamera.set(x+viewX*5.9,3.4,z+viewZ*5.9);
-      desiredLook.set(x-viewX*3,1.4,z-viewZ*3);
+      desiredCamera.set(x+viewX*(core?3.8:5.9),core?2.65:3.4,z+viewZ*(core?3.8:5.9));
+      desiredLook.set(x-viewX*(core?1.4:3),1.4,z-viewZ*(core?1.4:3));
     }else{
-      desiredCamera.set(x+viewX*5.6,3.2,z+viewZ*5.6);
+      desiredCamera.set(x+viewX*(core?4:5.6),core?2.65:3.2,z+viewZ*(core?4:5.6));
       desiredLook.set(x-viewX*2,1.45,z-viewZ*2);
     }
     desiredCamera.x=THREE.MathUtils.clamp(desiredCamera.x,-9.4,9.4);desiredCamera.z=THREE.MathUtils.clamp(desiredCamera.z,-46.4,46.4);

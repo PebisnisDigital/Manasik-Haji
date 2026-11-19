@@ -159,10 +159,10 @@ function boot(): void {
     if(cameraMode.value==='first'){
       desiredCamera.set(x,1.61,z);desiredLook.set(x-viewX*8,1.61,z-viewZ*8);
     }else if(cameraMode.value==='follow'){
-      desiredCamera.set(x+viewX*5.9+rx*6.4,3.6,z+viewZ*5.9+rz*6.4);
-      desiredLook.set(x-viewX*3-rx*5,1.3,z-viewZ*3-rz*5);
+      if(core)desiredCamera.set(x+viewX*3.8+rx*.8,2.65,z+viewZ*3.8+rz*.8);else desiredCamera.set(x+viewX*5.9+rx*6.4,3.6,z+viewZ*5.9+rz*6.4);
+      if(core)desiredLook.set(x-viewX*1.4-rx*.7,1.4,z-viewZ*1.4-rz*.7);else desiredLook.set(x-viewX*3-rx*5,1.3,z-viewZ*3-rz*5);
     }else{
-      desiredCamera.set(x+viewX*5.6,3.2,z+viewZ*5.6);
+      desiredCamera.set(x+viewX*(core?4:5.6),core?2.65:3.2,z+viewZ*(core?4:5.6));
       desiredLook.set(x-viewX*2,1.45,z-viewZ*2);
     }
     if(!initializedCamera){camera.position.copy(desiredCamera);smoothLook.copy(desiredLook);initializedCamera=true;}
