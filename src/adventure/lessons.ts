@@ -1,5 +1,5 @@
-import type {PlayableLevel,Campaign} from './state.ts';
-export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker'|'Pembimbing'|'Asisten Manasik'|'Ketua Rombongan'|'Petugas Check-in'|'Petugas Keamanan'|'Petugas Gate';
+import type {PlayableLevel,Campaign,FlightRoute} from './state.ts';
+export type Npc='Ibu'|'Ayah'|'Resepsionis'|'Konsultan'|'Admin'|'Petugas Paspor'|'Petugas Visa'|'Petugas Berkas'|'Dokter'|'Perawat'|'Apoteker'|'Pembimbing'|'Asisten Manasik'|'Ketua Rombongan'|'Petugas Check-in'|'Petugas Keamanan'|'Petugas Gate'|'Pramugari'|'Awak Kabin';
 export type Speaker=Npc|'Kamu';
 export type Line={speaker:Speaker;text:string};
 export type Lesson={title:string;body:string;points:string[];note?:string;lines:Line[];npc?:Npc};
@@ -575,9 +575,76 @@ export const LESSONS:Lesson[][]=[
       }
     ]
   }
+],
+[
+  {
+    "title": "Keselamatan dan doa perjalanan",
+    "body": "Ikuti petunjuk awak kabin. Panjatkan doa perjalanan dengan tenang.",
+    "points": [
+      "Kenakan sabuk keselamatan saat duduk dan ikuti instruksi awak kabin.",
+      "Doa naik kendaraan (penggalan QS Az-Zukhruf 43:13–14): Subhanalladzi sakhkhara lana hadza wa ma kunna lahu muqrinin, wa inna ila rabbina lamunqalibun.",
+      "Makna: Mahasuci Allah yang menundukkan kendaraan ini untuk kami, padahal kami tidak mampu menguasainya; dan kepada Tuhan kami akan kembali.",
+      "Mohon keselamatan, kemudahan ibadah dan perlindungan bagi keluarga."
+    ],
+    "note": "Doa bukan syarat sah ibadah. Berjalan dalam kabin hanya bila aman dan diizinkan; arena berjalan ini bersifat edukatif.",
+    "npc": "Pramugari",
+    "lines": [
+      {
+        "speaker": "Pramugari",
+        "text": "Selamat datang. Silakan duduk dan kenakan sabuk keselamatan. Ikuti arahan awak kabin."
+      },
+      {
+        "speaker": "Kamu",
+        "text": "Baik. Saya akan berdoa memohon keselamatan perjalanan."
+      }
+    ]
+  },
+  {
+    "title": "Menjaga kesehatan di pesawat",
+    "body": "Penerbangan panjang memerlukan perhatian pada kenyamanan dan kondisi kesehatan.",
+    "points": [
+      "Minum air secara berkala sesuai kebutuhan dan kondisi kesehatan.",
+      "Lakukan gerakan ringan pergelangan kaki saat duduk, sesuai kemampuan. Bergerak di lorong hanya jika aman dan diizinkan awak kabin.",
+      "Gunakan obat rutin sesuai resep; segera beri tahu awak kabin atau petugas kesehatan jika merasa tidak sehat."
+    ],
+    "note": "Bila nyeri dada atau sesak berat, segera minta pertolongan. Simulasi bukan konsultasi medis.",
+    "npc": "Awak Kabin",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Bagaimana menjaga kondisi tubuh selama penerbangan panjang?"
+      },
+      {
+        "speaker": "Awak Kabin",
+        "text": "Minum cukup sesuai kondisi dan lakukan peregangan ringan sambil duduk. Jika merasa tidak sehat, segera beri tahu kami."
+      }
+    ]
+  },
+  {
+    "title": "Persiapan miqat sesuai rute",
+    "body": "Kenali tujuan pertama perjalanan sebelum masuk ihram.",
+    "points": [
+      "Langsung menuju Makkah melalui Jeddah: siapkan pakaian ihram sebelumnya; niat ihram dilakukan sebelum melintasi miqat sesuai bimbingan.",
+      "Madinah dahulu: bila belum menuju Makkah untuk ibadah, persiapan miqat dilakukan saat perjalanan Madinah menuju Makkah, misalnya di Dzul Hulaifah (Bir Ali).",
+      "Jangan menunda niat hingga hotel bila miqat telah terlewati. Ikuti pembimbing dan informasi rute."
+    ],
+    "note": "Ini simulasi rute, bukan niat atau pelaksanaan ibadah nyata. Rincian fikih dan kondisi khusus mengikuti pembimbing.",
+    "npc": "Pembimbing",
+    "lines": [
+      {
+        "speaker": "Kamu",
+        "text": "Ustaz, kapan saya harus bersiap untuk miqat?"
+      },
+      {
+        "speaker": "Pembimbing",
+        "text": "Tergantung tujuan pertama. Jika langsung menuju Makkah, jangan melewati miqat tanpa ihram. Jika Madinah dahulu, pelajari miqat saat menuju Makkah."
+      }
+    ]
+  }
 ]
 ];
 export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
+ if(level===10)return [{speaker:npc,text:npc==='Pembimbing'?'Ikuti panduan miqat sesuai tujuan perjalanan.':'Silakan ikuti petunjuk keselamatan dan jaga kesehatan selama penerbangan.'},{speaker:'Kamu',text:'Baik, terima kasih.'}];
  if(level===9)return [{speaker:npc,text:npc==='Petugas Check-in'?'Silakan siapkan dokumen dan bagasi.':npc==='Petugas Keamanan'?'Ikuti petunjuk pemeriksaan keamanan dan imigrasi.':'Cocokkan gate dan ikuti arahan boarding.'},{speaker:'Kamu',text:'Baik, terima kasih.'}];
  if(level===8)return [{speaker:npc,text:npc==='Ketua Rombongan'?'Selamat datang. Ikuti arahan rombongan sebelum berangkat.':'Hati-hati di perjalanan. Semoga Allah menjagamu.'},{speaker:'Kamu',text:'Aamiin. Terima kasih.'}];
  if(level===7)return [{speaker:npc,text:npc==='Pembimbing'?'Silakan pelajari urutan ibadah sesuai jenis perjalanan.':'Mari kenali ihram dan latihan manasik.'},{speaker:'Kamu',text:'Terima kasih.'}];
@@ -589,4 +656,4 @@ export function npcChat(level:PlayableLevel,quest:number,npc:Npc):Line[]{
  return [{speaker:'Ayah',text:'Siapkan perjalanan baik-baik, ya.'},{speaker:'Kamu',text:'Siap, Yah.'}];
 }
 
-export function lessonFor(level:PlayableLevel,quest:number,campaign:Campaign):Lesson|undefined{const base=LESSONS[level-1][quest];if(base&&level===7&&quest===0&&campaign==='hajj')return {...base,title:'Urutan haji tamattu’',body:'Pada haji tamattu’, umroh diselesaikan terlebih dahulu, kemudian masuk ihram haji pada waktunya.',points:['Selesaikan umroh: ihram, tawaf, sa’i, dan tahallul.','Masuk ihram haji pada waktunya; ikuti tahapan Arafah, Muzdalifah dan Mina bersama pembimbing.','Laksanakan tawaf ifadah, sa’i haji, tahallul dan tahapan lain sesuai ketentuan. Pelajari dam tamattu’ dan tawaf wada’ beserta pengecualiannya.'],lines:[{speaker:'Kamu',text:'Ustaz, bagaimana urutan haji tamattu’?'},{speaker:'Pembimbing',text:'Umroh dahulu sampai tahallul, lalu masuk ihram haji pada waktunya. Kita akan belajar rangkaian haji tahap demi tahap.'}]};if(!base||level!==3||campaign!=='hajj')return base;if(quest===0)return {...base,title:'Kenali jalur haji resmi',body:'Haji reguler dikelola pemerintah. Haji khusus melalui PIHK berizin.',points:['Untuk haji reguler, ikuti pendaftaran dan informasi jadwal resmi pemerintah.','Untuk haji khusus, verifikasi badan usaha dan status izin PIHK melalui kanal resmi.','Izin PPIU saja tidak memberi kewenangan menyelenggarakan haji khusus.'],lines:[{speaker:'Kamu',text:'Saya ingin haji. Apa jalur pendaftarannya?'},{speaker:'Resepsionis',text:'Haji reguler melalui pemerintah. Haji khusus melalui PIHK berizin. Pastikan jalurnya benar.'}]};if(quest===1)return {...base,title:'Konsultasi jalur haji',body:'Pahami perbedaan layanan dan jadwal sesuai jalur yang dipilih.',points:['Haji reguler: ikuti informasi resmi pemerintah mengenai kuota, biaya, jadwal dan pembinaan.','Haji khusus: periksa izin PIHK, perjanjian tertulis, layanan dan biaya.','Jangan percaya jaminan keberangkatan tanpa konfirmasi resmi.'],lines:[{speaker:'Kamu',text:'Apa yang perlu saya periksa untuk haji?'},{speaker:'Konsultan',text:'Kenali jalur reguler atau khusus, cek informasi resmi, biaya dan jadwal. Jangan mengandalkan janji promosi.'}]};return {...base,title:'Simulasi pendaftaran haji',points:['Haji reguler: ikuti prosedur pendaftaran melalui jalur pemerintah.','Haji khusus: ikuti proses resmi PIHK berizin dan konfirmasi pencatatan.','Gunakan dokumen sah hanya melalui kanal yang berwenang. Simulasi tidak memerlukan data asli.'],lines:[{speaker:'Kamu',text:'Apakah saya bisa daftar haji di sini?'},{speaker:'Admin',text:'Ini hanya simulasi. Haji reguler melalui jalur pemerintah, haji khusus melalui PIHK berizin. Jangan kirim data atau uang di game.'}]};}
+export function lessonFor(level:PlayableLevel,quest:number,campaign:Campaign,flightRoute?:FlightRoute):Lesson|undefined{const base=LESSONS[level-1][quest];if(base&&level===10&&quest===2&&flightRoute)return {...base,title:flightRoute==='jeddah'?'Miqat rute Jeddah menuju Makkah':'Miqat rute Madinah dahulu',body:flightRoute==='jeddah'?'Siapkan ihram sebelum pesawat melintasi miqat.':'Persiapkan miqat saat perjalanan Madinah menuju Makkah.',points:flightRoute==='jeddah'?[base.points[0],'Ikuti pengumuman pembimbing dan awak pesawat; jangan menunggu tiba di hotel.', 'Pelajari niat umroh (termasuk umroh pada haji tamattu’) dan talbiyah bersama pembimbing.']:[base.points[1],'Pada perjalanan menuju Madinah dahulu, tidak harus masuk ihram umroh di pesawat jika belum menuju Makkah untuk ibadah.','Konfirmasikan jadwal keberangkatan dari Madinah dan tata cara ihram dengan pembimbing.']};if(base&&level===7&&quest===0&&campaign==='hajj')return {...base,title:'Urutan haji tamattu’',body:'Pada haji tamattu’, umroh diselesaikan terlebih dahulu, kemudian masuk ihram haji pada waktunya.',points:['Selesaikan umroh: ihram, tawaf, sa’i, dan tahallul.','Masuk ihram haji pada waktunya; ikuti tahapan Arafah, Muzdalifah dan Mina bersama pembimbing.','Laksanakan tawaf ifadah, sa’i haji, tahallul dan tahapan lain sesuai ketentuan. Pelajari dam tamattu’ dan tawaf wada’ beserta pengecualiannya.'],lines:[{speaker:'Kamu',text:'Ustaz, bagaimana urutan haji tamattu’?'},{speaker:'Pembimbing',text:'Umroh dahulu sampai tahallul, lalu masuk ihram haji pada waktunya. Kita akan belajar rangkaian haji tahap demi tahap.'}]};if(!base||level!==3||campaign!=='hajj')return base;if(quest===0)return {...base,title:'Kenali jalur haji resmi',body:'Haji reguler dikelola pemerintah. Haji khusus melalui PIHK berizin.',points:['Untuk haji reguler, ikuti pendaftaran dan informasi jadwal resmi pemerintah.','Untuk haji khusus, verifikasi badan usaha dan status izin PIHK melalui kanal resmi.','Izin PPIU saja tidak memberi kewenangan menyelenggarakan haji khusus.'],lines:[{speaker:'Kamu',text:'Saya ingin haji. Apa jalur pendaftarannya?'},{speaker:'Resepsionis',text:'Haji reguler melalui pemerintah. Haji khusus melalui PIHK berizin. Pastikan jalurnya benar.'}]};if(quest===1)return {...base,title:'Konsultasi jalur haji',body:'Pahami perbedaan layanan dan jadwal sesuai jalur yang dipilih.',points:['Haji reguler: ikuti informasi resmi pemerintah mengenai kuota, biaya, jadwal dan pembinaan.','Haji khusus: periksa izin PIHK, perjanjian tertulis, layanan dan biaya.','Jangan percaya jaminan keberangkatan tanpa konfirmasi resmi.'],lines:[{speaker:'Kamu',text:'Apa yang perlu saya periksa untuk haji?'},{speaker:'Konsultan',text:'Kenali jalur reguler atau khusus, cek informasi resmi, biaya dan jadwal. Jangan mengandalkan janji promosi.'}]};return {...base,title:'Simulasi pendaftaran haji',points:['Haji reguler: ikuti prosedur pendaftaran melalui jalur pemerintah.','Haji khusus: ikuti proses resmi PIHK berizin dan konfirmasi pencatatan.','Gunakan dokumen sah hanya melalui kanal yang berwenang. Simulasi tidak memerlukan data asli.'],lines:[{speaker:'Kamu',text:'Apakah saya bisa daftar haji di sini?'},{speaker:'Admin',text:'Ini hanya simulasi. Haji reguler melalui jalur pemerintah, haji khusus melalui PIHK berizin. Jangan kirim data atau uang di game.'}]};}
