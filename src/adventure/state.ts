@@ -1,8 +1,8 @@
 export type Avatar='male'|'female';
 export type Campaign='umrah'|'hajj';
 export type Quest=0|1|2|3;
-export type PlayableLevel=1|2|3|4|5|6|7|8|9|10;
-export const MAX_PLAYABLE=10;
+export type PlayableLevel=1|2|3|4|5|6|7|8|9|10|11;
+export const MAX_PLAYABLE=11;
 export type FlightRoute='jeddah'|'madinah';
 export interface AdventureSave {version:1;avatar:Avatar;campaign:Campaign;quest:Quest;level:PlayableLevel;flightRoute?:FlightRoute}
 export const LEVELS=[
@@ -14,7 +14,7 @@ export const QUESTS:ReadonlyArray<{title:string;label:string;hint:string;x:numbe
  {title:'Rencanakan biaya perjalanan',label:'Catatan',hint:'Datangi meja untuk melihat panduan rencana biaya.',x:-1.75,z:2.6}
 ] as const;
 export function makeSave(avatar:Avatar,campaign:Campaign):AdventureSave{return {version:1,avatar,campaign,quest:0,level:1};}
-export function decodeSave(raw:string|null):AdventureSave|null{try{const s=JSON.parse(raw??'null');if(!s||(s.level!==undefined&&s.level!==1&&s.level!==2&&s.level!==3&&s.level!==4&&s.level!==5&&s.level!==6&&s.level!==7&&s.level!==8&&s.level!==9&&s.level!==10)||s.version!==1||!['male','female'].includes(s.avatar)||!['umrah','hajj'].includes(s.campaign)||!Number.isInteger(s.quest)||s.quest<0||s.quest>3)return null;return {version:1,avatar:s.avatar,campaign:s.campaign,quest:s.quest,...(s.flightRoute==='jeddah'||s.flightRoute==='madinah'?{flightRoute:s.flightRoute}:{}),level:s.level===10?10:s.level===9?9:s.level===8?8:s.level===7?7:s.level===6?6:s.level===5?5:s.level===4?4:s.level===3?3:s.level===2?2:1};}catch{return null;}}
+export function decodeSave(raw:string|null):AdventureSave|null{try{const s=JSON.parse(raw??'null');if(!s||(s.level!==undefined&&s.level!==1&&s.level!==2&&s.level!==3&&s.level!==4&&s.level!==5&&s.level!==6&&s.level!==7&&s.level!==8&&s.level!==9&&s.level!==10&&s.level!==11)||s.version!==1||!['male','female'].includes(s.avatar)||!['umrah','hajj'].includes(s.campaign)||!Number.isInteger(s.quest)||s.quest<0||s.quest>3)return null;return {version:1,avatar:s.avatar,campaign:s.campaign,quest:s.quest,...(s.flightRoute==='jeddah'||s.flightRoute==='madinah'?{flightRoute:s.flightRoute}:{}),level:s.level===11?11:s.level===10?10:s.level===9?9:s.level===8?8:s.level===7?7:s.level===6?6:s.level===5?5:s.level===4?4:s.level===3?3:s.level===2?2:1};}catch{return null;}}
 export function finishQuest(s:AdventureSave,expected:Quest):AdventureSave{return s.quest===expected&&expected<3?{...s,quest:(expected+1) as Quest}:s;}
 export function route(c:Campaign):number[]{return LEVELS.map((_,i)=>i+1).filter(n=>c==='hajj'||n<=18||n>=32);}
 
@@ -59,6 +59,11 @@ export const FLIGHT_QUESTS:typeof QUESTS=[
  {title:'Jaga kesehatan selama penerbangan',label:'Awak Kabin',hint:'Datangi awak kabin untuk mempelajari cara menjaga kesehatan selama penerbangan.',x:0,z:0},
  {title:'Persiapan miqat sesuai rute',label:'Pembimbing',hint:'Temui pembimbing untuk memilih rute simulasi dan mempelajari persiapan ihram sebelum miqat.',x:0,z:-3.5}
 ];
-export function missions(level:PlayableLevel){return level===10?FLIGHT_QUESTS:level===9?AIRPORT_QUESTS:level===8?DEPARTURE_QUESTS:level===7?CLASS_QUESTS:level===6?PACKING_QUESTS:level===5?HEALTH_QUESTS:level===4?DOCUMENT_QUESTS:level===3?TRAVEL_QUESTS:level===2?PRAYER_QUESTS:QUESTS;}
+export const MIQAT_QUESTS:typeof QUESTS=[
+ {title:'Persiapkan pakaian ihram',label:'Asisten Manasik',hint:'Temui asisten manasik untuk mempelajari persiapan pakaian dan kebersihan sebelum ihram.',x:0,z:2.5},
+ {title:'Pelajari niat ihram umroh',label:'Pembimbing',hint:'Temui pembimbing untuk memahami niat umroh sebelum melewati miqat.',x:0,z:0},
+ {title:'Talbiyah dan perjalanan ke Makkah',label:'Ketua Rombongan',hint:'Temui ketua rombongan. Pelajari bacaan talbiyah dan adab selama perjalanan dalam keadaan ihram.',x:0,z:-3.5}
+];
+export function missions(level:PlayableLevel){return level===11?MIQAT_QUESTS:level===10?FLIGHT_QUESTS:level===9?AIRPORT_QUESTS:level===8?DEPARTURE_QUESTS:level===7?CLASS_QUESTS:level===6?PACKING_QUESTS:level===5?HEALTH_QUESTS:level===4?DOCUMENT_QUESTS:level===3?TRAVEL_QUESTS:level===2?PRAYER_QUESTS:QUESTS;}
 export function coins(s:AdventureSave){return ((s.level-1)*3+s.quest)*10;}
 export function unlockNext(s:AdventureSave):AdventureSave{return s.level<MAX_PLAYABLE&&s.quest===3?{...s,level:(s.level+1) as PlayableLevel,quest:0}:s;}

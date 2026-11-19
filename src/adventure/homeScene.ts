@@ -3,12 +3,12 @@ import type {Npc} from './lessons.ts';
 import {practicePosition,type PracticeMode} from './practice.ts';
 import {packingItems} from './packing.ts';
 import {brandName,brandAccent} from '../tenant.ts';
-import {missions,type Avatar,type Quest,type PlayableLevel} from './state.ts';
+import {missions,type Avatar,type Quest,type PlayableLevel,type FlightRoute} from './state.ts';
 export interface HomeCallbacks {onNear:(near:boolean)=>void;onStep:()=>void;onCollect:()=>void;onTask:()=>void;onNpc:(npc:Npc|null)=>void;onBubble:(x:number,y:number,visible:boolean)=>void;onNav:(angle:number,distance:number)=>void}
 export interface HomeWorld {target(q:Quest):void;setActive(active:boolean):void;walkToTarget():void;cinematic(seconds:number):void;talk(speaker:string,npc?:Npc):void;unlockCoin():void;packItem(index:number):void;practice(mode:PracticeMode,p:number):void;loadLuggage():void;airportAction(q:Quest,index:number):void;flightAction(q:Quest,index:number):void;dispose():void}
 type Hit={x:number;z:number;w:number;d:number};
-export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks):HomeWorld{
- const QUESTS=missions(level);
+export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTMLElement,avatar:Avatar,initial:Quest,level:PlayableLevel,callbacks:HomeCallbacks,flightRoute:FlightRoute='jeddah'):HomeWorld{
+ const QUESTS=missions(level),miqatAir=level===11&&flightRoute==='jeddah',miqatLand=level===11&&flightRoute==='madinah',cabinScene=level===10||miqatAir;
  canvas.style.touchAction='none';const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});r.setPixelRatio(Math.min(devicePixelRatio,1.45));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=1.08;r.shadowMap.enabled=true;r.shadowMap.type=THREE.PCFSoftShadowMap;
  const s=new THREE.Scene();s.background=new THREE.Color(0xcac7b7);s.add(new THREE.HemisphereLight(0xfff6e2,0xa6a5a0,1.7));const sun=new THREE.DirectionalLight(0xffe5b9,2.4);sun.position.set(-4,5.7,-3.5);sun.target.position.set(1,0,2);s.add(sun,sun.target);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=9;sun.shadow.camera.bottom=-9;sun.shadow.camera.near=.2;sun.shadow.camera.far=23;sun.shadow.normalBias=.025;sun.shadow.bias=-.0003;const fill=new THREE.PointLight(0xffefd5,12,12,2);fill.position.set(1,2.8,.2);s.add(fill);
  const mat=(c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.82});const cream=mat(0xe8e0ca),wood=mat(0x825638),oak=mat(0xc5a276),green=mat(0x778c62),dark=mat(0x30464c),gold=mat(0xc7a253),white=mat(0xf7f1df),blue=mat(0x8eb7c5),rose=mat(0xa97767),leaf=mat(0x46764d),floor=mat(0xd5b99a);
@@ -281,7 +281,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   board('A01 • DEMO','JEDDAH / MADINAH • sesuai rute',4.3,1.85,5.29,3.8);
  }
  const cloudGroups:THREE.Group[]=[];let beltLamp:THREE.Mesh|null=null,waterCup:THREE.Mesh|null=null,exerciseAt=0;let exerciseLeg:THREE.Group|null=null;
- if(level===10){
+ if(cabinScene){
   for(const obj of s.children.slice(boundaryStart))obj.visible=false;ceiling.visible=false;obstacles.length=0;blockers.length=0;
   s.background=new THREE.Color(0x83b9db);floor.map=null;floor.color.setHex(0x687d8e);floor.roughness=.95;floor.needsUpdate=true;
   const cabin=mat(0xeaece8),seatBlue=mat(0x375a74),seatBack=mat(0x28465d),metal=mat(0xa2b1b9),bin=mat(0xd8e0df),windowBlue=mat(0xaad0e1);
@@ -300,15 +300,40 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
    for(let j=0;j<8;j++){const cloud=new THREE.Group();s.add(cloud);cloud.position.set(side*(5.3+(j%2)*1.5),.9+(j%3)*.65,-12+j*3.3);for(let k=0;k<4;k++){const p=sphere(.6,new THREE.MeshBasicMaterial({color:0xf5f9fc}),Math.sin(k*1.7)*.8,Math.cos(k*1.3)*.23,k*.54,cloud);p.scale.set(1.7,.5,1.6);}cloudGroups.push(cloud);}
   }
   function sign(t:string,sub:string,x:number,z:number){const tex=surface(512,180,g=>{g.fillStyle='#28475e';g.fillRect(0,0,512,180);g.fillStyle='#f9e2a9';g.font='bold 38px sans-serif';g.textAlign='center';g.fillText(t,256,70,495);g.fillStyle='#fff';g.font='25px sans-serif';g.fillText(sub,256,130,495);});box(2.28,.80,.04,new THREE.MeshBasicMaterial({map:tex}),x,2.69,z).castShadow=false;}
-  sign('MANASIK AIR','KABIN SIMULASI',0,-5.32);
-  sign('03 • MIQAT','Panduan pembimbing',0,-4.62);
-  sign('02 • SEHAT','Tetap aman di kabin',0,-1.08);
-  sign('01 • KESELAMATAN','Sabuk dan doa',0,1.42);
+  sign(miqatAir?'MENDEKATI MIQAT':'MANASIK AIR',miqatAir?'RUTE LANGSUNG • JEDDAH':'KABIN SIMULASI',0,-5.32);
+  sign(miqatAir?'03 • TALBIYAH':'03 • MIQAT',miqatAir?'Setelah niat ihram':'Panduan pembimbing',0,-4.62);
+  sign(miqatAir?'02 • NIAT IHRAM':'02 • SEHAT',miqatAir?'Sebelum melintasi miqat':'Tetap aman di kabin',0,-1.08);
+  sign(miqatAir?'01 • PERSIAPAN':'01 • KESELAMATAN',miqatAir?'Pakaian sudah siap':'Sabuk dan doa',0,1.42);
   beltLamp=box(.28,.13,.05,new THREE.MeshBasicMaterial({color:0xe4ac46}),.62,2.19,1.40);if(initial>0)(beltLamp.material as THREE.MeshBasicMaterial).color.setHex(0x4da477);
   // Drink bottle and a miniature seated-leg training model on a tray.
   box(.66,.075,.35,bin,-1.7,.88,.56);waterCup=box(.17,.24,.17,windowBlue,-1.70,1.05,.56);waterCup.visible=initial>1;
   exerciseLeg=new THREE.Group();exerciseLeg.position.set(1.45,.52,-.65);s.add(exerciseLeg);box(.16,.48,.17,seatBack,0,-.22,0,exerciseLeg);box(.17,.14,.34,metal,0,-.47,-.10,exerciseLeg);
   for(const z of [-4,-1.4,1.2,3.8]){box(.65,.055,1.8,new THREE.MeshBasicMaterial({color:0xf1f8ff}),0,3.74,z).castShadow=false;const light=new THREE.PointLight(0xeaf4ff,9,8,2);light.position.set(0,3.5,z);s.add(light);}
+ }
+ if(miqatLand){
+  // A stylized training courtyard inspired by the miqat stop, not an accurate reconstruction.
+  for(const obj of s.children.slice(boundaryStart))obj.visible=false;ceiling.visible=false;obstacles.length=0;blockers.length=0;
+  floor.map=null;floor.color.setHex(0xd2c4a9);floor.roughness=.82;floor.needsUpdate=true;s.background=new THREE.Color(0xc5e2ed);s.fog=new THREE.Fog(0xc5e2ed,20,44);
+  const stone=mat(0xe1d5b9),sand=mat(0xbcaa8b),archDark=mat(0x53665a),teal=mat(0x4d7869),glass=mat(0x507581);
+  box(15,.04,10.9,stone,0,.015,0).castShadow=false;
+  for(let i=0;i<14;i++)for(let j=0;j<10;j++)box(.99,.014,.99,i%2===j%2?cream:stone,-6.5+i,.04,-4.5+j).castShadow=false;
+  // Beyond the accessible courtyard, an illustrative arcade and minaret silhouette.
+  box(14.8,3.0,.20,sand,0,1.5,-5.42);box(15,.18,.62,stone,0,3.04,-5.20);
+  for(const x of [-6,-3,0,3,6]){box(.20,2.65,.38,stone,x,1.325,-5.04);box(.52,.17,.52,cream,x,.12,-5.04);const arch=new THREE.Mesh(new THREE.TorusGeometry(1.27,.13,8,32,Math.PI),stone);arch.position.set(x+1.5,1.75,-5.13);if(x<6)s.add(arch);else arch.geometry.dispose();}
+  for(const x of [-6.7,6.7]){const tower=new THREE.Mesh(new THREE.CylinderGeometry(.27,.42,5.15,12),stone);tower.position.set(x,2.6,-6.5);s.add(tower);const cap=new THREE.Mesh(new THREE.ConeGeometry(.54,1.15,12),teal);cap.position.set(x,5.67,-6.5);s.add(cap);}
+  obstacle(0,-5.42,14.8,.2,3);
+  function sign(title:string,sub:string,x:number,z:number,w:number){const tex=surface(768,210,g=>{g.fillStyle='#315849';g.fillRect(0,0,768,210);g.fillStyle='#f5dfab';g.textAlign='center';g.font='bold 48px sans-serif';g.fillText(title,384,82,735);g.fillStyle='#fff';g.font='27px sans-serif';g.fillText(sub,384,154,735);});box(w,w*.273,.045,new THREE.MeshBasicMaterial({map:tex}),x,1.85,z).castShadow=false;}
+  sign('BIR ALI • DZUL HULAIFAH','PERSINGGAHAN MIQAT • ILUSTRASI',0,-5.2,5.6);
+  // Preparation area on the left and two teaching stations along the pedestrian path.
+  box(1.7,.10,.8,wood,-2.65,.84,2.5);for(const x of [-3.35,-1.95])box(.12,.78,.12,wood,x,.39,2.5);obstacle(-2.65,2.5,1.7,.8,1.0);
+  for(let j=0;j<4;j++)box(.55,.07,.48,white,-2.72,.93+j*.07,2.5);
+  box(.08,1.9,1.65,teal,-4.35,.95,2.7);obstacle(-4.35,2.7,.11,1.65,1.9);
+  sign('01 • PERSIAPAN','Pakaian dan kebersihan',-2.7,1.95,2.05);
+  sign('02 • NIAT','Pahami batas miqat',2.2,-.7,2.2);
+  sign('03 • TALBIYAH','Bersama rombongan',-2.5,-4.0,2.35);
+  // A stationary coach model shows the next journey; the player stays in a safe pedestrian area.
+  box(2.0,1.94,5.0,cream,5.1,1.51,-1.65);box(2.05,.24,5.02,teal,5.1,.74,-1.65);box(2.04,.16,5.04,archDark,5.1,2.56,-1.65);for(let j=0;j<4;j++)box(.05,.68,.98,glass,4.07,1.95,-3.35+j*1.10);box(1.68,.82,.06,glass,5.1,1.98,.89);for(const z of [-3.45,.15])for(const x of [4.04,6.16]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.19,18),dark);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.39,z);s.add(wheel);}obstacle(5.1,-1.65,2.08,5.1,2.65);
+  for(const [x,z] of [[-5.9,3.8],[-5.9,-1.3],[6.1,3.7]]){box(.7,.35,.7,sand,x,.19,z);box(.16,2,.16,wood,x,1.16,z);for(let j=0;j<7;j++){const frond=box(.15,.10,1.05,leaf,x+Math.cos(j*.9)*.30,2.22,z+Math.sin(j*.9)*.30);frond.rotation.y=j*.9;frond.rotation.x=.26;}obstacle(x,z,.8,.8,2.4);}
  }
  function capsule(radius:number,length:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(new THREE.CapsuleGeometry(radius,length,5,10),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
  function person(female:boolean,color:number,height=1.7,sarong=false){
@@ -322,14 +347,15 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   return {root,body,legs,arms};
  }
  const hero=person(avatar==='female',avatar==='female'?0x69586d:0x597b89);
- const family=person(level!==7,level===10?0x385875:level===9?0x304b68:level===7?0xe6dfc9:level===5?0xf3f1e9:(level===6||level===8)?0xa87864:level>=3?0x386957:0xa87864,1.58);
- const family2=person(level===7,level===10?0x4d718c:level===9?0x546d86:level===7?0x667d6b:level===5?0x4d9795:(level===6||level===8)?0xe5dfc8:level>=3?0x587484:0xe5dfc8,1.68,level<3||level===6||level===8);
- family.root.position.set(level===10?-1.0:level===9?-4.5:level===8?-5.12:level===6?-5.5:level>=3?-4:-4.65,0,level===10?2.5:level===9?-4.05:level===8?-3.05:level===6?1.7:level>=3?-4.05:.47);family.root.rotation.y=level>=3?0:.65;
- family2.root.position.set(level===10?1.0:level===9?0:level===8?-6.2:level===6?-.9:level>=3?3.5:-5.8,0,level===10?0:level===9?-2.65:level===8?-3.55:level===6?-3.8:level>=3?-4.05:2.3);family2.root.rotation.y=level>=3?0:.9;
- const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===10?'Pramugari':level===9?'Petugas Check-in':level===7?'Pembimbing':level===5?'Dokter':level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===10?'Awak Kabin':level===9?'Petugas Keamanan':level===7?'Asisten Manasik':level===5?'Perawat':level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
+ const family=person(level!==7,level===11?0x557b69:level===10?0x385875:level===9?0x304b68:level===7?0xe6dfc9:level===5?0xf3f1e9:(level===6||level===8)?0xa87864:level>=3?0x386957:0xa87864,1.58);
+ const family2=person(level===7,level===11?0xe0d6bc:level===10?0x4d718c:level===9?0x546d86:level===7?0x667d6b:level===5?0x4d9795:(level===6||level===8)?0xe5dfc8:level>=3?0x587484:0xe5dfc8,1.68,level<3||level===6||level===8);
+ family.root.position.set(level===11?-1.0:level===10?-1.0:level===9?-4.5:level===8?-5.12:level===6?-5.5:level>=3?-4:-4.65,0,level===11?2.5:level===10?2.5:level===9?-4.05:level===8?-3.05:level===6?1.7:level>=3?-4.05:.47);family.root.rotation.y=level>=3?0:.65;
+ family2.root.position.set(level===11?1.0:level===10?1.0:level===9?0:level===8?-6.2:level===6?-.9:level>=3?3.5:-5.8,0,level===11?0:level===10?0:level===9?-2.65:level===8?-3.55:level===6?-3.8:level>=3?-4.05:2.3);family2.root.rotation.y=level>=3?0:.9;
+ const actors:Array<{name:Npc;actor:typeof family}>=[{name:level===11?'Asisten Manasik':level===10?'Pramugari':level===9?'Petugas Check-in':level===7?'Pembimbing':level===5?'Dokter':level===4?'Petugas Paspor':level===3?'Resepsionis':'Ibu',actor:family},{name:level===11?'Pembimbing':level===10?'Awak Kabin':level===9?'Petugas Keamanan':level===7?'Asisten Manasik':level===5?'Perawat':level===4?'Petugas Visa':level===3?'Konsultan':'Ayah',actor:family2}];
  if(level>=3&&level<=5){const admin=person(true,level===5?0xe9f3eb:0x776482,1.62);admin.root.position.set(4.5,0,0);actors.push({name:level===5?'Apoteker':level===4?'Petugas Berkas':'Admin',actor:admin});}
  if(level===8){const leader=person(false,0x42665d,1.7);leader.root.position.set(5.55,0,-.93);actors.push({name:'Ketua Rombongan',actor:leader});}
  if(level===9){const gateAgent=person(true,0x314f6b,1.62);gateAgent.root.position.set(4.5,0,-4.05);actors.push({name:'Petugas Gate',actor:gateAgent});}
+ if(level===11){const leader=person(false,0x42665d,1.68);leader.root.position.set(-1.0,0,-3.5);actors.push({name:'Ketua Rombongan',actor:leader});}
  if(level===10){const mentor=person(false,0xe0d6bc,1.68);mentor.root.position.set(-1.0,0,-3.5);actors.push({name:'Pembimbing',actor:mentor});}
  for(const entry of actors){const p=entry.actor.root.position;obstacle(p.x,p.z,.45,.36,1.6);}
  const getActor=(name:string)=>name==='Kamu'?hero:actors.find(a=>a.name===name)?.actor??null;
@@ -405,7 +431,7 @@ export function mountHome(canvas:HTMLCanvasElement,joystick:HTMLElement,knob:HTM
   lookAt.set(x+forwardX*3.7+rightX*shoulder,1.45+Math.sin(pitch)*-.9,z+forwardZ*3.7+rightZ*shoulder);cam.lookAt(lookAt);cam.updateMatrixWorld();
   if(talking&&(forcedNpc||nearNpc)){const actor=getActor(talking);if(actor){bubbleAnchor.set(actor.root.position.x,actor.root.scale.y*1.76+.14,actor.root.position.z).project(cam);const visible=bubbleAnchor.z>-1&&bubbleAnchor.z<1&&Math.abs(bubbleAnchor.x)<1.08&&bubbleAnchor.y>-1.04;callbacks.onBubble((bubbleAnchor.x*.5+.5)*100,(.5-bubbleAnchor.y*.5)*100,visible);}else callbacks.onBubble(50,50,false);}else callbacks.onBubble(50,50,false);
   if(t){const bearing=Math.atan2(t.x-x,t.z-z);callbacks.onNav(angleDelta(cameraYaw,bearing),Math.hypot(t.x-x,t.z-z));}
-  if(level===6)for(const group of packingProps)for(const p of group)if(p.start){const t=Math.min(1,Math.max(0,(now-p.start)/530));p.mesh.position.lerpVectors(p.from,p.to,t);p.mesh.position.y+=Math.sin(t*Math.PI)*.62;if(t>=1){p.start=0;p.inside=true;}}if(level===8&&busLoadAt&&busBag&&busHatch){const t=Math.min(1,(now-busLoadAt)/850);busHatch.position.y=.73+Math.sin(t*Math.PI)*.55;busBag.position.lerpVectors(bagStart,bagEnd,t);busBag.position.y+=Math.sin(t*Math.PI)*.45;if(t>=1){busBag.visible=false;busLoadAt=0;}}if(level===9){for(let i=0;i<airportProps.length;i++){if(airportTimes[i]){const progress=Math.min(1,Math.max(0,(now-airportTimes[i])/1050));airportProps[i].position.lerpVectors(airportStarts[i],airportEnds[i],progress);if(progress>=1){airportTimes[i]=0;if(i===0)airportProps[i].visible=false;}}}if(airportGateDoor&&gateOpen)airportGateDoor.position.x=THREE.MathUtils.lerp(airportGateDoor.position.x,7.1,Math.min(1,dt*4));}if(level===10){for(const cloud of cloudGroups){cloud.position.z+=dt*1.1;if(cloud.position.z>14)cloud.position.z=-14;}if(exerciseLeg&&exerciseAt){const t=(now-exerciseAt)/1000;exerciseLeg.rotation.x=Math.sin(t*7)*.28*Math.max(0,1-t/2);if(t>=2){exerciseAt=0;exerciseLeg.rotation.x=0;}}}if(level>=3&&level<=5)drawOfficeBrand();r.render(s,cam);
+  if(level===6)for(const group of packingProps)for(const p of group)if(p.start){const t=Math.min(1,Math.max(0,(now-p.start)/530));p.mesh.position.lerpVectors(p.from,p.to,t);p.mesh.position.y+=Math.sin(t*Math.PI)*.62;if(t>=1){p.start=0;p.inside=true;}}if(level===8&&busLoadAt&&busBag&&busHatch){const t=Math.min(1,(now-busLoadAt)/850);busHatch.position.y=.73+Math.sin(t*Math.PI)*.55;busBag.position.lerpVectors(bagStart,bagEnd,t);busBag.position.y+=Math.sin(t*Math.PI)*.45;if(t>=1){busBag.visible=false;busLoadAt=0;}}if(level===9){for(let i=0;i<airportProps.length;i++){if(airportTimes[i]){const progress=Math.min(1,Math.max(0,(now-airportTimes[i])/1050));airportProps[i].position.lerpVectors(airportStarts[i],airportEnds[i],progress);if(progress>=1){airportTimes[i]=0;if(i===0)airportProps[i].visible=false;}}}if(airportGateDoor&&gateOpen)airportGateDoor.position.x=THREE.MathUtils.lerp(airportGateDoor.position.x,7.1,Math.min(1,dt*4));}if(cabinScene){for(const cloud of cloudGroups){cloud.position.z+=dt*1.1;if(cloud.position.z>14)cloud.position.z=-14;}if(exerciseLeg&&exerciseAt){const t=(now-exerciseAt)/1000;exerciseLeg.rotation.x=Math.sin(t*7)*.28*Math.max(0,1-t/2);if(t>=2){exerciseAt=0;exerciseLeg.rotation.x=0;}}}if(level>=3&&level<=5)drawOfficeBrand();r.render(s,cam);
  }raf=requestAnimationFrame(frame);
  return {flightAction(q,index){if(q===0&&index===0&&beltLamp)(beltLamp.material as THREE.MeshBasicMaterial).color.setHex(0x4da477);if(q===1&&index===0&&waterCup)waterCup.visible=true;if(q===1&&index===1)exerciseAt=performance.now();},airportAction(q,index){if(q===0&&index===1&&airportProps[0]?.visible)airportTimes[0]=performance.now();if(q===1&&index===0&&airportProps[1])airportTimes[1]=performance.now();if(q===1&&index===1&&airportProps[1]){airportTimes[1]=0;airportProps[1].position.copy(airportStarts[1]);}if(q===2&&index===1)gateOpen=true;},loadLuggage(){if(busBag&&!busLoadAt&&busBag.visible)busLoadAt=performance.now();},practice(mode,p){const pos=practicePosition(mode,p);if(mode==='tawaf'&&tawafDot)tawafDot.position.set(2.06+pos.x*.77,1.025,.65+pos.y*.77);if(mode==='sai'&&saiDot)saiDot.position.set(4.7,1.045,-.14+pos.x*1.58);},packItem(index){const p=packingProps[quest]?.[index];if(p&&!p.inside&&!p.start)p.start=performance.now();},talk(speaker,npc){talking=speaker;forcedNpc=npc??null;},unlockCoin(){taskHold=true;forcedNpc=null;talking='';coinReady=true;coinAt=performance.now()+650;pin.visible=true;},target(q){if(level===1&&q===3)doorOpen=true;quest=q;auto=false;syncTarget();},setActive(on){active=on;if(!on){clear();talking='';if(nearNpc){nearNpc=null;callbacks.onNpc(null);}callbacks.onBubble(50,50,false);}},walkToTarget(){const t=QUESTS[quest];if(active&&t&&!taskHold){waypoints=plan(t.x,t.z);auto=waypoints.length>0;keys.clear();}},cinematic(seconds){clear();cutUntil=performance.now()+seconds*1000;},dispose(){disposed=true;cancelAnimationFrame(raf);ro.disconnect();window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',clear);joystick.removeEventListener('pointerdown',jd);joystick.removeEventListener('pointermove',jm);joystick.removeEventListener('pointerup',ju);joystick.removeEventListener('pointercancel',ju);joystick.removeEventListener('lostpointercapture',ju);canvas.removeEventListener('pointerdown',lookDown);canvas.removeEventListener('pointermove',lookMove);canvas.removeEventListener('pointerup',lookUp);canvas.removeEventListener('pointercancel',lookUp);canvas.removeEventListener('lostpointercapture',lookUp);const geos=new Set<THREE.BufferGeometry>(),mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});geos.forEach(v=>v.dispose());mats.forEach(v=>{if('map' in v)(v as THREE.MeshBasicMaterial).map?.dispose();v.dispose();});r.dispose();}};
 }
