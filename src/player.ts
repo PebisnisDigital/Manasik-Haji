@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
-import {mobileGraphics} from './env/GraphicsDetail.ts';
+
 import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
+import {graphicsTier,graphicsProfile,createRenderBudget,mountGraphics} from './graphicsQuality.ts';
 import {mountComfort,walkFactor,lookFactor} from './comfortMode.ts';
 import {installSmartTutorial} from './smartTutorial.ts';
 import {installMissionMap} from './missionMap.ts';
@@ -49,20 +50,20 @@ const intro=core?.step===17?"Tawaf wada’ sebagai perpisahan sebelum meninggalk
 const guide=new VoiceGuide(intro);
 const sound=core?new ImmersiveSound('tawaf',document.querySelector('.voice-controls')):null;
 if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));tutorial?.paint();}});
-if(core)mountComfort(document.querySelector<HTMLElement>('.voice-controls')!,{more:true});
+if(core){const host=document.querySelector<HTMLElement>('.voice-controls')!;mountComfort(host,{more:true});mountGraphics(host);}
 const tutorial=core?installSmartTutorial({kind:'tawaf',host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,blocked:isPortrait,ready:()=>loading.hidden&&!coreFinished}):null;
 function boot(): void {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
+  const tier=core?graphicsTier():'medium';const profile=graphicsProfile();const renderer = new THREE.WebGLRenderer({ canvas, antialias: !core||tier!=='low', powerPreference: core&&tier==='low'?'low-power':'high-performance' });
+  const budget=createRenderBudget(renderer,{enabled:!!core,legacyDpr:1.35});
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.94;
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0xc8c2b4, 210, 900);
-  const enhanced=!!core&&!mobileGraphics();if(enhanced){renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;}const environment = new Environment(renderer, scene, enhanced?'medium':'low');
+  const enhanced=!!core&&tier!=='low';if(enhanced){renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;}const environment = new Environment(renderer, scene, core?tier:'low');
   scene.add(environment.group);
   const camera = new THREE.PerspectiveCamera(58, innerWidth / innerHeight, 0.1, 1000);
-  const crowdSize=core&&!mobileGraphics()?240:160;const crowd = new CrowdRenderer(crowdSize, { lod0Budget: 12, lod1Budget: crowdSize, lod0Distance: 18, lod1Distance: 60, blobShadows: true });
+  const crowdSize=core?profile.tawaf:160;const crowd = new CrowdRenderer(crowdSize, { lod0Budget: core&&tier==='low'?4:12, lod1Budget: crowdSize, lod0Distance: 18, lod1Distance: 60, blobShadows: !core||tier!=='low' });
   scene.add(crowd.group);
   const playerQuality = {lod0Budget:1,lod1Budget:1,lod0Distance:100,lod1Distance:100,blobShadows:true};
   const male = new CrowdRenderer(1, playerQuality, {robeLength:0.19,coverHead:false,pilgrimStyle:'male'});
@@ -103,7 +104,7 @@ function boot(): void {
     yaw=Math.PI;orbit=0;total=0;completed=0;finished=false;walkPhase=0;input.clear();stopJoy();setAuto(false);
     wrongSince=0;wrongAnnounced=false;announcedLap=0;guide.reset(intro);nextSai.hidden=true;setPause(false);initializedCamera=false;cameraMode.value='follow';count.textContent='0 / 7';progress.value=0;status.textContent="Mulai dari garis Hajar Aswad. Ka'bah di sebelah kiri.";
   }
-  function resize():void {renderer.setSize(innerWidth,innerHeight,false);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
+  function resize():void {budget.resize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   resize();window.addEventListener('resize',resize);
   window.addEventListener('keydown',e=>{if((e.target as HTMLElement)?.closest('select,input,textarea'))return;const k=keyMap[e.code];if(k&&!paused&&!isPortrait()&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();input.add(k);setAuto(false);}});
   window.addEventListener('keyup',e=>{const k=keyMap[e.code];if(k)input.delete(k);});
@@ -129,13 +130,13 @@ function boot(): void {
   const pressed=(k:string)=>input.has(k);
   let lastSaved=core?readCheckpoint(core):0;
   if(core&&lastSaved>0){completed=lastSaved;total=completed*TAU;announcedLap=completed;count.textContent=completed+' / 7';progress.value=completed;finished=completed===7;coreFinished=finished;nextSai.hidden=!finished;status.textContent=finished?'Tujuh putaran tersimpan. Lanjutkan.':completed+' putaran tersimpan. Lanjut dari garis awal.';}
-  const npc=createLaneAgents('tawaf',core&&!mobileGraphics()?216:124);
+  const npc=createLaneAgents('tawaf',core?crowdSize:124);
   function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden;const dt=stopped?0:elapsed;sound?.setPaused(stopped);animationTime+=dt;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);animationTime+=dt;
     const angle=Math.atan2(z,x);
     if(cameraMode.value!=='free')orbit=-angle;
     let dx=0,dz=0;
@@ -192,10 +193,10 @@ function boot(): void {
     crowd.beginFrame();
     updateLanes('tawaf',npc,dt,{x,z});
     for(const n of npc){const p=pathPoint('tawaf',n.lane,n.s);
-      const near=Math.hypot(p.x-x,p.z-z)<8;
-      submit(crowd,near?0:1,p.x,p.z,p.yaw,n.height,n.palette,n.speed>.04?Clip.WALK:Clip.IDLE,n.speed>.04?n.phase:animationTime/3%1);
+      const distance=Math.hypot(p.x-x,p.z-z);const lod=core?(distance<profile.near?0:distance<profile.far?1:2):distance<8?0:1;
+      submit(crowd,lod,p.x,p.z,p.yaw,n.height,n.palette,n.speed>.04?Clip.WALK:Clip.IDLE,n.speed>.04?n.phase:animationTime/3%1);
     }
-    crowd.endFrame();renderer.render(scene,camera);requestAnimationFrame(frame);
+    crowd.endFrame();budget.draw(now,scene,camera,stopped);requestAnimationFrame(frame);
   }
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();loading.hidden=false;loading.textContent='Konteks grafis terputus. Muat ulang halaman.';});
   loading.hidden=true;tutorial?.paint();requestAnimationFrame(frame);

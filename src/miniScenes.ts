@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {graphicsTier,createRenderBudget} from './graphicsQuality.ts';
 import {surfaceDetail,staticShadows,disposeSurface} from './env/GraphicsDetail.ts';
 import {CrowdRenderer} from './characters/CrowdRenderer.ts';
 import {resolveFrames} from './characters/CrowdView.ts';
@@ -9,7 +10,7 @@ export type DemoKind='prep'|'post'|'trim';
 export interface Demo{setAvatar(a:Avatar):void;prayer():void;water():void;trim():void;dispose():void;near():boolean;approach():void;target(action:'prayer'|'water'|'trim'|'prep'):void}
 export function mountMini(host:HTMLElement,kind:DemoKind,initial:Avatar,onDone:(action:string)=>void,walk?:WalkOptions):Demo{
  const canvas=document.createElement('canvas');canvas.setAttribute('aria-label','Adegan 3D ilustratif');host.replaceChildren(canvas);
- const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});r.setPixelRatio(Math.min(devicePixelRatio,1.4));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;
+ const r=new THREE.WebGLRenderer({canvas,antialias:graphicsTier()!=='low',powerPreference:'low-power'});const budget=createRenderBudget(r,{maxFps:30});r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;
  const s=new THREE.Scene();s.background=new THREE.Color(0xe3e7dc);s.add(new THREE.HemisphereLight(0xffffff,0xa8b1a5,2.5));const sun=new THREE.DirectionalLight(0xfff5da,2);sun.position.set(-4,8,5);s.add(sun);if(walk)staticShadows(r,sun,8);
  const camera=new THREE.PerspectiveCamera(39,1,.1,60);camera.position.set(3.5,2.2,5.7);camera.lookAt(0,1,0);
  const mat=(color:number)=>new THREE.MeshStandardMaterial({color,roughness:.8});
@@ -41,16 +42,16 @@ export function mountMini(host:HTMLElement,kind:DemoKind,initial:Avatar,onDone:(
  const poses=[{c:Clip.TAKBIR,d:1200},{c:Clip.QIYAM,d:2100},{c:Clip.TO_RUKU,d:850},{c:Clip.RUKU,d:1150},{c:Clip.FROM_RUKU,d:800},{c:Clip.ITIDAL,d:900},{c:Clip.TO_SUJUD,d:950},{c:Clip.SUJUD,d:1400},{c:Clip.SUJUD_TO_JALSA,d:800},{c:Clip.JALSA,d:900},{c:Clip.JALSA_TO_SUJUD,d:800},{c:Clip.SUJUD,d:1400}];
  const sequence=[...poses,{c:Clip.SUJUD_TO_STAND,d:1000},...poses,{c:Clip.SUJUD_TO_JALSA,d:800},{c:Clip.TASHAHHUD,d:1800},{c:Clip.TASLIM,d:1200}];const duration=sequence.reduce((a,b)=>a+b.d,0);
  const frameState={f0:0,f1:0,frac:0};let last=0;
- const resize=()=>{const w=Math.max(host.clientWidth,1),h=Math.max(host.clientHeight,1);r.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};const observer=new ResizeObserver(resize);observer.observe(host);resize();
+ const resize=()=>{const w=Math.max(host.clientWidth,1),h=Math.max(host.clientHeight,1);budget.resize(w,h);camera.aspect=w/h;camera.updateProjectionMatrix();};const observer=new ResizeObserver(resize);observer.observe(host);resize();
  function frame(now:number):void{
-  if(disposed)return;raf=requestAnimationFrame(frame);if(document.hidden||walk?.blocked()){last=now;return;}if(now-last<32)return;const delta=last?Math.min(80,now-last):0;last=now;if(animation!=='idle')elapsedAnimation+=delta;let t=elapsedAnimation;
+  if(disposed)return;raf=requestAnimationFrame(frame);if(document.hidden||walk?.blocked()||budget.lost()){last=now;return;}if(now-last<32)return;const delta=last?Math.min(80,now-last):0;last=now;if(animation!=='idle')elapsedAnimation+=delta;let t=elapsedAnimation;
   let clip:number=Clip.IDLE,phase=(now/3000)%1;
   if(animation==='prayer'){if(t>=duration){animation='idle';walker?.clearPose();walker?.lock(false);onDone('prayer');}else{for(const seg of sequence){if(t<seg.d){clip=seg.c;phase=Math.min(.999,t/seg.d);break;}t-=seg.d;}}}
   if(animation==='water'&&cup){const p=Math.min(1,t/1900);const hand=walker?.position;const arc=Math.sin(Math.PI*p);cup.position.set(1.8+((hand?.x??.55)-1.8)*arc,1.23+.42*arc,-.25+((hand?.z??0)+.25)*arc);cup.rotation.z=-.18*Math.sin(Math.PI*p);if(p===1){animation='idle';walker?.lock(false);onDone('water');}}
   if(animation==='trim'&&cut){const p=Math.min(1,t/1100);cut.scale.set(1-.2*p,avatar==='female'?1-.2*p:1-.94*p,1-.2*p);if(p===1){animation='idle';walker?.lock(false);onDone('trim');}}
   if(walker){if(animation==='prayer')walker.setPose(clip,phase);walker.update(now);}else if(kind!=='trim'){const f=figure(avatar);for(const k of people.values())k.group.visible=k===f;resolveFrames(clip,phase,frameState);f.beginFrame();f.submit(0,0,0,0,kind==='post'?Math.PI:0,avatar==='male'?1.74:1.62,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,avatar==='female'?8:0,1);f.endFrame();}
-  r.render(s,camera);
+  budget.draw(now,s,camera);
  }
  raf=requestAnimationFrame(frame);
- return{setAvatar(a){avatar=a;},near(){return walker?.near()??true;},approach(){walker?.approach();},target(action){const p=goals[action];walker?.setGoal(p[0],p[1]);},prayer(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.alignGoal();walker?.face(0,-3);walker?.lock(true);animation='prayer';elapsedAnimation=0;}},water(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.face(1.9,-.5);walker?.lock(true);animation='water';elapsedAnimation=0;}},trim(){if(kind==='trim'&&animation==='idle'&&(!walker||walker.near())){walker?.face(0,0);walker?.lock(true);animation='trim';elapsedAnimation=0;}},dispose(){disposed=true;walker?.dispose();cancelAnimationFrame(raf);observer.disconnect();for(const f of people.values()){s.remove(f.group);f.dispose();}s.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const mm=Array.isArray(o.material)?o.material:[o.material];for(const m of mm){disposeSurface(m);m.dispose();}}});r.dispose();}};
+ return{setAvatar(a){avatar=a;},near(){return walker?.near()??true;},approach(){walker?.approach();},target(action){const p=goals[action];walker?.setGoal(p[0],p[1]);},prayer(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.alignGoal();walker?.face(0,-3);walker?.lock(true);animation='prayer';elapsedAnimation=0;}},water(){if(kind==='post'&&animation==='idle'&&(!walker||walker.near())){walker?.face(1.9,-.5);walker?.lock(true);animation='water';elapsedAnimation=0;}},trim(){if(kind==='trim'&&animation==='idle'&&(!walker||walker.near())){walker?.face(0,0);walker?.lock(true);animation='trim';elapsedAnimation=0;}},dispose(){disposed=true;budget.dispose();walker?.dispose();cancelAnimationFrame(raf);observer.disconnect();for(const f of people.values()){s.remove(f.group);f.dispose();}s.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();const mm=Array.isArray(o.material)?o.material:[o.material];for(const m of mm){disposeSurface(m);m.dispose();}}});r.dispose();}};
 }

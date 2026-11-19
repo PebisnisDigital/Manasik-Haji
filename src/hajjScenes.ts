@@ -1,12 +1,13 @@
 import * as THREE from 'three';
+import {graphicsTier,graphicsProfile,createRenderBudget} from './graphicsQuality.ts';
 import {patrolClear,updatePatrols,type Patrol,type Position} from './sim/TrainingCrowd.ts';
-import {surfaceDetail,staticShadows,disposeSurface,mobileGraphics} from './env/GraphicsDetail.ts';
+import {surfaceDetail,staticShadows,disposeSurface} from './env/GraphicsDetail.ts';
 import {attachWalker,type Obstacle,type WalkOptions} from './coreWalk.ts';
 export type Site='arafah'|'muzdalifah'|'mina'|'jamarat';
 export interface SiteView{focus(i:number):void;throwStone(i:number,onFinish:()=>void):void;dispose():void;near():boolean;approach():void}
 export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteView{
  const canvas=document.createElement('canvas');canvas.setAttribute('aria-label','Rekonstruksi ilustratif '+site+'; geser untuk memutar kamera');host.replaceChildren(canvas);
- const r=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'low-power'});r.setPixelRatio(Math.min(devicePixelRatio,1.3));r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=nightExposure();function nightExposure(){return site==='muzdalifah'?1.1:.98;}
+ const profile=graphicsProfile(),tier=graphicsTier();const r=new THREE.WebGLRenderer({canvas,antialias:tier!=='low',powerPreference:'low-power'});const budget=createRenderBudget(r,{maxFps:60});r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=nightExposure();function nightExposure(){return site==='muzdalifah'?1.1:.98;}
  const night=site==='muzdalifah';const s=new THREE.Scene();s.background=new THREE.Color(night?0x18283b:0xc9d9da);s.fog=new THREE.Fog(night?0x18283b:0xc9d9da,42,130);
  s.add(new THREE.HemisphereLight(night?0xb9d5ff:0xfff5df,0xb3a68b,night?1.5:2.3));
  const sun=new THREE.DirectionalLight(night?0xa1c7ff:0xffe7bd,night?1.1:2.1);sun.position.set(-18,34,19);s.add(sun);if(walk)staticShadows(r,sun,29);
@@ -21,7 +22,7 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteVie
  function sign(label:string,x:number,y:number,z:number):void{const c=document.createElement('canvas');c.width=512;c.height=128;const a=c.getContext('2d')!;a.fillStyle='#24533f';a.fillRect(0,0,512,128);a.fillStyle='#fff';a.font='bold 42px sans-serif';a.textAlign='center';a.textBaseline='middle';a.fillText(label,256,64);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;mesh(new THREE.PlaneGeometry(5,1.25),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}),x,y,z);}
  let updatePeople:(dt:number,player?:Position)=>void=()=>{};
  function people(n:number):void{
-  const candidates:Patrol[]=[];const limit=mobileGraphics()?n:Math.round(n*1.45);
+  const candidates:Patrol[]=[];const limit=Math.max(6,Math.round(n*profile.fieldDensity));
   const reserved:Position[]=site==='jamarat'?[-8,0,8].map(x=>({x,z:4.5})):[{x:0,z:site==='muzdalifah'?3.5:-3},{x:0,z:12}];
   for(let i=0;i<limit*8&&candidates.length<limit;i++){
     const x=site==='jamarat'?(Math.sin(i*2.31)*.5+.5)*26-13:(Math.sin(i*2.31)*.5+.5)*42-21,z=site==='jamarat'?6.6+(Math.cos(i*4.19)*.5+.5)*2.5:(Math.cos(i*4.19)*.5+.5)*24-9;
@@ -37,11 +38,11 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteVie
     for(let k=0;k<specs.length;k++){const q=specs[k],step=p.moving?Math.sin(p.phase*Math.PI*2)*.33*Math.sign(q.limb):0;pos.position.set(p.x+cy*q.x*scale,p.h*q.y,p.z-sy*q.x*scale);rotation.setFromAxisAngle(axis,p.yaw);swing.setFromAxisAngle(xAxis,step);pos.quaternion.copy(rotation).multiply(swing);pos.scale.set(q.sx*scale,q.sy*scale,q.sz*scale);pos.updateMatrix();groups[k].setMatrixAt(i,pos.matrix);}
     pos.position.set(p.x,.012,p.z);pos.rotation.set(0,0,0);pos.scale.set(1,1,.7);pos.updateMatrix();shadows.setMatrixAt(i,pos.matrix);
   }for(const m of groups)m.instanceMatrix.needsUpdate=true;shadows.instanceMatrix.needsUpdate=true;};paint();
-  updatePeople=(dt,player)=>{if(!walk)return;acc+=dt;if(acc<.055)return;const elapsed=Math.min(.1,acc);acc=0;seconds+=elapsed;updatePatrols(candidates,seconds,elapsed,player,obstacles,reserved);paint();};
+  updatePeople=(dt,player)=>{if(!walk)return;acc+=dt;if(acc<(tier==='low'?.095:.055))return;const elapsed=Math.min(.1,acc);acc=0;seconds+=elapsed;updatePatrols(candidates,seconds,elapsed,player,obstacles,reserved);paint();};
  }
  const targets=[-8,0,8];
  if(site==='arafah'){for(let i=0;i<24;i++){const m=mesh(new THREE.DodecahedronGeometry(2.1+(i%5)*.95,0),rock,(i%8-3.5)*3.2,1.5+Math.sin(i)*.7,-18-Math.floor(i/8)*3);m.scale.set(1.3,1.3,1.3);m.rotation.set(i*.31,i*.37,i*.1);}for(let i=0;i<8;i++)tent(walk?[-9,-4.7,4.7,9][i%4]:(i%4-1.5)*5,5+Math.floor(i/4)*6);sign('ARAFAH • WUKUF',0,3.5,-7);people(42);}
- if(site==='muzdalifah'){for(let i=0;i<20;i++){const x=(Math.sin(i*2.2)*.5+.5)*30-15,z=(Math.cos(i*3.1)*.5+.5)*27-13;box(1.4,.045,2.1,i%2?green:dark,x,.02,z);}for(let i=0;i<32;i++)mesh(new THREE.DodecahedronGeometry(.09+(i%3)*.025,0),rock,(i%8-3.5)*.35,.09,2+Math.floor(i/8)*.31);for(let i=0;i<5;i++){box(.13,5,.13,base,i*7-14,2.5,-9);box(.55,.2,.55,new THREE.MeshBasicMaterial({color:0xffeac1}),i*7-14,5,-9);if(i%2===0){const lamp=new THREE.PointLight(0xffd8a2,18,14,2);lamp.position.set(i*7-14,4.7,-9);s.add(lamp);}}sign('MUZDALIFAH • MABIT',0,3.5,-7);people(28);}
+ if(site==='muzdalifah'){for(let i=0;i<20;i++){const x=(Math.sin(i*2.2)*.5+.5)*30-15,z=(Math.cos(i*3.1)*.5+.5)*27-13;box(1.4,.045,2.1,i%2?green:dark,x,.02,z);}for(let i=0;i<32;i++)mesh(new THREE.DodecahedronGeometry(.09+(i%3)*.025,0),rock,(i%8-3.5)*.35,.09,2+Math.floor(i/8)*.31);for(let i=0;i<5;i++){box(.13,5,.13,base,i*7-14,2.5,-9);box(.55,.2,.55,new THREE.MeshBasicMaterial({color:0xffeac1}),i*7-14,5,-9);if(i%2===0&&tier!=='low'){const lamp=new THREE.PointLight(0xffd8a2,18,14,2);lamp.position.set(i*7-14,4.7,-9);s.add(lamp);}}sign('MUZDALIFAH • MABIT',0,3.5,-7);people(28);}
  if(site==='mina'){for(let i=0;i<48;i++){const x=(i%8-3.5)*5.2,z=Math.floor(i/8)*5.1-19;if(Math.abs(x)<3)continue;tent(x,z);}box(4,.025,49,base,0,.015,-4);sign('MINA • AREA TENDA',0,3.6,-8);people(35);}
  if(site==='jamarat'){
   box(32,.2,27,base,0,-.02,0);box(32,.25,1,white,0,5.1,-10);
@@ -55,10 +56,10 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions):SiteVie
  canvas.addEventListener('pointerdown',e=>{if(walker||drag!==null)return;drag=e.pointerId;px=e.clientX;py=e.clientY;canvas.setPointerCapture(e.pointerId);});
  canvas.addEventListener('pointermove',e=>{if(walker||drag!==e.pointerId)return;orbit-=(e.clientX-px)*.009;elev=THREE.MathUtils.clamp(elev+(e.clientY-py)*.006,.15,1.1);px=e.clientX;py=e.clientY;});
  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if((e as PointerEvent).pointerId===drag)drag=null;});
- function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);r.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(host);resize();
- function frame(now:number){if(disposed)return;raf=requestAnimationFrame(frame);const delta=lastTime?Math.min(80,now-lastTime):0;lastTime=now;if(document.hidden||walk?.blocked())return;if(walker){walker.update(now);updatePeople(delta/1000,walker.position);}else{center.x+=(focusX-center.x)*.12;cam.position.set(center.x+Math.sin(orbit)*Math.cos(elev)*dist,1.5+Math.sin(elev)*dist,Math.cos(orbit)*Math.cos(elev)*dist);cam.lookAt(center);}
+ function resize(){const w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.updateProjectionMatrix();}const observer=new ResizeObserver(resize);observer.observe(host);resize();
+ function frame(now:number){if(disposed)return;raf=requestAnimationFrame(frame);const delta=lastTime?Math.min(80,now-lastTime):0;lastTime=now;if(document.hidden||walk?.blocked()||budget.lost())return;if(walker){walker.update(now);updatePeople(delta/1000,walker.position);}else{center.x+=(focusX-center.x)*.12;cam.position.set(center.x+Math.sin(orbit)*Math.cos(elev)*dist,1.5+Math.sin(elev)*dist,Math.cos(orbit)*Math.cos(elev)*dist);cam.lookAt(center);}
  if(shot){shot.elapsed+=delta;const t=Math.min(1,shot.elapsed/720);stone.position.set(THREE.MathUtils.lerp(shot.origin.x,targets[shot.i],t),THREE.MathUtils.lerp(shot.origin.y,.29,t)+Math.sin(t*Math.PI)*2.6,THREE.MathUtils.lerp(shot.origin.z,.8,t));if(t>=1){const cb=shot.finish;shot=null;stone.visible=false;walker?.lock(false);cb();}}
- r.render(s,cam);}
+ budget.draw(now,s,cam);}
  raf=requestAnimationFrame(frame);
- return {near(){return walker?.near()??true;},approach(){walker?.approach();},focus(i){if(site==='jamarat'){focusX=targets[i];orbit=.05;dist=13;walker?.setGoal(targets[i],4.5);}},throwStone(i,onFinish){if(shot||site!=='jamarat'||walker&&!walker.near())return;const p=walker?.position;walker?.face(targets[i],0);walker?.lock(true);stone.visible=true;shot={i,elapsed:0,finish:onFinish,origin:p?new THREE.Vector3(p.x+.22,1.42,p.z-.2):new THREE.Vector3(targets[i],.9,7)};},dispose(){disposed=true;walker?.dispose();cancelAnimationFrame(raf);observer.disconnect();const geos=new Set<THREE.BufferGeometry>();const mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});for(const g of geos)g.dispose();for(const m of mats){disposeSurface(m);m.dispose();}r.dispose();}};
+ return {near(){return walker?.near()??true;},approach(){walker?.approach();},focus(i){if(site==='jamarat'){focusX=targets[i];orbit=.05;dist=13;walker?.setGoal(targets[i],4.5);}},throwStone(i,onFinish){if(shot||site!=='jamarat'||walker&&!walker.near())return;const p=walker?.position;walker?.face(targets[i],0);walker?.lock(true);stone.visible=true;shot={i,elapsed:0,finish:onFinish,origin:p?new THREE.Vector3(p.x+.22,1.42,p.z-.2):new THREE.Vector3(targets[i],.9,7)};},dispose(){disposed=true;budget.dispose();walker?.dispose();cancelAnimationFrame(raf);observer.disconnect();const geos=new Set<THREE.BufferGeometry>();const mats=new Set<THREE.Material>();s.traverse(o=>{if(o instanceof THREE.Mesh){geos.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])mats.add(m);}});for(const g of geos)g.dispose();for(const m of mats){disposeSurface(m);m.dispose();}r.dispose();}};
 }
