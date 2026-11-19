@@ -6,3 +6,6 @@ Close third-person shoulder camera with drag orbit, camera-relative movement, co
 
 ## V4.3 Indonesian home
 Original procedural ceramic floor, woven mat, batik motifs, Indonesian calendar, street and roof-tile window illustration, water dispenser, fan, sandal rack, household objects, sarong and peci. Synthetic ambient motor/fan/birds and conversational Indonesian guide. No outside recordings, photographs or assets. Existing save, levels, quests and camera are unchanged. Stylized art, not a photorealistic reconstruction.
+
+## V4.4
+Auto-collect 3D rotating coins via proximity (0.7m), scripted alternating character dialogues with gestures, knowledge popup with replay and explicit continuation. Six lesson cards for levels 1–2. Text and timed subtitles if device speech unavailable. Existing checkpoints remain compatible. No extra points from repeated overlap. Knowledge content must receive qualified review before commercial use.
