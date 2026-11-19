@@ -68,3 +68,16 @@ end;$$;
 revoke execute on function public.manasik_participant_guard() from public,anon,authenticated;
 create trigger manasik_participant_guard before update on public.manasik_participants for each row execute function public.manasik_participant_guard();
 commit;
+
+-- V3.0.1: atomic partner + branding creation, uses caller RLS.
+create or replace function public.manasik_create_partner(p_slug text,p_name text,p_logo_url text,p_accent text,p_whatsapp text,p_description text,p_active boolean)
+returns uuid language plpgsql security invoker set search_path='' as $$
+declare v_id uuid;
+begin
+ if (select auth.uid()) is null or coalesce((select auth.jwt())->'app_metadata'->>'manasik_superadmin','false') <> 'true' then raise exception 'Akses superadmin diperlukan' using errcode='42501'; end if;
+ insert into public.manasik_partners(slug,active) values(p_slug,p_active) returning id into v_id;
+ insert into public.manasik_brand(partner_id,name,logo_url,accent,whatsapp,description) values(v_id,p_name,p_logo_url,p_accent,p_whatsapp,p_description);
+ return v_id;
+end; $$;
+revoke all on function public.manasik_create_partner(text,text,text,text,text,text,boolean) from public,anon;
+grant execute on function public.manasik_create_partner(text,text,text,text,text,text,boolean) to authenticated;
