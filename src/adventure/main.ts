@@ -24,8 +24,8 @@ function enableAudio(){if(audioStarted)return;audioStarted=true;$('enableAudio')
 btn('enableAudio').onclick=enableAudio;
 document.addEventListener('pointerdown',e=>{if(audioStarted||!(e.target instanceof Element)||e.target.closest('#settingsPanel,#settings,#voiceToggle,#voiceReplay,#enableAudio'))return;enableAudio();},{capture:true});
 window.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight','KeyE'].includes(e.code))enableAudio();});
-function mount(){clearTimeout(mapTimer);clearTimeout(rewardTimer);$('reward').hidden=true;$('map').hidden=true;$('settingsPanel').hidden=true;settings=false;transition=false;near=false;fallback=false;world?.dispose();world=null;$('fallback').hidden=true;$('controls').hidden=false;
- try{world=mountHome($<HTMLCanvasElement>('world'),$('joy'),$('knob'),save.avatar,save.quest,save.level,{onNear:v=>{near=v;refresh();},onStep:()=>ambience.step(),onInteract:interact});}catch{$('fallback').hidden=false;$('controls').hidden=true;fallback=true;}
+function mount(){clearTimeout(mapTimer);clearTimeout(rewardTimer);$('reward').hidden=true;$('map').hidden=true;$('settingsPanel').hidden=true;settings=false;transition=false;near=false;fallback=false;world?.dispose();world=null;$('fallback').hidden=true;$('controls').hidden=false;$('navigation').hidden=false;
+ try{world=mountHome($<HTMLCanvasElement>('world'),$('joy'),$('knob'),save.avatar,save.quest,save.level,{onNear:v=>{near=v;refresh();},onStep:()=>ambience.step(),onInteract:interact,onNav:(angle,distance)=>{const nav=$('navigation');nav.hidden=save.quest===3||settings||fallback;$('navArrow').style.transform='rotate('+(-angle)+'rad)';$('navDistance').textContent=Math.ceil(distance)+' m';}});}catch{$('fallback').hidden=false;$('controls').hidden=true;$('navigation').hidden=true;fallback=true;}
  refresh();persist();if(save.quest===3){renderMap();guide.announce('Peta perjalanan terbuka.','resume-map',0,true);}else{world?.setActive(true);instruct();}
 }
 function advance(){if(save.level!==1||save.quest!==3)return;save=unlockNext(save);persist();mount();}
