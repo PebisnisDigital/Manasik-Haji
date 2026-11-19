@@ -9,3 +9,6 @@ Original procedural ceramic floor, woven mat, batik motifs, Indonesian calendar,
 
 ## V4.4
 Auto-collect 3D rotating coins via proximity (0.7m), scripted alternating character dialogues with gestures, knowledge popup with replay and explicit continuation. Six lesson cards for levels 1–2. Text and timed subtitles if device speech unavailable. Existing checkpoints remain compatible. No extra points from repeated overlap. Knowledge content must receive qualified review before commercial use.
+
+## V4.5
+NPC text-only ambient conversations on entering a 2.2m radius, 2.65m exit hysteresis, view-dependent world-space chat bubbles projected over the current speaker; no speech synthesis for NPC chat or lesson content. Coin pickup and lesson popup independent of conversation. Guide speech restricted to mission directions and level transitions. Same save format and two playable levels.

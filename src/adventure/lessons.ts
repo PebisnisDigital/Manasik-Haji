@@ -13,3 +13,15 @@ export const LESSONS:Lesson[][]=[
  {title:'Siap melangkah',body:'Cari informasi dari penyelenggara yang resmi dan sesuai jenis perjalanan. Pendaftaran nyata tidak diperlukan untuk bermain.',lines:[{speaker:'Kamu',text:'Bu, Yah, aku sudah siap belajar lebih jauh.'},{speaker:'Ibu',text:'Alhamdulillah. Semoga persiapanmu dimudahkan.'},{speaker:'Ayah',text:'Selanjutnya kita kenali cara memilih penyelenggara perjalanan.'}]}
  ]
 ];
+
+export type Npc='Ibu'|'Ayah';
+/** Casual encounters are independent of the active coin. They do not award points. */
+export function npcChat(level:1|2,quest:number,npc:Npc):Line[]{
+ if(npc==='Ibu'){
+  if(level===1&&quest===0)return [{speaker:'Ibu',text:'Kamu lagi kepikiran apa, Nak?'},{speaker:'Kamu',text:'Aku pengin sekali ke Baitullah, Bu.'},{speaker:'Ibu',text:'Masya Allah. Kita persiapkan pelan-pelan, ya.'}];
+  if(level===1)return [{speaker:'Ibu',text:'Sudah lihat tayangan Baitullah tadi?'},{speaker:'Kamu',text:'Iya, Bu. Aku jadi makin ingin belajar.'},{speaker:'Ibu',text:'Semoga Allah mudahkan persiapanmu.'}];
+  return [{speaker:'Ibu',text:'Sudah siap belajar manasik, Nak?'},{speaker:'Kamu',text:'Insya Allah, Bu. Aku mau belajar dulu.'},{speaker:'Ibu',text:'Bagus. Jangan lupa berdoa dan jaga kesehatan, ya.'}];
+ }
+ if(level===1)return [{speaker:'Ayah',text:'Kalau ingin berangkat, kita siapkan ilmu dan dokumennya dulu.'},{speaker:'Kamu',text:'Siap, Yah. Aku mau belajar tahap demi tahap.'},{speaker:'Ayah',text:'Nah, begitu. Pelan-pelan saja.'}];
+ return [{speaker:'Ayah',text:'Ada yang belum kamu pahami soal persiapan?'},{speaker:'Kamu',text:'Nanti aku tanya pembimbing manasik, Yah.'},{speaker:'Ayah',text:'Bagus. Cari penyelenggara resmi dan belajar dengan baik.'}];
+}
