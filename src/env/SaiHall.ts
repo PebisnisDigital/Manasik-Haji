@@ -21,7 +21,7 @@ export function buildSaiHall():THREE.Group {
    ctx.strokeStyle='#d9c68c';ctx.lineWidth=9;ctx.strokeRect(8,8,752,176);
    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 65px sans-serif';ctx.fillText(label,384,96);
    const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;
-   const m=new THREE.Mesh(new THREE.PlaneGeometry(5.7,1.42),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}));m.position.set(x,y,z);if(reverse)m.rotation.y=Math.PI;group.add(m);
+   const m=new THREE.Mesh(new THREE.PlaneGeometry(5.7,1.42),new THREE.MeshBasicMaterial({map:t,side:THREE.FrontSide}));m.position.set(x,y,z);if(reverse)m.rotation.y=Math.PI;group.add(m);
  }
  box(21,.3,104,0,-.17,0,ivory);box(21,.35,104,0,8.8,0,stone);
  for(const side of [-1,1]){
@@ -57,8 +57,8 @@ export function buildSaiHall():THREE.Group {
    box(12,.1,.12,0,1.25,back*46.9,gold);
    sign(z>0?'SAFA  •  الصفا':'MARWAH  •  المروة',0,5.4,back*47,z>0);
  }
- sign('SAFA ↑   •   MARWAH ↓',0,6.8,0,true);
- sign('MARWAH ↑   •   SAFA ↓',0,6.8,0);
+ sign('SAFA ↑   •   MARWAH ↓',0,6.8,-.025,true);
+ sign('MARWAH ↑   •   SAFA ↓',0,6.8,.025);
  group.add(new THREE.HemisphereLight(0xffffff,0xd0c5ac,2.2));
  const sun=new THREE.DirectionalLight(0xfff5df,1.9);sun.position.set(3,8,6);group.add(sun);
  return group;
