@@ -6,6 +6,7 @@ import {getProgramSettings} from './adminApi.ts';
 import {newSessionAllowed,type ProgramSetting} from './adminModel.ts';
 import {accountId,syncRuns} from './playerCloud.ts';
 import {newCore,readCore,writeCore,coreUrl,levelNumber,isComplete} from './coreProgress.ts';
+import {installMissionMap} from './missionMap.ts';
 import {bootTenant,slug,tenantUrl} from './tenant.ts';
 type Avatar='male'|'female';type Program='hajj'|'umrah';
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
@@ -97,4 +98,5 @@ function frame(now:number){
  r.render(s,cam);
 }
 if(touchMode)$('movementHint').textContent='';syncOrientation();try{build();}catch{sceneReady=false;$('joystick').hidden=true;$('cameraReset').hidden=true;$('hajjLabel').hidden=true;$('umrahLabel').hidden=true;$('movementHint').textContent='Pilih Haji atau Umroh.';}
+installMissionMap({host:$('previewMap'),get:()=>({program:chosenProgram,save:readCore(chosenProgram)}),blocked:()=>portraitBlocked,keyboard:false,onChange:open=>{if(open){stopMotion();cameraPointer=null;pid=null;}}});
 if(slug)$('partner').hidden=false;for(const a of document.querySelectorAll<HTMLAnchorElement>('.menu nav a'))a.href=tenantUrl(a.getAttribute('href')!);bootTenant();void loadSettings();for(const a of document.querySelectorAll<HTMLAnchorElement>('.accountLink')){a.href=tenantUrl('./account.html');if(accountId())a.textContent='Akun saya';}

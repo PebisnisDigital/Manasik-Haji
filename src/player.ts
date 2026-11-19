@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {mobileGraphics} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
+import {installMissionMap} from './missionMap.ts';
 import {installLandscape} from './coreLandscape.ts';
 import {tenantUrl,bootTenant,slug} from './tenant.ts';
 import { Environment } from './env/Environment.ts';
@@ -32,19 +33,20 @@ const pauseButton = document.querySelector<HTMLButtonElement>('#pause')!;
 const mapPlayer = document.querySelector<SVGGElement>('#mapPlayer')!;
 const nextSai=document.querySelector<HTMLAnchorElement>('#nextSai')!;
 const saiLink=document.querySelector<HTMLAnchorElement>('#saiLink')!;
-const core=coreGameFor('tawaf');let coreFinished=false;let isPortrait=()=>false;if(core)watchCore(core);
+const core=coreGameFor('tawaf');let coreFinished=false;let mapOpen=false;let portraitOnly=()=>false;let isPortrait=()=>portraitOnly()||mapOpen;if(core)watchCore(core);
 const guided=core?null:guidedStage(1);
 const hajj=core?null:hajjGame('tawaf');
 if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent=hajj.stage==='wada'?'Latihan Tawaf Wada’':'Latihan Tawaf Ifadah';nextSai.textContent='Kembali ke perjalanan haji →';saiLink.textContent='Perjalanan haji';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextSai.textContent='Lanjut ke salat & zamzam →';}
 function updateSaiLink():void{if(core){nextSai.href=coreUrl(core);return;}saiLink.href='./sai.html?avatar='+encodeURIComponent(avatar.value);if(hajj)saiLink.href='./hajj.html';nextSai.href=hajj?'./hajj.html':guided?'./umrah.html':saiLink.href;}
-if(core){if(slug){const label=document.querySelector('.hud .eyebrow');if(label)label.setAttribute('data-tenant-brand','');bootTenant();}document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextSai.href=coreUrl(core);nextSai.textContent=core.step===10?'Lanjut sa’i haji':core.step===17?'Selesaikan manasik':'Lanjut salat & Zamzam';const heading=document.querySelector('h1');if(heading)heading.textContent=core.step===10?'Level 09 · Tawaf Ifadah':core.step===17?'Level 11 · Tawaf Wada’':'Level 02 · Tawaf';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./index.html');back.textContent='Lobby';back.classList.add('coreExit');}isPortrait=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
+if(core){if(slug){const label=document.querySelector('.hud .eyebrow');if(label)label.setAttribute('data-tenant-brand','');bootTenant();}document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextSai.href=coreUrl(core);nextSai.textContent=core.step===10?'Lanjut sa’i haji':core.step===17?'Selesaikan manasik':'Lanjut salat & Zamzam';const heading=document.querySelector('h1');if(heading)heading.textContent=core.step===10?'Level 09 · Tawaf Ifadah':core.step===17?'Level 11 · Tawaf Wada’':'Level 02 · Tawaf';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./index.html');back.textContent='Lobby';back.classList.add('coreExit');}portraitOnly=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
 nextSai.addEventListener('click',e=>{if(core&&(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh putaran dahulu.';return;}if((guided&&!completeStage(1,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 avatar.addEventListener('change',updateSaiLink);updateSaiLink();
 
 const intro=core?.step===17?"Tawaf wada’ sebagai perpisahan sebelum meninggalkan Makkah. Ada pengecualian sesuai ketentuan. Lakukan tujuh putaran latihan dengan Ka’bah di kiri.":core?.step===10?"Tawaf Ifadah adalah rukun haji. Lakukan tujuh putaran, Ka’bah di sebelah kiri.":"Selamat datang di area latihan tawaf. Mulai dari garis Hajar Aswad, berjalan mengelilingi Ka'bah berlawanan arah jarum jam. Jaga Ka'bah di sebelah kiri. Selesaikan tujuh putaran.";
 const guide=new VoiceGuide(intro);
 const sound=core?new ImmersiveSound('tawaf',document.querySelector('.voice-controls')):null;
+if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));}});
 function boot(): void {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.35));
