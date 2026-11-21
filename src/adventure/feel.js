@@ -74,11 +74,14 @@ export function createAdventureFeel(THREE){
     const strength=reducedMotion?0:Math.min(1,smoothSpeed/5.5);
     phase+=dt*(3.9+smoothSpeed*1.35);
     const wave=Math.sin(phase);
-    if(legs.length===2){legs[0].rotation.x=wave*.37*strength;legs[1].rotation.x=-wave*.37*strength;}
-    if(arms?.length===2){arms[0].rotation.x=-wave*.4*strength+.035;arms[1].rotation.x=wave*.4*strength+.035;
+    const hd=actor?.userData?.avatarLod==='hd';
+    if(arms)for(const limb of arms)limb.visible=!hd;
+    if(hd){for(const limb of legs)limb.rotation.x=0;if(torso){torso.rotation.z=0;torso.scale.y=1;}}
+    if(!hd&&legs.length===2){legs[0].rotation.x=wave*.37*strength;legs[1].rotation.x=-wave*.37*strength;}
+    if(!hd&&arms?.length===2){arms[0].rotation.x=-wave*.4*strength+.035;arms[1].rotation.x=wave*.4*strength+.035;
       arms[0].rotation.z=-.035+Math.sin(now*.001)*.015;
       arms[1].rotation.z=.035-Math.sin(now*.001)*.015;}
-    if(torso){torso.rotation.z=Math.sin(phase)*.012*strength;torso.scale.y=1+(!reducedMotion?Math.sin(now*.002)*.009:0);}
+    if(!hd&&torso){torso.rotation.z=Math.sin(phase)*.012*strength;torso.scale.y=1+(!reducedMotion?Math.sin(now*.002)*.009:0);}
     if(shadow){shadow.position.set(player.position.x,.105,player.position.z);const scale=1+strength*.11;shadow.scale.set(scale,scale,scale);shadow.material.opacity=.62-strength*.07;shadow.visible=true;}
     if(validMove&&!reducedMotion){stepDistance+=delta;if(stepDistance>=1.38){stepDistance%=1.38;playStep(rawSpeed);}}
     if(baseFov===null)baseFov=camera.fov;
