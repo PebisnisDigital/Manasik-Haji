@@ -5,6 +5,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 const TARGET=path.resolve('public/assets/characters');
 const TAU=Math.PI*2;
@@ -13,12 +14,12 @@ const palettes={
  female:{cloth:[.24,.48,.39],secondary:[.86,.84,.73],trim:[.72,.65,.43],skin:[.59,.39,.285],hair:[.19,.15,.13],shoe:[.29,.36,.30],shade:[.17,.36,.31]}
 };
 function vectorNorm(x,y,z){const d=Math.hypot(x,y,z)||1;return [x/d,y/d,z/d];}
-function geometry(){return {position:[],normal:[],indices:[]};}
-function pushVertex(g,p,n){const id=g.position.length/3;g.position.push(...p);g.normal.push(...n);return id;}
+function geometry(){return {position:[],normal:[],uv:[],indices:[]};}
+function pushVertex(g,p,n,uv=[0,0]){const id=g.position.length/3;g.position.push(...p);g.normal.push(...n);g.uv.push(...uv);return id;}
 function sphere(segments=18,rings=12){
  const g=geometry();for(let j=0;j<=rings;j++){
   const v=j/rings,phi=Math.PI*v;for(let i=0;i<=segments;i++){
-   const a=i/segments*TAU,dir=[Math.cos(a)*Math.sin(phi),Math.cos(phi),Math.sin(a)*Math.sin(phi)];pushVertex(g,dir,dir);
+   const a=i/segments*TAU,dir=[Math.cos(a)*Math.sin(phi),Math.cos(phi),Math.sin(a)*Math.sin(phi)];pushVertex(g,dir,dir,[i/segments,1-v]);
   }
  }
  for(let j=0;j<rings;j++)for(let i=0;i<segments;i++){
@@ -31,7 +32,7 @@ function cylinder(segments=20,folds=0){
  for(let j=0;j<=rows;j++){
   const y=j/rows-.5;for(let i=0;i<=segments;i++){
    const a=i/segments*TAU,pleat=1+folds*Math.cos(8*a+3*y),r=pleat;
-   const n=vectorNorm(Math.cos(a),0,Math.sin(a));pushVertex(g,[r*Math.cos(a),y,r*Math.sin(a)],n);
+   const n=vectorNorm(Math.cos(a),0,Math.sin(a));pushVertex(g,[r*Math.cos(a),y,r*Math.sin(a)],n,[i/segments,j/rows]);
   }
  }
  for(let j=0;j<rows;j++)for(let i=0;i<segments;i++){
@@ -45,7 +46,7 @@ function coneFrustum(top=.65,bottom=1,segments=24,folds=.035){
   const t=j/rows,r0=bottom+(top-bottom)*t,y=t-.5;
   for(let i=0;i<=segments;i++){
    const a=i/segments*TAU,pleat=1+folds*Math.cos(a*9+t*5),r=r0*pleat;
-   const n=vectorNorm(Math.cos(a),bottom-top,Math.sin(a));pushVertex(g,[Math.cos(a)*r,y,Math.sin(a)*r],n);
+   const n=vectorNorm(Math.cos(a),bottom-top,Math.sin(a));pushVertex(g,[Math.cos(a)*r,y,Math.sin(a)*r],n,[i/segments,t]);
   }
  }
  for(let j=0;j<rows;j++)for(let i=0;i<segments;i++){
@@ -60,29 +61,95 @@ function box(){const g=geometry();
  [[0,-1,0],[-.5,-.5,.5],[-.5,-.5,-.5],[.5,-.5,-.5],[.5,-.5,.5]],
  [[0,0,1],[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5],[-.5,-.5,.5]],
  [[0,0,-1],[-.5,-.5,-.5],[-.5,.5,-.5],[.5,.5,-.5],[.5,-.5,-.5]]];
- for(const face of faces){const start=g.position.length/3;for(let k=1;k<=4;k++)pushVertex(g,face[k],face[0]);g.indices.push(start,start+1,start+2,start,start+2,start+3);}
+ for(const face of faces){const start=g.position.length/3;for(let k=1;k<=4;k++)pushVertex(g,face[k],face[0],[[0,0],[0,1],[1,1],[1,0]][k-1]);g.indices.push(start,start+1,start+2,start,start+2,start+3);}
  return g;
 }
 function packBuffer(list,buf){const data=Buffer.isBuffer(buf)?buf:Buffer.from(buf.buffer,buf.byteOffset||0,buf.byteLength);const offset=list.length?list[list.length-1].offset+list[list.length-1].buffer.length:0;
  const padding=(4-data.length%4)%4;list.push({buffer:padding?Buffer.concat([data,Buffer.alloc(padding)]):data,offset});return {byteOffset:offset,byteLength:data.length};}
+// Tiny deterministic PNG encoder. No canvas or external image dependency in Node/Vercel.
+const UINT32=0xffffffff;
+function crc32(buf){
+ let c=UINT32;for(const b of buf){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0);}
+ return (c^UINT32)>>>0;
+}
+function pngChunk(tag,data){
+ const out=Buffer.allocUnsafe(12+data.length);out.writeUInt32BE(data.length,0);out.write(tag,4,'ascii');
+ data.copy(out,8);out.writeUInt32BE(crc32(out.subarray(4,8+data.length)),8+data.length);return out;
+}
+const pixelNoise=(x,y,seed=0)=>{
+ const a=Math.sin(x*73.13+y*113.7+seed*27.3)*43758.5453;return (a-Math.floor(a))*2-1;
+};
+function paintTexture(type,sex,width=128,height=128){
+ const scanline=Buffer.alloc(height*(1+width*4)),cloth=type==='cloth',normal=type==='weave-normal';
+ for(let y=0;y<height;y++){
+  const row=y*(1+width*4);scanline[row]=0;
+  for(let x=0;x<width;x++){
+   const i=row+1+x*4,n=pixelNoise(x,y,type.length),wave=Math.sin(x*Math.PI*.5)*Math.sin(y*Math.PI*.5);
+   const warp=Math.sin(x*Math.PI/2)*.45+Math.cos(y*Math.PI/2)*.36;
+   let r,g,b;
+   if(normal){
+    const xx=Math.round(128+Math.sin(x*Math.PI/2)*11),yy=Math.round(128+Math.cos(y*Math.PI/2)*11);
+    r=xx;g=yy;b=254;
+   }else if(cloth){
+    const thread=warp*6+n*4,crease=Math.cos(x*Math.PI/16)*2;
+    const value=Math.max(208,Math.min(252,233+thread+crease));
+    r=value;g=value;b=Math.min(255,value+1);
+   }else{
+    const pore=n*6+Math.sin(x*.72+y*.23)*1.7+Math.cos(y*.41)*1.3;
+    const value=Math.max(219,Math.min(254,240+pore));
+    r=value;g=Math.max(0,value-2);b=Math.max(0,value-5);
+   }
+   scanline[i]=r;scanline[i+1]=g;scanline[i+2]=b;scanline[i+3]=255;
+  }
+ }
+ const hdr=Buffer.alloc(13);hdr.writeUInt32BE(width,0);hdr.writeUInt32BE(height,4);hdr[8]=8;hdr[9]=6;
+ const sig=Buffer.from([137,80,78,71,13,10,26,10]);
+ return Buffer.concat([sig,pngChunk('IHDR',hdr),pngChunk('IDAT',zlib.deflateSync(scanline,{level:9})),pngChunk('IEND',Buffer.alloc(0))]);
+}
+
 function buildAvatar(sex){
- const pal=palettes[sex],buffers=[],bufferViews=[],accessors=[],materials=[],meshDefs=[],nodes=[],roots=[];
+ const pal=palettes[sex],buffers=[],bufferViews=[],accessors=[],materials=[],meshDefs=[],nodes=[],roots=[],images=[],textures=[],samplers=[];
  const color=(name,rgb)=>{const id=materials.length;materials.push({name,pbrMetallicRoughness:{baseColorFactor:[...rgb,1],metallicFactor:0,roughnessFactor:.79},doubleSided:true});return id;};
  const colors={};for(const [key,value] of Object.entries(pal))colors[key]=color(key,value);
  colors.eyes=color('iris',[.10,.09,.08]);colors.whites=color('eye white',[.91,.87,.83]);colors.lips=color('natural lips',[.43,.29,.26]);colors.gold=color('scarf pin',[.81,.64,.28]);colors.skinShade=color('skin contour',[.52,.33,.25]);colors.skinLight=color('skin highlights',[.66,.46,.35]);colors.clothLight=color('weave highlight',sex==='male'?[.98,.97,.94]:[.32,.57,.47]);colors.clothDark=color('weave shadow',sex==='male'?[.75,.74,.68]:[.17,.36,.29]);colors.sole=color('sandal sole',[.25,.23,.20]);colors.strap=color('sandal strap',[.54,.46,.33]);
+
+ // Packed PNGs live in GLB BIN. All texture coordinates are part of geometry.
+ const sampler=samplers.push({magFilter:9729,minFilter:9987,wrapS:10497,wrapT:10497})-1;
+ function embeddedTexture(name,kind){
+  const blob=paintTexture(kind,sex),v=packBuffer(buffers,blob);
+  const img=images.push({name,mimeType:'image/png',bufferView:bufferViews.push({buffer:0,...v})-1})-1;
+  return textures.push({name,sampler,source:img})-1;
+ }
+ const clothMap=embeddedTexture('fine woven fabric','cloth');
+ const skinMap=embeddedTexture('subtle skin surface','skin');
+ const weaveNormal=embeddedTexture('fabric micro-normal','weave-normal');
+ for(const material of materials){
+  const name=material.name;
+  const fabric=['cloth','secondary','shade','clothLight','clothDark'].includes(name);
+  const skin=['skin','skinShade','skinLight'].includes(name);
+  if(fabric){
+   material.pbrMetallicRoughness.baseColorTexture={index:clothMap};
+   material.pbrMetallicRoughness.roughnessFactor=.93;
+   material.normalTexture={index:weaveNormal,scale:.22};
+  }else if(skin){
+   material.pbrMetallicRoughness.baseColorTexture={index:skinMap};
+   material.pbrMetallicRoughness.roughnessFactor=.83;
+  }
+ }
+
  function access(arr,type,componentType=5126,target=null,limits=false){let b;
   if(componentType===5126){b=Buffer.alloc(arr.length*4);arr.forEach((x,i)=>b.writeFloatLE(x,i*4));}
   else if(componentType===5123){b=Buffer.alloc(arr.length*2);arr.forEach((x,i)=>b.writeUInt16LE(x,i*2));}
   else {b=Buffer.alloc(arr.length*4);arr.forEach((x,i)=>b.writeUInt32LE(x,i*4));}
   const view=packBuffer(buffers,b),viewIndex=bufferViews.push({buffer:0,...view,...(target?{target}:{})})-1;
-  const components={SCALAR:1,VEC3:3,VEC4:4}[type];const acc={bufferView:viewIndex,componentType,count:arr.length/components,type};
+  const components={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[type];const acc={bufferView:viewIndex,componentType,count:arr.length/components,type};
   if(limits){acc.min=Array(components).fill(Infinity);acc.max=Array(components).fill(-Infinity);for(let i=0;i<arr.length;i++){const k=i%components;acc.min[k]=Math.min(acc.min[k],arr[i]);acc.max[k]=Math.max(acc.max[k],arr[i]);}}
   return accessors.push(acc)-1;
  }
  const meshes=new Map();
  function meshFor(geo,material,name){const key=JSON.stringify({name,material});if(meshes.has(key))return meshes.get(key);
-  const pos=access(geo.position,'VEC3',5126,34962,true),normal=access(geo.normal,'VEC3',5126,34962),indices=access(geo.indices,'SCALAR',5123,34963);
-  const id=meshDefs.push({name,primitives:[{attributes:{POSITION:pos,NORMAL:normal},indices,material,mode:4}]})-1;
+  const pos=access(geo.position,'VEC3',5126,34962,true),normal=access(geo.normal,'VEC3',5126,34962),uv=access(geo.uv,'VEC2',5126,34962),indices=access(geo.indices,'SCALAR',5123,34963);
+  const id=meshDefs.push({name,primitives:[{attributes:{POSITION:pos,NORMAL:normal,TEXCOORD_0:uv},indices,material,mode:4}]})-1;
   meshes.set(key,id);return id;
  }
  function node(name,parent=null,opts={}){const n={name,...opts};const id=nodes.push(n)-1;
@@ -190,7 +257,7 @@ function buildAvatar(sex){
  }
  clip('Idle',2.5,.015);clip('Walk',1.05,.40);clip('Run',.72,.64);
  const bin=Buffer.concat(buffers.map(x=>x.buffer));
- const gltf={asset:{version:'2.0',generator:'MANASIK Adventure original pilgrim avatar builder v5'},scene:0,scenes:[{nodes:roots}],nodes,meshes:meshDefs,materials,animations,accessors,bufferViews,buffers:[{byteLength:bin.length}]};
+ const gltf={asset:{version:'2.0',generator:'MANASIK Adventure original pilgrim avatar builder v6'},scene:0,scenes:[{nodes:roots}],nodes,meshes:meshDefs,materials,animations,accessors,bufferViews,images,textures,samplers,buffers:[{byteLength:bin.length}]};
  const json=Buffer.from(JSON.stringify(gltf),'utf8'),pad=(4-json.length%4)%4,jsonChunk=Buffer.concat([json,Buffer.alloc(pad,0x20)]);
  const binPad=(4-bin.length%4)%4,binChunk=Buffer.concat([bin,Buffer.alloc(binPad)]);
  const glb=Buffer.alloc(12+8+jsonChunk.length+8+binChunk.length);glb.writeUInt32LE(0x46546c67,0);glb.writeUInt32LE(2,4);glb.writeUInt32LE(glb.length,8);
