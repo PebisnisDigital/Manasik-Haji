@@ -11,7 +11,7 @@ export default defineConfig({
     rollupOptions: {
       // Only the application is built for production. character-preview.html
       // is a development harness and is deliberately left out.
-      input: { main: 'index.html', voiceAdmin: 'voice-admin.html', admin: 'admin.html', account: 'account.html', manasik: 'manasik.html', verify: 'verify.html', certificateAdmin: 'certificate-admin.html', legacy: 'legacy.html', player: 'player.html', sai: 'sai.html', umrah: 'umrah.html', explore: 'explore.html', hajj: 'hajj.html', studio: 'studio.html', peserta: 'peserta.html', adventure: 'adventure.html', tawafAdventure: 'tawaf-adventure.html', saiAdventure: 'sai-adventure.html', adventureMap: 'adventure-map.html' },
+      input: { main: 'index.html', voiceAdmin: 'voice-admin.html', admin: 'admin.html', account: 'account.html', manasik: 'manasik.html', verify: 'verify.html', certificateAdmin: 'certificate-admin.html', legacy: 'legacy.html', player: 'player.html', sai: 'sai.html', umrah: 'umrah.html', explore: 'explore.html', hajj: 'hajj.html', studio: 'studio.html', peserta: 'peserta.html', adventure: 'adventure.html', tawafAdventure: 'tawaf-adventure.html', saiAdventure: 'sai-adventure.html', adventureMap: 'adventure-map.html', tahallulAdventure: 'tahallul-adventure.html' },
       output: {
         // Three.js is by far the largest dependency and never changes between
         // builds; splitting it out keeps the application chunk small and
