@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { createAdventureFeel } from './feel.js';
+import { createAdventureVisuals } from './visuals.js';
+const visuals=createAdventureVisuals(THREE);
 const feel=createAdventureFeel(THREE);
 // Mission-based Jamrah Aqabah learning: 7 individual throws, never a determination of ritual validity.
 const $=id=>document.getElementById(id);
@@ -101,7 +103,7 @@ for(const c of travelers){const vx=x-c.mesh.position.x,vz=z-c.mesh.position.z,d=
 px=Math.max(-49,Math.min(49,x));pz=Math.max(-12.5,Math.min(12.5,z));heading=Math.atan2(dx,dz);player.rotation.y+=Math.atan2(Math.sin(heading-player.rotation.y),Math.cos(heading-player.rotation.y))*Math.min(1,dt*10);player.position.set(px,Math.sin(now*.014)*.047,pz);refresh();}
 function frame(now){const dt=Math.min(.045,(now-(last||now))/1000);last=now;if(renderer&&!document.hidden){move(dt,now);for(const npc of travelers){npc.mesh.position.x+=npc.vel*dt;if(npc.mesh.position.x>51)npc.mesh.position.x=-51;if(npc.mesh.position.x<-51)npc.mesh.position.x=51;npc.mesh.rotation.y=npc.vel>0?Math.PI/2:-Math.PI/2;}const q=TARGETS[state.stage];beacon.position.set(q.x,.16+Math.sin(now*.003)*.12,q.z);beacon.rotation.y=now*.00075;
 if(!$('aimPanel').hidden){cameraPos.set(12.9,7.5,18.7);cameraTarget.set(28.2,3.2,-2);}else{cameraPos.set(px-Math.sin(yaw)*9.6,6.0,pz-Math.cos(yaw)*9.6);cameraTarget.set(px,1.5,pz);}
-camera.position.lerp(cameraPos,Math.min(1,dt*5));camera.lookAt(cameraTarget);feel.update({scene,renderer,camera,player,dt,now,active,aiming:!$('aimPanel').hidden});renderer.render(scene,camera);
+camera.position.lerp(cameraPos,Math.min(1,dt*5));camera.lookAt(cameraTarget);feel.update({scene,renderer,camera,player,dt,now,active,aiming:!$('aimPanel').hidden});visuals.update({scene,root:world,player,mode:'jamarat',now});renderer.render(scene,camera);
 if(projectile){const t=Math.min(1,(now-shootStart)/720);projectile.position.set(22+(shootEnd.x-22)*t,2.2+(shootEnd.y-2.2)*t+Math.sin(Math.PI*t)*3.7,8+(shootEnd.z-8)*t);projectile.rotation.x+=dt*8;if(t>=1)landed();}
 for(const s of particles){s.life-=dt;s.mesh.position.x+=s.dx*dt;s.mesh.position.y+=s.dy*dt;s.mesh.position.z+=s.dz*dt;s.mesh.scale.setScalar(Math.max(0,s.life));}particles=particles.filter(s=>{if(s.life>0)return true;scene.remove(s.mesh);s.mesh.geometry.dispose();s.mesh.material.dispose();return false;});
 $('miniPlayer').setAttribute('cx',String(100+px/54*83));$('miniPlayer').setAttribute('cy',String(100-pz/17*69));$('miniTarget').setAttribute('cx',String(100+q.x/54*83));$('miniTarget').setAttribute('cy',String(100-q.z/17*69));if(!$('toast').hidden&&now>toastUntil)$('toast').hidden=true;}requestAnimationFrame(frame);}
