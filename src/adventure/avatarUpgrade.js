@@ -113,7 +113,7 @@ export function createAvatarUpgrade(THREE){
     // Existing low-poly NPCs are LOD1 by default; only the closest few become LOD0 GLB.
     if(now-lastNPCScan>650&&canUseHD()&&activePlayer){
       lastNPCScan=now;
-      const nearby=npcs.map(n=>n?.mesh||n).filter(g=>g?.isGroup&&g!==player&&g.parent)
+      const nearby=npcs.map(n=>n?.mesh||n?.object||n).filter(g=>g?.isGroup&&g!==player&&g.parent)
         .map(g=>({g,d:Math.hypot(g.position.x-player.position.x,g.position.z-player.position.z)}))
         .filter(p=>p.d<17).sort((a,b)=>a.d-b.d).slice(0,limit).map(o=>o.g);
       const selected=new Set(nearby);
