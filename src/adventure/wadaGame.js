@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { createAdventureFeel } from './feel.js';
 import { createAdventureVisuals } from './visuals.js';
+import { createAvatarUpgrade } from './avatarUpgrade.js';
+const avatars=createAvatarUpgrade(THREE);
 const visuals=createAdventureVisuals(THREE);
 const feel=createAdventureFeel(THREE);
 // Chapter 12: Tawaf Wada' teaching adventure, not religious certification or a real Hajj ruling.
@@ -101,7 +103,7 @@ px=nx;pz=nz;heading=Math.atan2(dx,dz);player.rotation.y+=Math.atan2(Math.sin(hea
 if(state.stage===5){const t=point();if(Math.hypot(px-t.x,pz-t.z)<3.1)tawafCheckpoint();}
 hud();}
 function frame(now){const dt=Math.min(.045,(now-(last||now))/1000);last=now;if(renderer&&!document.hidden){move(dt,now);for(const n of npcs){if(n.axis==='circle'){n.theta+=n.speed*dt;n.mesh.position.set(Math.cos(n.theta)*n.rad,0,Math.sin(n.theta)*n.rad);n.mesh.rotation.y=n.theta+Math.PI/2;}else{n.mesh.position[n.axis]+=n.speed*dt;if(n.mesh.position[n.axis]>n.hi)n.mesh.position[n.axis]=n.lo;if(n.mesh.position[n.axis]<n.lo)n.mesh.position[n.axis]=n.hi;}}
-const t=point();marker.position.set(t.x,.13+Math.sin(now*.0028)*.14,t.z);marker.rotation.y=now*.0008;camGoal.set(px-Math.sin(yaw)*9.7,6.1,pz-Math.cos(yaw)*9.7);camera.position.lerp(camGoal,Math.min(1,dt*5));lookGoal.set(px,1.46,pz);camera.lookAt(lookGoal);feel.update({scene,renderer,camera,player,dt,now,active,aiming:false});visuals.update({scene,root:world,player,mode:target().world,now});renderer.render(scene,camera);
+const t=point();marker.position.set(t.x,.13+Math.sin(now*.0028)*.14,t.z);marker.rotation.y=now*.0008;camGoal.set(px-Math.sin(yaw)*9.7,6.1,pz-Math.cos(yaw)*9.7);camera.position.lerp(camGoal,Math.min(1,dt*5));lookGoal.set(px,1.46,pz);camera.lookAt(lookGoal);avatars.update({player,sex:state.avatar,active,dt,now,npcs:npcs});feel.update({scene,renderer,camera,player,dt,now,active,aiming:false});visuals.update({scene,root:world,player,mode:target().world,now});renderer.render(scene,camera);
 $('miniPlayer').setAttribute('cx',String(100+px/53*84));$('miniPlayer').setAttribute('cy',String(100-pz/53*84));$('miniTarget').setAttribute('cx',String(100+t.x/53*84));$('miniTarget').setAttribute('cy',String(100-t.z/53*84));if(!$('toast').hidden&&now>toastUntil)$('toast').hidden=true;}requestAnimationFrame(frame);}
 function build(){if(world){scene.remove(world);world.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material?.map instanceof THREE.CanvasTexture)o.material.map.dispose();});}
 world=new THREE.Group();scene.add(world);npcs=[];world.add(new THREE.HemisphereLight(0xe9fbf0,0x7a7165,3));const sun=new THREE.DirectionalLight(0xffeaca,3.6);sun.position.set(-27,60,18);world.add(sun);
