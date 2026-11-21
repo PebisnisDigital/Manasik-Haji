@@ -40,8 +40,9 @@ function equip(group,glb,sex,isNpc=false){
   model.name='Original Pilgrim · '+sex;
   model.userData.gameAsset=true;
   // Keep quest interactions, collisions, camera tracking and save logic on the original group.
-  const original=group.children.filter(c=>c.isMesh);
-  for(const m of original)m.visible=false;
+  // Hide both meshes and legacy limb groups; retain their original visibility for fallback.
+  const original=group.children.map(obj=>({obj,wasVisible:obj.visible}));
+  for(const item of original)item.obj.visible=false;
   group.add(model);
   group.userData??={};
   group.userData.avatarLod='hd';
@@ -58,7 +59,7 @@ function unequip(entry){
   if(!entry)return;
   entry.mixer.stopAllAction();
   if(entry.model.parent)entry.model.parent.remove(entry.model);
-  for(const obj of entry.original)obj.visible=true;
+  for(const item of entry.original)item.obj.visible=item.wasVisible;
   if(entry.group.userData)entry.group.userData.avatarLod='low';
 }
 export function createAvatarUpgrade(THREE){
@@ -67,6 +68,7 @@ export function createAvatarUpgrade(THREE){
   let activePlayer=null,lastPlayer=null,sex='male',pending=null,generation=0,npcEntries=new Map(),lastNPCScan=0;
   let fpsFrames=0,fpsStart=0,badFrames=0,recoveries=0,lastFps=60,lastScan=0;
   let indicator=null;
+  const missingAssets=new Set();
   const stopRequest=()=>{
     if(activePlayer)unequip(activePlayer);
     activePlayer=null;
@@ -88,11 +90,12 @@ export function createAvatarUpgrade(THREE){
     generation++;stopRequest();lastPlayer=player;sex=sexNow;pending=null;
   }
   function tryEquipPlayer(){
-    if(!lastPlayer||!canUseHD()||activePlayer||pending)return;
+    if(!lastPlayer||!canUseHD()||activePlayer||pending||missingAssets.has(sex))return;
     const who=lastPlayer,sexNow=sex,token=generation;
     pending=load(sexNow).then(asset=>{
       pending=null;
-      if(!asset||token!==generation||who!==lastPlayer||!canUseHD())return;
+      if(!asset){missingAssets.add(sexNow);return;}
+      if(token!==generation||who!==lastPlayer||!canUseHD())return;
       activePlayer=equip(who,asset,sexNow);
     }).catch(()=>{pending=null;});
   }
