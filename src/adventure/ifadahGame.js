@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { createAdventureFeel } from './feel.js';
+import { createAdventureVisuals } from './visuals.js';
+const visuals=createAdventureVisuals(THREE);
 const feel=createAdventureFeel(THREE);
 // Level 10 — Haji Tamattu': playable Tawaf Ifadah (7 loops) + Sa'i Haji (7 traversals).
 // Fictional scale and checkpoints; successful game progress never establishes ritual validity.
@@ -98,7 +100,7 @@ px=x;pz=z;heading=Math.atan2(ux,uz);player.rotation.y+=Math.atan2(Math.sin(headi
 if(state.stage===4||state.stage===6){const t=target();if(Math.hypot(px-t.x,pz-t.z)<3.2)advanceAfterRoute();}
 updateHud();}
 function frame(now){const dt=Math.min(.045,(now-(last||now))/1000);last=now;if(renderer&&!document.hidden){walk(dt,now);for(const n of worldNpcs){if(n.axis==='circle'){n.angle+=n.vel*dt;n.mesh.position.set(Math.cos(n.angle)*n.radius,0,Math.sin(n.angle)*n.radius);n.mesh.rotation.y=n.angle+Math.PI/2;}else{n.mesh.position[n.axis]+=n.vel*dt;if(n.mesh.position[n.axis]>n.hi)n.mesh.position[n.axis]=n.lo;else if(n.mesh.position[n.axis]<n.lo)n.mesh.position[n.axis]=n.hi;n.mesh.rotation.y=n.vel>0?(n.axis==='x'?Math.PI/2:0):(n.axis==='x'?-Math.PI/2:Math.PI);}}
-const t=target();marker.position.set(t.x,.15+Math.sin(now*.003)*.17,t.z);marker.rotation.y=now*.0008;cameraGoal.set(px-Math.sin(yaw)*10,6.1,pz-Math.cos(yaw)*10);camera.position.lerp(cameraGoal,Math.min(1,dt*5));cameraLook.set(px,1.45,pz);camera.lookAt(cameraLook);feel.update({scene,renderer,camera,player,dt,now,active,aiming:false});renderer.render(scene,camera);
+const t=target();marker.position.set(t.x,.15+Math.sin(now*.003)*.17,t.z);marker.rotation.y=now*.0008;cameraGoal.set(px-Math.sin(yaw)*10,6.1,pz-Math.cos(yaw)*10);camera.position.lerp(cameraGoal,Math.min(1,dt*5));cameraLook.set(px,1.45,pz);camera.lookAt(cameraLook);feel.update({scene,renderer,camera,player,dt,now,active,aiming:false});visuals.update({scene,root:world,player,mode:getArea(),now});renderer.render(scene,camera);
 const scale=getArea()==='sai'?47:52;$('minPlayer').setAttribute('cx',String(100+px/scale*81));$('minPlayer').setAttribute('cy',String(100-pz/scale*81));$('minTarget').setAttribute('cx',String(100+t.x/scale*81));$('minTarget').setAttribute('cy',String(100-t.z/scale*81));if(!$('toast').hidden&&now>toastEnd)$('toast').hidden=true;}requestAnimationFrame(frame);}
 function sceneTransition(next,placeX,placeZ,headingText){transitioning=true;active=false;$('travel').hidden=false;$('travelTitle').textContent=headingText;stage(next);window.setTimeout(()=>{px=placeX;pz=placeZ;yaw=next===6?0:Math.PI;build();transitioning=false;$('travel').hidden=true;active=true;updateHud();say(current().hint);},1900);}
 function interact(){if(!active||transitioning||state.stage>=8||[4,6].includes(state.stage))return;const q=target();if(Math.hypot(px-q.x,pz-q.z)>3.3)return;
