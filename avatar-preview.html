@@ -1,17 +1,18 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#102a26"><title>Character Studio V4 — MANASIK ADVENTURE</title><style>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#102a26"><title>Character Studio V5 — MANASIK ADVENTURE</title><style>
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#091b1a;color:#e9efe8;font:14px system-ui,Segoe UI,sans-serif}button,a{font:inherit}button{border:1px solid #ffffff28;background:#203d37;color:#edf4ec;padding:10px 14px;border-radius:12px;cursor:pointer;white-space:nowrap}button[aria-pressed=true],button.active{background:#e7c785;color:#142e27;border-color:#e7c785;font-weight:850}button:focus-visible,a:focus-visible{outline:3px solid #f7dca0;outline-offset:2px}a{color:#e7c785;text-decoration:none}a:hover{text-decoration:underline}header{position:fixed;left:0;right:0;top:0;z-index:4;display:flex;align-items:start;justify-content:space-between;gap:16px;padding:clamp(15px,3vw,26px);pointer-events:none}header>*{pointer-events:auto}header .back{display:inline-flex;align-items:center;gap:8px;color:#e5e9dc;border:1px solid #d5e6d34d;background:#102a26e0;border-radius:11px;padding:9px 13px;text-decoration:none;font-weight:700;font-size:12px}h1{font-size:clamp(23px,3vw,36px);line-height:1.05;letter-spacing:-.055em;margin:3px 0 5px}.eyebrow{font-weight:850;color:#eccb83;font-size:10px;letter-spacing:.16em}.description{font-size:12px;color:#b8cabe;line-height:1.45;margin:0}.main{height:100dvh;min-height:620px;display:grid;grid-template-columns:minmax(0,1fr) clamp(278px,27vw,355px)}.stage{position:relative;overflow:hidden;background:radial-gradient(ellipse 55% 45% at 50% 49%,#2b4f45 0%,#102d2a 60%,#091b1a 100%);touch-action:pan-y}.stage canvas{width:100%;height:100%;display:block;touch-action:none;outline:none}.stage .hint{position:absolute;left:24px;bottom:22px;padding:9px 12px;border-radius:10px;background:#102d27bd;border:1px solid #ffffff2d;font-size:11px;color:#c8d7cb}.stage .status{position:absolute;left:24px;top:112px;font-size:11px;color:#e9d08f;border:1px solid #e5d39269;background:#102d28c9;padding:8px 12px;border-radius:10px}.controls{padding:28px 22px 22px;display:flex;flex-direction:column;gap:17px;background:#0d2522;border-left:1px solid #e0d7ae2f;overflow:auto;justify-content:center}.group{display:grid;gap:8px}.label{font-weight:900;font-size:10px;letter-spacing:.12em;color:#e6cb8d}.buttons{display:flex;flex-wrap:wrap;gap:7px}.buttons button{flex:1}.item{padding:12px;border:1px solid #ffffff28;border-radius:13px;background:#ffffff05;color:#d4e1d4;font-size:12px;line-height:1.55}.info{display:flex;justify-content:space-between;gap:8px;border-top:1px solid #ffffff20;padding-top:11px;font-size:11px}.info strong{color:#f2d99c}.foot{margin-top:6px;color:#aebeb1;font-size:11px;line-height:1.55}.foot p{margin:0 0 9px}.smallLink{display:inline-flex;border:1px solid #ffffff3d;border-radius:10px;padding:9px 11px;font-weight:750}.error{color:#ffd7a0;font-size:12px;line-height:1.5}.hide{display:none}
 @media(max-width:790px){header{position:absolute;top:0;padding:13px;align-items:start}header .description{max-width:230px}header .back{font-size:11px;padding:8px}.main{display:block;height:auto;min-height:100dvh}.stage{height:67dvh;min-height:340px}.controls{border-left:0;border-top:1px solid #e0d7ae2f;padding:18px;gap:14px;min-height:33dvh}.stage .hint{bottom:11px;left:11px}.stage .status{top:110px;left:11px}}
 @media(max-height:475px) and (min-width:700px){.main{min-height:100dvh}.controls{padding:12px;gap:10px}.stage .status{top:80px}}
 </style></head><body>
-<header><div><div class="eyebrow">MANASIK ADVENTURE · VISUAL V4</div><h1>Character Studio</h1><p class="description">Inspeksi model GLB original &amp; animasinya.</p></div><a class="back" href="./adventure-map.html">← Peta Petualangan</a></header>
+<header><div><div class="eyebrow">MANASIK ADVENTURE · VISUAL V5</div><h1>Character Studio</h1><p class="description">Periksa wajah, kain ihram, busana dan animasi GLB orisinal.</p></div><a class="back" href="./adventure-map.html">← Peta Petualangan</a></header>
 <main class="main">
 <section class="stage" aria-label="Tampilan model 3D interaktif"><canvas id="canvas" aria-label="Model jemaah 3D"></canvas><div class="status" id="status" role="status">Memuat model GLB…</div><div class="hint">Geser untuk memutar • Scroll / cubit untuk zoom</div></section>
 <aside class="controls"><div class="group"><div class="label">PILIH KARAKTER</div><div class="buttons"><button data-sex="male" aria-pressed="true">Jemaah pria</button><button data-sex="female" aria-pressed="false">Jemaah wanita</button></div></div>
 <div class="group"><div class="label">GERAKAN KARAKTER</div><div class="buttons"><button data-motion="Idle" aria-pressed="false">Diam</button><button data-motion="Walk" aria-pressed="true">Jalan</button><button data-motion="Run" aria-pressed="false">Lari</button></div></div>
 <div class="group"><div class="label">KAMERA</div><div class="buttons"><button id="rotate" aria-pressed="false">Putar otomatis</button><button id="reset">Reset kamera</button></div></div>
-<div class="item"><b>Prototipe karakter V4</b><p style="margin:7px 0 0">File GLB buatan proyek, ukuran ringan, dan animasi gerak sendiri. Ini masih gaya 3D stylized, bukan scan wajah manusia.</p></div>
+<div class="group"><div class="label">PERIKSA DETAIL</div><div class="buttons"><button data-shot="full" aria-pressed="true">Tubuh</button><button data-shot="face" aria-pressed="false">Wajah</button><button data-shot="fabric" aria-pressed="false">Kain</button></div></div>
+<div class="item"><b>Prototipe karakter V4</b><p style="margin:7px 0 0">V5: wajah lebih detail, kain berlipat dan animasi tubuh lebih halus. Jemaah pria tanpa peci/celana dalam ihram; model tetap stylized, bukan hasil pemindaian manusia.</p></div>
 <div class="info"><span>Model</span><strong id="modelName">Pria</strong></div><div class="info"><span>Gerakan</span><strong id="motionName">Walk</strong></div><div class="info"><span>Draw calls</span><strong id="calls">—</strong></div>
-<div class="foot"><p>Efek demo ini hanya untuk evaluasi visual. Model otomatis diaktifkan dalam level bila performa perangkat memungkinkan.</p><a class="smallLink" href="./tawaf-adventure.html?demo=1&quality=high">Tes dalam gameplay →</a><div id="error" class="error hide"></div></div></aside>
+<div class="foot"><p>Efek demo ini hanya untuk evaluasi visual. Model otomatis dipilih berdasarkan kemampuan perangkat. Bandingkan detail wajah dan lipatan kain melalui tombol kamera.</p><a class="smallLink" href="./tawaf-adventure.html?demo=1&quality=high">Tes dalam gameplay →</a><div id="error" class="error hide"></div></div></aside>
 </main>
 <script type="module">
 import * as THREE from 'three';
@@ -44,8 +45,9 @@ try{const result=await getAsset(who);if(local!==token)return;
 }catch(e){if(local!==token)return;$('status').textContent='Model gagal dimuat';$('error').textContent='Aset GLB belum tersedia di server. '+String(e.message||e);$('error').classList.remove('hide');}}
 function play(next){motion=next;selectButtons();if(!actor||!mixer)return;
 const source=cache.get(sex);if(!source)return;
+const selectedActor=actor,selectedMixer=mixer,selectedSex=sex;
 source.then(asset=>{
- if(!actor||!mixer||motion!==next)return;
+ if(!actor||!mixer||actor!==selectedActor||mixer!==selectedMixer||sex!==selectedSex||motion!==next)return;
  const clip=THREE.AnimationClip.findByName(asset.animations,next);if(!clip)return;
  const target=mixer.clipAction(clip);if(current&&current!==target)current.fadeOut(.18);
  target.reset().fadeIn(.18).play();current=target;
@@ -53,7 +55,16 @@ source.then(asset=>{
 document.querySelectorAll('[data-sex]').forEach(b=>b.onclick=()=>loadSex(b.dataset.sex));
 document.querySelectorAll('[data-motion]').forEach(b=>b.onclick=()=>play(b.dataset.motion));
 $('rotate').onclick=()=>{rotate=!rotate;$('rotate').setAttribute('aria-pressed',String(rotate));};
-$('reset').onclick=()=>{camera.position.set(3.7,2.7,5.2);orbit.target.set(0,1.22,0);orbit.update();};
+function shot(type){
+ const shots={full:{position:[3.7,2.7,5.2],target:[0,1.22,0]},
+ face:{position:[.72,2.27,1.55],target:[0,2.06,.04]},
+ fabric:{position:[1.15,1.49,2.05],target:[0,1.15,.03]}};
+ const chosen=shots[type]||shots.full;
+ camera.position.set(...chosen.position);orbit.target.set(...chosen.target);orbit.update();
+ for(const b of document.querySelectorAll('[data-shot]'))b.setAttribute('aria-pressed',String(b.dataset.shot===type));
+}
+document.querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>shot(b.dataset.shot));
+$('reset').onclick=()=>shot('full');
 function fit(){const w=Math.max(1,holder.clientWidth),h=Math.max(1,holder.clientHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
 const resize=new ResizeObserver(fit);resize.observe(holder);fit();loadSex('male');
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;
