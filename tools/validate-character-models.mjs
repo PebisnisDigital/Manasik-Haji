@@ -53,7 +53,7 @@ function parse(file){
  }
  const names=new Set(json.nodes.map(n=>n.name));
  if(!['PilgrimRoot','Head','Body','LeftArm','RightArm','LeftLeg','RightLeg'].every(k=>names.has(k)))fail(file+' missing skeleton nodes');
- if(file.includes('male')){
+ if(file==='pilgrim-male.glb'){
   if(names.has('Kufi')||[...names].some(n=>n.startsWith('Pants')||n.startsWith('LongSleeve')))fail('men ihram cannot have cap, pants or tailored sleeves');
   if(!names.has('LowerIzar')||!names.has('RidaWrappedTorso'))fail('missing 2-piece male ihram');
  }else{
