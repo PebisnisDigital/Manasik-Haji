@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { createAdventureFeel } from './feel.js';
 import { createAdventureVisuals } from './visuals.js';
+import { createAvatarUpgrade } from './avatarUpgrade.js';
+const avatars=createAvatarUpgrade(THREE);
 const visuals=createAdventureVisuals(THREE);
 const feel=createAdventureFeel(THREE);
 // Hari Tasyrik educational adventure — simplified fictional environment, not a determination of valid worship.
@@ -94,7 +96,7 @@ function render(now){const dt=Math.min(.045,(now-(lastTime||now))/1000);lastTime
 for(const n of npcs){n.mesh.position.x+=n.speed*dt;if(n.mesh.position.x>67)n.mesh.position.x=-67;if(n.mesh.position.x< -67)n.mesh.position.x=67;n.mesh.rotation.y=n.speed>0?Math.PI/2:-Math.PI/2;}
 const t=task();beacon.position.set(t.x,.17+Math.sin(now*.0029)*.14,t.z);beacon.rotation.y=now*.0008;
 if(!$('aim').hidden){camPos.set(t.x+11,7.5,18);camLook.set(t.x,3.9,-4);}else{camPos.set(x-Math.sin(yaw)*9.5,5.8,z-Math.cos(yaw)*9.5);camLook.set(x,1.5,z);}
-camera.position.lerp(camPos,Math.min(1,dt*5));camera.lookAt(camLook);feel.update({scene,renderer,camera,player,dt,now,active,aiming:!$('aim').hidden});visuals.update({scene,root:world,player,mode:'jamarat',now});renderer.render(scene,camera);
+camera.position.lerp(camPos,Math.min(1,dt*5));camera.lookAt(camLook);avatars.update({player,sex:state.avatar,active,dt,now,npcs:npcs});feel.update({scene,renderer,camera,player,dt,now,active,aiming:!$('aim').hidden});visuals.update({scene,root:world,player,mode:'jamarat',now});renderer.render(scene,camera);
 if(projectile){const time=Math.min(1,(now-flightStart)/750),st=task();projectile.position.set(st.x+(flightEnd.x-st.x)*time,1.9+(flightEnd.y-1.9)*time+Math.sin(Math.PI*time)*4.1,9+(flightEnd.z-9)*time);projectile.rotation.x+=dt*8;if(time>=1)land();}
 for(const p of sparks){p.life-=dt;p.mesh.position.x+=p.dx*dt;p.mesh.position.y+=p.dy*dt;p.mesh.position.z+=p.dz*dt;p.mesh.scale.setScalar(Math.max(0,p.life));}
 sparks=sparks.filter(p=>{if(p.life>0)return true;scene.remove(p.mesh);p.mesh.geometry.dispose();p.mesh.material.dispose();return false;});
