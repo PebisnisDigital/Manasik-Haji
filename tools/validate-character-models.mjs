@@ -10,7 +10,7 @@ const expected=['Idle','Walk','Run'];
 function fail(msg){throw new Error('AVATAR QA: '+msg);}
 function parse(file){
  const data=fs.readFileSync(path.join(root,file));
- if(data.length<1024||data.length>524288)fail(file+' asset size outside range: '+data.length);
+ if(data.length<1024||data.length>900000)fail(file+' asset size outside range: '+data.length);
  if(data.readUInt32LE(0)!==0x46546c67||data.readUInt32LE(4)!==2||data.readUInt32LE(8)!==data.length)fail(file+' invalid glb header');
  const jl=data.readUInt32LE(12),jt=data.readUInt32LE(16);
  if(jt!==0x4e4f534a||jl%4!==0)fail(file+' invalid JSON chunk');
@@ -26,8 +26,8 @@ function parse(file){
   if(v.buffer!==0||v.byteOffset<0||v.byteLength<0||v.byteOffset+v.byteLength>binary.length)fail(file+' view '+i+' out of BIN bounds');
  }
  for(const [i,a] of accessors.entries()){
-  const v=buffers[a.bufferView];if(!v||!a.count||!['SCALAR','VEC3','VEC4'].includes(a.type))fail(file+' bad accessor '+i);
-  const n={SCALAR:1,VEC3:3,VEC4:4}[a.type],bytes=a.componentType===5126?4:a.componentType===5123?2:0;
+  const v=buffers[a.bufferView];if(!v||!a.count||!['SCALAR','VEC2','VEC3','VEC4'].includes(a.type))fail(file+' bad accessor '+i);
+  const n={SCALAR:1,VEC2:2,VEC3:3,VEC4:4}[a.type],bytes=a.componentType===5126?4:a.componentType===5123?2:0;
   if(!bytes||a.count*n*bytes>v.byteLength)fail(file+' accessor length mismatch '+i);
   if(a.componentType===5126){
    for(let k=0;k<a.count*n;k++)if(!Number.isFinite(binary.readFloatLE(v.byteOffset+k*4)))fail(file+' non-finite animation/mesh float in accessor '+i);
@@ -37,6 +37,28 @@ function parse(file){
   for(const child of node.children||[])if(!json.nodes[child])fail(file+' bad child '+i);
   if(node.mesh!==undefined&&!json.meshes[node.mesh])fail(file+' bad mesh index '+i);
   if(node.rotation&&Math.abs(Math.hypot(...node.rotation)-1)>.01)fail(file+' unnormalized quaternion in node '+i);
+ }
+
+ // Embedded skin, weave and normal textures: no external URLs or separate assets.
+ if(json.images?.length!==3||json.textures?.length!==3||json.samplers?.length!==1)fail(file+' missing V6 embedded textures');
+ const pngSig=Buffer.from([137,80,78,71,13,10,26,10]);
+ for(const image of json.images){
+  const view=buffers[image.bufferView];
+  if(!view||image.mimeType!=='image/png'||image.uri)fail(file+' invalid embedded image');
+  const data2=binary.subarray(view.byteOffset,view.byteOffset+view.byteLength);
+  if(!data2.subarray(0,8).equals(pngSig)||data2.length<70)fail(file+' invalid PNG signature');
+ }
+ for(const material of json.materials){
+  const withTexture=material.pbrMetallicRoughness?.baseColorTexture;
+  if(['skin','skinShade','skinLight','cloth','secondary','shade','clothLight','clothDark'].includes(material.name)&&!withTexture)fail(file+' untextured '+material.name);
+  for(const textureRef of [withTexture,material.normalTexture]){
+   if(textureRef&&!json.textures[textureRef.index])fail(file+' broken material texture');
+  }
+ }
+ for(const mesh of json.meshes)for(const prim of mesh.primitives){
+  if(prim.attributes.TEXCOORD_0===undefined)fail(file+' missing UV map');
+  const uv=accessors[prim.attributes.TEXCOORD_0],pos=accessors[prim.attributes.POSITION];
+  if(!uv||uv.type!=='VEC2'||uv.count!==pos.count)fail(file+' invalid UV accessor');
  }
  const animations=new Map((json.animations||[]).map(a=>[a.name,a]));
  for(const name of expected){
@@ -62,4 +84,4 @@ function parse(file){
  console.log('✓ QA',file,data.length+' bytes',json.nodes.length+' nodes',json.meshes.length+' meshes',expected.join('/'));
 }
 for(const name of ['pilgrim-male.glb','pilgrim-female.glb'])parse(name);
-console.log('✓ V5 character models passed structure, motion, modest clothing and size QA');
+console.log('✓ V6 character models passed structure, motion, modest clothing and size QA');
