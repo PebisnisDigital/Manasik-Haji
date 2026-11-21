@@ -4,6 +4,8 @@
   "license": "MIT",
   "description": "Real-time 3D agent-based simulation of tawaf and congregational prayer in the central area of Masjid al-Haram. Not a live feed.",
   "scripts": {
+    "predev": "node tools/build-character-models.mjs",
+    "prebuild": "node tools/build-character-models.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && npm run test:core && node tools/pwa-build.mjs prepare && vite build && node tools/pwa-build.mjs finish",
     "preview": "vite preview",
