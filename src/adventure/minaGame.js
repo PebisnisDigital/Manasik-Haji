@@ -16,7 +16,7 @@ const GOALS=[
  {map:'mina',x:21,z:-14,label:'Misi Mina selesai',hint:'Beristirahat dan siapkan tahap berikutnya.',action:''}
 ];
 const initial={version:1,stage:0,avatar:'male',ticket:false},state={...initial};
-let px=-34,pz=13,camYaw=-Math.PI*.75,heading=0,scene,renderer,camera,player,beacon,guide,worldGroup,ground,showNpc=[];
+let px=-34,pz=13,camYaw=Math.PI*.65,heading=0,scene,renderer,camera,player,beacon,guide,worldGroup,ground,showNpc=[];
 let raf=0,last=0,active=false,transfer=false,toastUntil=0,voice=false,ambience=null,ambGain=null,bus=null;
 const keys=new Set(),joy={pointer:null,x:0,y:0},look={pointer:null,x:0},cameraGoal=new THREE.Vector3(),lookAt=new THREE.Vector3(),matCache=new Map();
 const box=(x,y,z)=>new THREE.BoxGeometry(x,y,z),sphere=(radius=1)=>new THREE.SphereGeometry(radius,10,8);
@@ -62,7 +62,7 @@ function refresh(){const mission=GOALS[state.stage];$('title').textContent=missi
 function nextStage(){if(state.stage>=8)return;state.stage++;save();refresh();}
 function begin(){$('intro').hidden=true;$('menuPanel').hidden=true;$('helpPanel').hidden=true;active=state.stage<8;refresh();say(GOALS[state.stage].hint);if(state.stage===8){$('finishPanel').hidden=false;active=false;}}
 function pause(){if(transfer||state.stage>=8)return;active=false;$('menuPanel').hidden=false;$('checkpoint').textContent='Checkpoint misi '+Math.min(8,state.stage)+'/8 • '+GOALS[state.stage].map.toUpperCase();refresh();}
-function reset(){if(!confirm('Mulai ulang Level 06 dari awal?'))return;state.stage=0;state.ticket=false;px=-34;pz=13;camYaw=-Math.PI*.75;save();active=false;$('finishPanel').hidden=true;$('menuPanel').hidden=true;$('intro').hidden=false;buildWorld();}
+function reset(){if(!confirm('Mulai ulang Level 06 dari awal?'))return;state.stage=0;state.ticket=false;px=-34;pz=13;camYaw=Math.PI*.65;save();active=false;$('finishPanel').hidden=true;$('menuPanel').hidden=true;$('intro').hidden=false;buildWorld();}
 function busTravel(){active=false;transfer=true;$('travel').hidden=false;$('travelText').textContent='Rombongan A07 berangkat dari Makkah menuju Mina.';nextStage();setTimeout(()=>{px=-39;pz=10;camYaw=Math.PI/2;buildWorld();transfer=false;$('travel').hidden=true;active=true;toast('TIBA DI MINA',3);say('Kamu tiba di kawasan tenda Mina. Cari petugas rombongan.');refresh();},3600);}
 function action(){if(!active||transfer||state.stage>=8)return;const m=GOALS[state.stage];if(Math.hypot(px-m.x,pz-m.z)>=3.5)return;const s=state.stage;
 if(s===0){nextStage();toast('PANDUAN DIDAPAT');say('Pada hari Tarwiyah jemaah tamattu menyiapkan ihram haji di tempat tinggal di Makkah. Ikuti panduan penyelenggara.');}
