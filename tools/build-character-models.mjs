@@ -206,7 +206,7 @@ function buildAvatar(sex){
    shape('RobePleat'+i,box(),i%2?'clothDark':'clothLight',[i*.124,.59,.525+(1-v)*.033],[.016,.62-v*.19,.016],body);
   }
  }
- const arms=[],legs=[];
+ const arms=[],legs=[],knees=[];
  for(const side of [-1,1]){
   const arm=node(side===-1?'LeftArm':'RightArm',body,{translation:[side*.44,1.61,.015]});arms.push(arm);
   if(sex==='male'){
@@ -221,12 +221,14 @@ function buildAvatar(sex){
   for(let i=0;i<4;i++)shape('Finger'+side+'-'+i,cylinder(8),'skin',[side*.105+(i-1.5)*.047,-.868,.092],[.023,.151-Math.abs(i-1.5)*.010,.026],arm);
   shape('Thumb'+side,sphere(11,9),'skin',[side*.208,-.72,.09],[.048,.098,.046],arm);
   const leg=node(side===-1?'LeftLeg':'RightLeg',body,{translation:[side*.185,.71,0]});legs.push(leg);
-  shape('LowerLeg'+side,cylinder(16),sex==='male'?'skin':'shade',[0,-.29,0],[.151,.62,.153],leg);
-  shape('Ankle'+side,cylinder(12),'skin',[0,-.61,.018],[.110,.13,.113],leg);
-  shape('VisibleFoot'+side,sphere(16,10),'skin',[0,-.648,.122],[.162,.091,.261],leg);
-  shape('SandalSole'+side,sphere(16,10),'sole',[0,-.724,.14],[.186,.036,.302],leg);
-  shape('SandalFrontStrap'+side,box(),'strap',[0,-.611,.248],[.296,.042,.054],leg);
-  shape('SandalRearStrap'+side,box(),'strap',[0,-.608,.045],[.25,.041,.058],leg);
+  shape('Thigh'+side,cylinder(16),sex==='male'?'skin':'shade',[0,-.182,0],[.153,.398,.154],leg);
+  const knee=node(side===-1?'LeftKnee':'RightKnee',leg,{translation:[0,-.355,0]});knees.push(knee);
+  shape('Shin'+side,cylinder(16),sex==='male'?'skin':'shade',[0,-.155,0],[.145,.34,.148],knee);
+  shape('Ankle'+side,cylinder(12),'skin',[0,-.255,.018],[.110,.13,.113],knee);
+  shape('VisibleFoot'+side,sphere(16,10),'skin',[0,-.293,.122],[.162,.091,.261],knee);
+  shape('SandalSole'+side,sphere(16,10),'sole',[0,-.369,.14],[.186,.036,.302],knee);
+  shape('SandalFrontStrap'+side,box(),'strap',[0,-.256,.248],[.296,.042,.054],knee);
+  shape('SandalRearStrap'+side,box(),'strap',[0,-.253,.045],[.25,.041,.058],knee);
  }
  if(sex==='female')for(const side of [-1,1])shape('RobeSeam'+side,box(),'shade',[side*.41,.75,.34],[.024,.58,.02],body);
  const animations=[];
@@ -247,10 +249,21 @@ function buildAvatar(sex){
    const sign=k===0?1:-1;
    const wave=times.map((t,i)=>Math.sin(TAU*i/steps)*strength*sign);
    rot(legs[k],wave);
+   const bend=times.map((t,i)=>{
+    const a=TAU*i/steps+(k===0?0:Math.PI);
+    return name==='Idle'?.025:Math.max(0,Math.sin(a))*strength*(name==='Run'?.58:.43);
+   });
+   rot(knees[k],bend);
    rot(arms[k],wave.map(a=>-a*.66+sign*.029));
   }
   rot(headPivot,times.map((t,i)=>.017*Math.sin(TAU*i/steps+.35)),axisY);
-  rot(body,times.map((t,i)=>(name==='Idle'?.008:.024)*Math.sin(TAU*i/steps)),axisZ);
+  rot(body,times.map((t,i)=>(name==='Idle'?.008:.022)*Math.sin(TAU*i/steps)),axisZ);
+  const fabricName=sex==='male'?'RidaHangingEnd':'ScarfChest';
+  const fabricNode=nodes.findIndex(n=>n.name===fabricName);
+  if(fabricNode>=0){
+    const rest=sex==='male'?-.112:0;
+    rot(fabricNode,times.map((t,i)=>rest+(.009+strength*.08)*Math.sin(TAU*i/steps+.56)),axisZ);
+  }
   const bob=name==='Idle'?.008:name==='Walk'?.030:.051;
   channel(body,'translation',times.flatMap((t,i)=>{const angle=TAU*i/steps;return [.012*Math.sin(angle),bob*(1-Math.cos(2*angle))*.5,0];}),'VEC3');
   animations.push({name,samplers,channels});
