@@ -243,7 +243,7 @@ export function buildMaqam(mat: EnvMaterials): THREE.Group {
   // Gilt ribs around the glass.
   const ribs = 6;
   for (let i = 0; i < ribs; i++) {
-    const a = (i / ribs) * Math.PI * 2;
+    const a = (i / ribs) * Math.PI * 2 + Math.PI/6;
     const rib = new THREE.Mesh(
       new THREE.BoxGeometry(0.07, cageHeight, 0.07),
       mat.gold,

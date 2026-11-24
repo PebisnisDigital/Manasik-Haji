@@ -8,7 +8,7 @@ import {canStartSaiTransfer,readSaiTransfer,saiTransferResume} from './saiTransf
 
 export const TAWAF_CENTRE={x:0,z:64},TAWAF_RADIUS=30,TAWAF_STEP=Math.PI/4;
 export const TAWAF_BOUNDS=[-36,36,-8.1,96] as const;
-const landmarkLook=(id:string):readonly [number,number,number]=>{const p=HARAM_LANDMARKS.find(l=>l.id===id)!.at;return [p.x,p.y,p.z+64];};
+const landmarkLook=(id:string):readonly [number,number,number]=>{const p=HARAM_LANDMARKS.find(l=>l.id===id)!.at;return [p.x,id==='hajar'?1.5:id==='maqam'?2:id==='hijr'?1.2:1.6,p.z+64];};
 export const TAWAF_PLACES=[
  {id:'hajar',title:'Hajar Aswad & garis awal',x:23,z:64,look:landmarkLook('hajar'),hint:'Cari sudut Hajar Aswad: amati garis awal yang menjulur dari sisi Ka’bah. Jelajahi sendiri dan dekati tanda saat menemukannya.',body:'Kenali Hajar Aswad berbingkai perak dan garis awal yang sejajar dengannya. Kita mengenali titik ini dari jalur yang lapang, tanpa perlu menerobos jemaah. Hitungan latihan belum dimulai.'},
  {id:'maqam',title:'Maqam Ibrahim',x:21,z:48,look:landmarkLook('maqam'),hint:'Cari Maqam Ibrahim, bangunan kecil berwarna emas dan kaca di dekat Ka’bah. Perhatikan bentuknya dari pelataran.',body:'Kenali Maqam Ibrahim, tempat batu bersejarah Nabi Ibrahim yang dilindungi bingkai emas dan kaca. Gunakan sebagai penanda orientasi arena, lalu ikuti pembimbing ke titik berikutnya. Penjelajahan ini belum menambah putaran.'},

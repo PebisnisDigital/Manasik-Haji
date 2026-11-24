@@ -7,7 +7,7 @@ const w=KAABA.lengthNE/2,d=KAABA.lengthNW/2;
 export const BLACK_STONE_LOCAL={x:w+.13,y:1.5,z:d+.13};
 export const DOOR_LOCAL_Z=d-2.55;
 export const MAQAM_POSITION={x:Math.cos(-Math.PI/4)*MAQAM.distanceFromCentre,z:Math.sin(-Math.PI/4)*MAQAM.distanceFromCentre};
-export const CLOCK_POSITION={x:-32,y:0,z:209};
+export const CLOCK_POSITION={x:-36,y:0,z:269};
 const local=(x:number,y:number,z:number)=>kaabaLocalPoint(x,y,z);
 export const HARAM_LANDMARKS=[
  {id:'hajar',name:'Hajar Aswad',at:local(BLACK_STONE_LOCAL.x,2.55,BLACK_STONE_LOCAL.z),detail:'Batu hitam berbingkai perak. Tawaf dimulai dan diakhiri sejajar sudut ini.',near:10,far:40},

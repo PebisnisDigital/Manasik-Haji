@@ -32,3 +32,32 @@ describe('connected Tawaf, ordered route and shared old saves',()=>{
  }
  expect(moving.gates).toBe(8);});
 });
+
+import * as THREE from 'three';
+import {KAABA,GALLERY} from '../src/config/site.ts';
+import {BLACK_STONE_LOCAL,DOOR_LOCAL_Z,HARAM_LANDMARKS,CLOCK_POSITION,kaabaLocalPoint} from '../src/haramLandmarks.ts';
+import {buildKaaba} from '../src/env/Kaaba.ts';
+import type {EnvMaterials} from '../src/env/Materials.ts';
+describe('Haram landmark geometry',()=>{
+ it('puts the silver frame outside the actual east corner and exposes it to a ray from the courtyard',()=>{
+  expect(BLACK_STONE_LOCAL.x).toBeGreaterThan(KAABA.lengthNE/2);
+  expect(BLACK_STONE_LOCAL.z).toBeGreaterThan(KAABA.lengthNW/2);
+  const m=new THREE.MeshStandardMaterial(),mats=new Proxy({},{get:()=>m}) as EnvMaterials;
+  const g=buildKaaba(mats);g.updateMatrixWorld(true);
+  const stone=g.getObjectByName('hajar-aswad')!;
+  const at=stone.getWorldPosition(new THREE.Vector3());
+  const ray=new THREE.Raycaster(new THREE.Vector3(at.x+8,at.y,at.z),new THREE.Vector3(-1,0,0));
+  const hits=ray.intersectObject(g,true);
+  expect(hits.length).toBeGreaterThan(0);
+  expect(hits[0]!.object.parent).toBe(stone);
+  g.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});m.dispose();
+ });
+ it('anchors the four discovery targets to the same rendered geometry without changing checkpoints',()=>{
+  expect(HARAM_LANDMARKS.map(l=>l.id)).toEqual(['hajar','door','multazam','maqam','hijr','mizab','yamani','kiswah']);
+  for(const p of TAWAF_PLACES){const l=HARAM_LANDMARKS.find(l=>l.id===p.id)!;expect(p.look[0]).toBeCloseTo(l.at.x);expect(p.look[2]).toBeCloseTo(l.at.z+64);}
+  expect(DOOR_LOCAL_Z).toBeGreaterThan(0);
+  const east=kaabaLocalPoint(BLACK_STONE_LOCAL.x,BLACK_STONE_LOCAL.y,BLACK_STONE_LOCAL.z);
+  expect(east.x).toBeGreaterThan(8);
+  expect(Math.hypot(CLOCK_POSITION.x,CLOCK_POSITION.z-64)).toBeGreaterThan(GALLERY.outerWallRadius);
+ });
+});
