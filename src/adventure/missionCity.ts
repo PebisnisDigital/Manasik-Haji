@@ -1,3 +1,4 @@
+import {slidingDoorOffset} from './cityMissionEntry.ts';
 import {createLivePlazas} from './cityLivePlazas.ts';
 import {humanActor,updateHumanActors,disposeHumanActors} from '../characters/HumanActors.ts';
 import * as THREE from 'three';
@@ -41,14 +42,18 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   const long=w>d;for(let k=-(long?w:d)/2+4;k<(long?w:d)/2-2;k+=8)box(scene,long?3:.14,.015,long?.14:3,x+(long?k:0),.103,z+(long?0:k),white);
  }
  for(const r of CITY_ROADS)street(r.x,r.z,r.w,r.d);
- const doors:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
+ const doors:{left:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>;right:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>;open:number}[]=[];
  const signs:THREE.CanvasTexture[]=[];
  const guards:{root:THREE.Group;yaw:number;number:number;status:THREE.Sprite;ctx:CanvasRenderingContext2D;tex:THREE.CanvasTexture;last:string}[]=[];
  const names=program==='hajj'?NUSUK_LEVELS.map(l=>l.title):UMRAH_LEVELS.map(l=>l.title);
  for(const p of places){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;scene.add(g);
   const wall=mat([0xe1d6bd,0xc3d2c6,0xdcc2aa][(p.number-1)%3]!);
-  box(g,20,p.height,20,0,p.height/2,0,wall);
+  // Recessed doorway: the facade has an actual opening, not a painted door on a solid block.
+  box(g,20,p.height,17.2,0,p.height/2,-1.4,wall);
+  for(const x of [-5.95,5.95])box(g,8.1,p.height,2.8,x,p.height/2,8.6,wall);
+  box(g,3.8,p.height-3.2,2.8,0,(p.height+3.2)/2,8.6,wall);
+  box(g,3.8,.12,2.8,0,.06,8.6,pave);box(g,3.8,3.15,.08,0,1.62,7.24,dark);
   box(g,20.65,.38,20.65,0,p.height+.18,0,gold);
   box(g,20.25,.18,20.25,0,p.height-.6,0,white);
   box(g,5,.18,4,0,.09,12,pave);
@@ -57,8 +62,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   for(const x of [-8.8,8.8])box(g,.55,p.height,.7,x,p.height/2,10.1,white);
   for(const x of [-2.4,2.4])box(g,.55,4,.65,x,2,10.35,gold);
   box(g,5.8,.22,2.4,0,4.13,10.8,green);
-  const door=box(g,3.6,3.0,.15,0,1.58,10.12,mat(0x263a36));doors.push(door);
-  box(g,.075,2.9,.20,0,1.58,10.21,gold);
+  const doorMat=mat(0x263a36),left=box(g,1.8,3.0,.15,-.90,1.58,10.12,doorMat),right=box(g,1.8,3.0,.15,.90,1.58,10.12,doorMat);doors.push({left,right,open:0});
   const c=document.createElement('canvas');c.width=1024;c.height=256;const t=c.getContext('2d')!;
   t.fillStyle='#193d31';t.fillRect(0,0,1024,256);t.strokeStyle='#d8b972';t.lineWidth=7;t.strokeRect(9,9,1006,238);t.fillStyle='#f2d18b';t.font='bold 62px system-ui';t.textAlign='center';t.fillText('GEDUNG '+String(p.number).padStart(2,'0'),512,88);t.fillStyle='#fff4d9';t.font='bold 46px system-ui';t.fillText(names[p.number-1]??'Level '+p.number,512,172,945);
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;signs.push(tex);const sign=new THREE.Mesh(new THREE.PlaneGeometry(15,3.75),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));sign.position.set(0,5.4,10.25);g.add(sign);
@@ -95,11 +99,12 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  function render(active:CityVehicle|null,wheel:number,available:number[],target:number){
   for(const [kind,g,ws] of [['motor',motor,motorWheels],['mobil',car,carWheels]] as const){const v=get(kind);g.position.set(v.x,0,v.z);g.rotation.y=v.yaw;for(const w of ws)w.rotation.x=active?.kind===kind?wheel:0;}
   rider.visible=selected?.kind==='motor';
-  for(let i=0;i<doors.length;i++){const color=available.includes(i+1)?0xb9934c:0x35413e;if(doors[i]!.material.color.getHex()!==color)doors[i]!.material.color.setHex(color);}
+  for(let i=0;i<doors.length;i++){const d=doors[i]!,color=available.includes(i+1)?0xb9934c:0x35413e;if(d.left.material.color.getHex()!==color)d.left.material.color.setHex(color);}
   const p=places.find(p=>p.number===target);marker.visible=!!p;if(p){marker.position.x=p.door.x;marker.position.z=p.door.z;}
  }
+ function openDoor(number:number,amount:number){const d=doors[number-1];if(!d)return;d.open=amount;const offset=slidingDoorOffset(amount);d.left.position.x=-offset;d.right.position.x=offset;}
  function entrance(p:Point){return places.find(b=>distance(p,b.door)<3.5||guards.some(g=>g.number===b.number&&distance(p,{x:g.root.position.x,z:g.root.position.z})<2.4))??null;}
  function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});const q=plazas.guardStatus(g.number);const line=q.phase==='check'?'Periksa progres…':q.phase==='allow'?'Silakan masuk, '+q.name.split(' ')[0]:q.phase==='player'?'Giliran Anda':'Peserta berikutnya';g.status.visible=distance(hero,p)<15&&q.phase!=='wait';if(g.last!==line){g.last=line;g.ctx.fillStyle='#fff4dc';g.ctx.fillRect(0,0,512,128);g.ctx.strokeStyle='#bca16c';g.ctx.lineWidth=5;g.ctx.strokeRect(4,4,504,120);g.ctx.fillStyle='#23463a';g.ctx.font='bold 37px system-ui';g.ctx.textAlign='center';g.ctx.fillText(line,256,76,486);g.tex.needsUpdate=true;}}updateHumanActors(scene,dt,active,camera);}
  function reset(){const fresh=initial();for(const v of fresh)Object.assign(get(v.kind),v);selected=null;}
- return {places,solids,plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,near,take,update,leave,render,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
+ return {places,solids,plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,near,take,update,leave,render,openDoor,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
 }

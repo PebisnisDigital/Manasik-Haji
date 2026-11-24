@@ -38,7 +38,7 @@ import {installMissionMap} from './missionMap.ts';
 import {installLandscape} from './coreLandscape.ts';
 const $=(id:string)=>document.getElementById(id)!;
 const initial=coreSession();
-if(!initial){location.replace(tenantUrl('./index.html'));}else run(initial);
+if(!initial){location.replace(districtReturnUrl()??tenantUrl('./index.html'));}else run(initial);
 function run(initial:CoreSave){
  bootTenant();
  let fieldActivity:ReturnType<typeof mountHajjField>|null=null;

@@ -32,10 +32,10 @@ async function travelToLevelOne(){
   await page.keyboard.down('s');
   try{await page.getByRole('button',{name:'AKSI · Ikut antrean',exact:true}).waitFor({timeout:50000});}finally{await page.keyboard.up('s');}
   await page.getByRole('button',{name:'AKSI · Ikut antrean',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.playerQueue!=='idle');await page.getByRole('button',{name:'AKSI · Keluar antrean',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.playerQueue==='idle');await page.getByRole('button',{name:'AKSI · Ikut antrean',exact:true}).click();await page.locator('[data-choice="guardCheck"]').waitFor({timeout:180000});
-  assert.match(page.url(),/district\.html/);await page.locator('[data-choice="guardCheck"]').click();await page.locator('[data-choice="guardEnter"]').click();await page.waitForURL(/play=miqat/,{timeout:30000});
+  assert.match(page.url(),/district\.html/);await page.locator('[data-choice="guardCheck"]').click();await page.locator('[data-choice="guardEnter"]').click();await page.waitForFunction(()=>['approach','open','walk','launch'].includes(document.documentElement.dataset.cityEntry));await page.waitForURL(/play=miqat/,{timeout:30000});
  }finally{await page.keyboard.up('Shift');}
 }
-async function enter(token,guide,fresh=true){await page.goto(BASE+'/index.html?access=1#token='+token);await board(fresh);await travelToLevelOne();await page.locator('.miqatRoom[data-ready=true]').waitFor();assert.match(await page.locator('.miqatGuideTag').textContent(),new RegExp(guide));assert.equal(await page.locator('#vehicleInfo').count(),0);}
+async function enter(token,guide,fresh=true){await page.goto(BASE+'/index.html?access=1#token='+token);await board(fresh);await travelToLevelOne();await page.locator('.miqatRoom[data-ready=true]').waitFor();assert.match(await page.locator('.miqatGuideTag').textContent(),new RegExp(guide));assert.equal(await page.locator('#vehicleInfo').count(),0);assert.equal(await page.locator('#gameFront').count(),0);}
 
 try{
  for(const avatar of ['male','female']){
