@@ -1,3 +1,4 @@
+import {cityArenaLevel} from './adventure/arenaDoor.ts';
 import {aqabahActivities} from './env/AqabahActivities.ts';
 import {MUZDALIFAH_STONES} from './adventure/muzdalifahModel.ts';
 import {humanActor,updateHumanActors,disposeHumanActors} from './characters/HumanActors.ts';
@@ -94,7 +95,8 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions,options:
  }
  const aqabah=site==='jamarat'&&options.aqabah?aqabahActivities(s,walk?.avatar??'male'):null;
  const cam=new THREE.PerspectiveCamera(47,1,.1,180);let orbit=.2,elev=.43,dist=site==='jamarat'?22:34,focusX=0;const center=new THREE.Vector3(0,1.5,0);
- const walker=walk?attachWalker(s,cam,canvas,host,{...walk,lifeKind:site},site==='jamarat'?[-14,14,3.45,options.aqabah?22:10]:[-18,18,-10,13],obstacles,site==='jamarat'?[0,9]:[0,12],site==='jamarat'?[8,4.5]:site==='muzdalifah'?[0,3.5]:[0,-3]):null;if(walker)cam.fov=58;
+ const level=cityArenaLevel(),entry:readonly [number,number]=site==='jamarat'?(level===8?[3,12]:level===9?[-8,11]:[0,9]):[0,12];
+ const walker=walk?attachWalker(s,cam,canvas,host,{...walk,lifeKind:site},site==='jamarat'?[-14,14,3.45,options.aqabah?22:10]:[-18,18,-10,13],obstacles,entry,site==='jamarat'?[8,4.5]:site==='muzdalifah'?[0,3.5]:[0,-3]):null;if(walker)cam.fov=58;
  const locationSigns:{mesh:THREE.Mesh;position:THREE.Vector3}[]=[];s.traverse(o=>{if(o instanceof THREE.Mesh&&o.userData.locationSign)locationSigns.push({mesh:o,position:o.getWorldPosition(new THREE.Vector3())});});
  const stone=mesh(new THREE.DodecahedronGeometry(.11,0),rock,0,0,0);stone.visible=false;
  let shot:{i:number;elapsed:number;finish:()=>void;origin:THREE.Vector3}|null=null;let raf=0,disposed=false,drag:number|null=null,px=0,py=0,lastTime=0;

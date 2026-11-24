@@ -62,7 +62,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   const journeySpawn=()=>hub?hub.module.BOARD_SPAWN:transfer?(transferExit(journeyBus(),save.stage>=4?STATIONS.arrival:STATIONS.luggage)??districtSpawn(save)):(save.stage===5?errandSpawn(errands):null)??districtSpawn(save);
   const returning=hub?.access.program==='hajj'&&new URLSearchParams(location.search).get('board')!=='preview'?CITY_BUILDINGS.find(b=>b.number===districtVisit()):undefined;
   const first=CITY_BUILDINGS[0]!;const quick=hub&&isExampleMode()&&new URLSearchParams(location.search).get('start')==='1';
-  const spawn=returning?{x:returning.door.x+Math.sin(returning.yaw)*2,z:returning.door.z+Math.cos(returning.yaw)*2}:quick?{x:first.x+Math.cos(first.yaw)*-9.3+Math.sin(first.yaw)*17,z:first.z-Math.sin(first.yaw)*-9.3+Math.cos(first.yaw)*17}:journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
+  const spawn=returning?doorwayPoint(returning,8.35):quick?{x:first.x+Math.cos(first.yaw)*-9.3+Math.sin(first.yaw)*17,z:first.z-Math.sin(first.yaw)*-9.3+Math.cos(first.yaw)*17}:journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
   let hasan=companionSpawn(errands);
   let bus=journeyBus(),heading=returning?returning.yaw:quick?first.yaw+Math.PI:hub?Math.PI:1.3,cameraYaw=returning?returning.yaw:quick?first.yaw+Math.PI:hub?Math.PI:1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
   const playerMotion=new DistrictLocomotion(),hasanMotion=new DistrictLocomotion(),cameraPresentation=new DistrictCameraPresentation();
@@ -163,7 +163,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     showDialog(title,number===1?'Assalamualaikum! Selamat datang di Gedung 1 · '+initial.title+'. Boleh saya periksa akses perjalanan Anda?':'Assalamualaikum! Apakah Anda sudah menyelesaikan Level '+(number-1)+' · '+initial.previousTitle+'? Izinkan saya memeriksa progres Anda.',[{text:'Periksa progres saya',id:'guardCheck',run:check},{text:'Kembali',secondary:true}], 'POS KEAMANAN · GEDUNG '+number);
   }
   function interact(){
-    if(!controls.playable()||entering)return;
+    if(!controls.playable()||entering||leavingBuilding)return;
     if(city){if(pendingExit!==null&&!cityVehicle){const b=city.places.find(b=>b.number===pendingExit);if(b&&Math.hypot(hero.x-b.door.x,hero.z-b.door.z)<5){receiveStar(b.number);return;}}if(queuedBuilding!==null){city.leaveQueue(queuedBuilding);queuedBuilding=null;queueStage=0;controls.clear();toast('Keluar antrean. Tekan AKSI untuk ikut kembali.');return;}if(cityVehicle){const p=city.leave(cityVehicle);if(!p){toast('Rem sampai berhenti, lalu cari sisi yang kosong.');return;}hero.set(p.x,0,p.z);heading=cityVehicle.yaw;cameraYaw=heading;cityVehicle=null;driving=false;bus={...city.bus()};frameCamera(true);controls.clear();return;}
       const building=city.queueNear(hero)??city.entrance(hero)?.number;if(building!==undefined&&building!==null){if(city.joinQueue(building)){queuedBuilding=building;queueStage=0;controls.clear();toast('Ikut antrean Gedung '+building);}return;}const v=city.near(hero);if(v){cityVehicle=city.take(v.kind);bus=cityVehicle;driving=true;cameraYaw=v.yaw;wheelAngle=0;frameCamera(true);controls.clear();toast('Naik '+city.label(v.kind)+' · Rem lalu AKSI untuk turun');return;}journeyBoard?.open();return;}
     if(driving){exitBus();return;}
@@ -215,7 +215,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   if(hub){intro.hidden=true;started=true;document.documentElement.classList.add('districtHubMode');document.title='Distrik Perjalanan — HAJJI.DIGITAL';el('objectiveNumber').parentElement!.firstChild!.textContent='HAJJI.DIGITAL ';el('districtCoins').closest('.rewardCard')?.setAttribute('hidden','');el('actionHint').textContent='Pilih gedung · naik kendaraan · masuk pintu';el('missionButton').setAttribute('aria-label','Baca peta perjalanan');canvas.focus();}else{intro.hidden=false;intro.showModal();}
   function resize(){budget.resize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   window.addEventListener('resize',resize);resize();frameCamera(true);
-  if(returning)queueMicrotask(()=>receiveStar(returning.number));
+  let leavingBuilding=returning??null;if(leavingBuilding)city?.openDoor(leavingBuilding.number,1);
   const f={f0:0,f1:0,frac:0,frameB:0,blend:0},projected=new THREE.Vector3();
   function submit(r:Pick<CrowdRenderer,'submit'>,x:number,z:number,yaw:number,phase:number,moving:boolean,palette=0,motion?:DistrictLocomotion){if(!motion){resolveFrames(moving?Clip.WALK:Clip.IDLE,phase,f);f.frameB=f.f0;}const pose=motion?.pose??f;const distance=Math.hypot(x-camera.position.x,z-camera.position.z);r.submit(distance<20?0:distance<60?1:2,x,.1,z,yaw,1.74,1,pose.f0,pose.f1,pose.frac,pose.frameB,pose.blend,palette,1);}
   function label(id:string,p:{x:number;z:number}){const item=el(id);projected.set(p.x,2.5,p.z).project(camera);item.hidden=!started||projected.z>1||projected.z< -1||Math.hypot(hero.x-p.x,hero.z-p.z)>28;item.style.left=(projected.x*.5+.5)*innerWidth+'px';item.style.top=(-projected.y*.5+.5)*innerHeight+'px';}
@@ -232,7 +232,8 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     city?.advanceQueues(hero,step);
     const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'))-joy.y;
     const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'))+joy.x;
-    if(entering&&city&&journeyBoard){
+    if(leavingBuilding&&city&&active){const b=leavingBuilding,next=stepQueueWalk(hero,doorwayPoint(b,12.9),step,2.1);hero.x=next.x;hero.z=next.z;if(next.yaw!==null&&next.travel>.00005){heading=next.yaw;audio.step();}if(next.arrived){city.openDoor(b.number,0);leavingBuilding=null;receiveStar(b.number);}}
+    else if(entering&&city&&journeyBoard){
       const transition=entering,b=city.places.find(p=>p.number===transition.number);if(b&&active){
         const walkTo=(depth:number)=>{const next=stepQueueWalk(hero,doorwayPoint(b,depth),step,2.1);hero.x=next.x;hero.z=next.z;if(next.yaw!==null&&next.travel>.00005){heading+=Math.atan2(Math.sin(next.yaw-heading),Math.cos(next.yaw-heading))*followAlpha(14,step);audio.step();}return next.arrived;};
         const look=b.yaw+Math.PI;cameraYaw+=Math.atan2(Math.sin(look-cameraYaw),Math.cos(look-cameraYaw))*followAlpha(4,step);

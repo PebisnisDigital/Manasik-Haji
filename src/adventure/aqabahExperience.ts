@@ -1,3 +1,4 @@
+import {cityArenaLevel,requestArenaExit} from './arenaDoor.ts';
 import {districtReturnUrl,districtExitLabel} from './districtReturn.ts';
 import {nusukNumber,NUSUK_LEVELS} from './nusukModel.ts';
 import {hajjLevelMessage} from './levelMessages.ts';
@@ -13,7 +14,7 @@ export function mountAqabah(h:Hooks){
  const notice=()=>document.getElementById('notice')!;
  function persist(next:AqabahSave){if(!storeAqabah(next,h.legacyThrows,h.after)){running=false;view?.setCampPose(null);notice().textContent='Kegiatan belum tersimpan atau berubah di tab lain. Muat ulang untuk melanjutkan checkpoint.';return false;}state=next;return true;}
  function applyHair(){return h.practice||finishHaircut(h.avatar,h.avatar==='female'?'trim':'shave','hajj');}
- function next(){if(state.beat===1&&!view?.campCare('hydrate')){notice().textContent='Air dan bekal belum tersimpan. Coba lagi.';return;}if(state.beat===9&&!applyHair()){notice().textContent='Hasil tahallul belum tersimpan. Coba lagi.';return;}const previous=state.beat;if(persist({...state,beat:state.beat+1,elapsed:0})){running=false;view?.setCampPose(null);draw();if(previous===7){const url=districtReturnUrl();if(url){document.getElementById('actions')!.replaceChildren();h.base('Level 8 selesai','Keluar dari gedung untuk menerima bintang dari penjaga.','PERFECT · LEVEL 8');h.action(districtExitLabel('Kembali ke distrik'),()=>location.assign(url));return;}const message=hajjLevelMessage(8);notifySimplePlay(message.completedTitle+'. '+message.nextLabel);}}else buttons();}
+ function next(){if(state.beat===1&&!view?.campCare('hydrate')){notice().textContent='Air dan bekal belum tersimpan. Coba lagi.';return;}if(state.beat===9&&!applyHair()){notice().textContent='Hasil tahallul belum tersimpan. Coba lagi.';return;}const previous=state.beat;if(persist({...state,beat:state.beat+1,elapsed:0})){running=false;view?.setCampPose(null);draw();if(previous===7){const url=districtReturnUrl();if(url){document.getElementById('actions')!.replaceChildren();h.base('Level 8 selesai','Keluar dari gedung untuk menerima bintang dari penjaga.','PERFECT · LEVEL 8');h.action(districtExitLabel('Kembali ke distrik'),()=>requestArenaExit());return;}const message=hajjLevelMessage(8);notifySimplePlay(message.completedTitle+'. '+message.nextLabel);}}else buttons();}
  function start(){if(!view?.near())return;notice().textContent='';if(!aqabahDuration(state.beat)||state.beat===9&&state.cuts===3){next();return;}running=true;if(state.beat===9)view.setCampPose({clip:Clip.TASHAHHUD,phase:.5});buttons();}
  function throwOne(){if(!view?.near()||inFlight||state.throws>=7)return;inFlight=true;h.takbir();buttons();view.throwStone(2,()=>{if(disposed)return;inFlight=false;if(persist({...state,throws:state.throws+1})){notice().textContent='Allahu akbar · '+state.throws+'/7 kerikil masuk area Aqabah.';draw();}else buttons();});}
  function buttons(){document.getElementById('actions')!.replaceChildren();
@@ -30,7 +31,7 @@ export function mountAqabah(h:Hooks){
   if(state.beat===9)label=state.cuts===3?'Tahallul selesai · simpan hasil':state.cuts===0?b.action:'Lanjut tindakan petugas '+(state.cuts+1)+'/3';
   h.arrive(label,()=>{if(state.beat===4||state.beat===7){buttons();return;}if(state.beat===5&&state.throws<7)throwOne();else start();});
  }
- function draw(){const b=AQABAH_BEATS[state.beat],number=nusukNumber('aqabah',state.beat);h.level(number,NUSUK_LEVELS[number-1].title);if(!view)view=h.scene('jamarat');
+ function draw(){const b=AQABAH_BEATS[state.beat],number=cityArenaLevel()??nusukNumber('aqabah',state.beat);h.level(number,NUSUK_LEVELS[number-1].title);if(!view)view=h.scene('jamarat');
   if(!b){h.base('Aqabah dan tahallul awal selesai','Tujuh lontaran, panduan dam dan tahallul sudah tersimpan. Lanjutkan Tawaf Ifadah. Sa’i haji tidak diulang jika sudah diselesaikan setelah Tawaf Qudum.','PERFECT · LEVEL 9');view?.setAqabahActivity(state.beat,state.cuts,0);buttons();return;}
   view?.setGoal(b.goal[0],b.goal[1]);view?.setAqabahActivity(state.beat,state.cuts,state.beat===9?state.elapsed/2.4:0);
   h.base(b.title,b.body,'LEVEL '+number+' · KEGIATAN '+(state.beat+1)+'/'+AQABAH_BEATS.length);buttons();

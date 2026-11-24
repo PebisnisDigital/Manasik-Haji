@@ -1,3 +1,4 @@
+import {cityArenaHref} from './arenaDoor.ts';
 import {directMissionEntry} from './cityMissionEntry.ts';
 import {isExampleMode,validExampleCode,exampleKey} from './exampleAccess.ts';
 import {readStars,claimStar} from './cityStars.ts';
@@ -22,7 +23,7 @@ function levels(program:Program):Level[]{
  if(preview)return (program==='hajj'?NUSUK_LEVELS:UMRAH_LEVELS.map((l,i)=>({...l,number:i+1}))).map(l=>({number:l.number,title:l.title,done:false,available:l.number===1,saved:false,href:''}));
  if(program==='hajj'){
   const route=loadNusukRoute();
-  return route.chapters.map((l,i)=>{const entry=i===0?miqatEntryUrl(demo):withTransfer(l.href);return {...l,available:checkGateProgress(route.chapters,l.number).allowed,href:entry.includes('district.html?transfer=')?l.href:entry};});
+  return route.chapters.map((l,i)=>{const entry=i===0?miqatEntryUrl(demo):withTransfer(l.href);return {...l,available:checkGateProgress(route.chapters,l.number).allowed,href:cityArenaHref(l.number,entry.includes('district.html?transfer=')?l.href:entry)};});
  }
  const run=readCore('umrah'),step=run?.step??0;
  return UMRAH_LEVELS.map((l,i)=>({number:i+1,title:l.title,done:i<step,available:i===step,saved:!!run&&i===step,href:i===0?miqatEntryUrl(demo):run&&i===step?umrahDeparture(run.step,coreUrl(run,gamePage(run.step)??'manasik.html')):''}));

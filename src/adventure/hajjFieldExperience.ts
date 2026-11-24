@@ -1,3 +1,4 @@
+import {cityArenaLevel} from './arenaDoor.ts';
 import {wearIhram} from '../characters/playerAppearance.ts';
 import {readFieldActivity,storeFieldActivity,fieldDuration,wukufDayProgress,type FieldKind,type FieldActivity} from './hajjFieldModel.ts';
 import type {SiteView} from '../hajjScenes.ts';
@@ -35,7 +36,8 @@ export function mountHajjField(kind:FieldKind,h:Hooks){
  function draw(){
   if(disposed)return;
   if(kind==='mina'){
-   if(state.phase===0){view=h.scene('prep');h.base('Tetap dalam ihram · bersiap menuju Mina','Pada jalur qiran, ihram sejak miqat masih berlangsung. Tidak ada tahallul umrah awal dan tidak perlu mengulang niat. Periksa pakaian serta bekal sebelum menuju Mina pada 8 Zulhijah.','LEVEL 4 · 8 ZULHIJAH');const el=document.getElementById('arabic')!;el.hidden=true;h.prep('Bekal siap · menuju bus Mina',()=>{if(!wearIhram())return;h.dress();if(save(1))draw();});}
+   if(state.phase===0&&cityArenaLevel()===4){if(!view)view=h.scene('mina');view?.setGoal(0,-3);h.base('Selamat datang di Mina','Tetap dalam ihram sejak miqat. Temui pembimbing dan periksa bekal sebelum berkemah.','LEVEL 4 · MINA');h.arrive('Bekal siap · mulai kegiatan Mina',()=>{if(!wearIhram())return;if(save(1))draw();});}
+   else if(state.phase===0){view=h.scene('prep');h.base('Tetap dalam ihram · bersiap menuju Mina','Pada jalur qiran, ihram sejak miqat masih berlangsung. Tidak ada tahallul umrah awal dan tidak perlu mengulang niat. Periksa pakaian serta bekal sebelum menuju Mina pada 8 Zulhijah.','LEVEL 4 · 8 ZULHIJAH');const el=document.getElementById('arabic')!;el.hidden=true;h.prep('Bekal siap · menuju bus Mina',()=>{if(!wearIhram())return;h.dress();if(save(1))draw();});}
    else if(state.phase===1&&h.needsMinaBus()){view=h.scene('prep');h.dress();h.base('Bus rombongan menuju Mina','Rombongan tetap dalam ihram sejak miqat. Naik bus bersama pembimbing, ikuti rute, lalu turun di terminal untuk mencari tenda rombongan.','LEVEL 4 · BERANGKAT KE MINA');h.action('Naik bus menuju Mina',h.bus);}
    else if(state.phase===1){if(save(2))draw();return;}
    else{

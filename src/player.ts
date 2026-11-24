@@ -1,3 +1,5 @@
+import {cityArenaLevel,createArenaDoor,exitButton} from './adventure/arenaDoor.ts';
+import {districtReturnUrl} from './adventure/districtReturn.ts';
 import {mountSimplePlayHud} from './simplePlayHud.ts';
 import {simpleMenuOpen,simpleSprinting} from './simpleInput.ts';
 import {earlierHajjSaiDone} from './adventure/nusukMode.ts';
@@ -96,6 +98,7 @@ function boot(): void {
   const marker = new THREE.Mesh(new THREE.RingGeometry(0.44,0.54,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x216d55,side:THREE.DoubleSide,depthWrite:false}));
   marker.position.y=0.07;scene.add(marker);
   let x = Math.cos(START)*START_RADIUS, z = Math.sin(START)*START_RADIUS, yaw = Math.PI;
+  const level=cityArenaLevel(),exitDoor=level===10||level===12?createArenaDoor(scene,x,z,Math.atan2(-x,-z),level):null;let exiting=false,exitControl:HTMLButtonElement|null=null;
   let orbit = 0, walkPhase = 0, total = 0, completed = 0, auto = false, finished = false, last = performance.now();
   let lastAngle: number = START;
   let wrongSince=0,wrongAnnounced=false,announcedLap=0;
@@ -153,6 +156,7 @@ function boot(): void {
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
+  if(level===12&&exitDoor&&core){nextSai.textContent='Kembali ke pintu masuk';nextSai.addEventListener('click',e=>{if(!coreFinished)return;e.preventDefault();if(!completeCoreGame(core,core.step as CoreGameStep))return;exiting=true;exitDoor.highlight();nextSai.hidden=true;exitControl??=exitButton(()=>{if(Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z)<1.5){const url=districtReturnUrl();if(url)location.assign(url);}});status.textContent='Kembali ke pintu masuk, lalu tekan AKSI.';});}
   function frame(now:number):void {
     const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=simpleMenuOpen()||paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
     const angle=Math.atan2(z,x);
@@ -184,6 +188,7 @@ function boot(): void {
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }
+    if(exiting&&exitDoor){x+=dx*dt;z+=dz*dt;const r=Math.hypot(x,z),bounded=THREE.MathUtils.clamp(r,MIN_RADIUS,MAX_RADIUS);if(r>0){x*=bounded/r;z*=bounded/r;}const d=Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z);if(exitControl)exitControl.textContent=d<1.5?'AKSI · Keluar gedung':'Pintu masuk · '+Math.ceil(d)+' m';}
     life.tick(dt,{x,z},!stopped&&!finished);
     const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);if(dt>0)tutorial?.event({type:'walk',amount:dist});tutorial?.paint();
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}

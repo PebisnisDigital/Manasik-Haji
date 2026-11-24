@@ -27,10 +27,10 @@ export function decodeTahallul(raw:string|null):TahallulProgress|null {
   } catch {return null;}
 }
 export function loadProgress<T>(key:string,decode:(raw:string|null)=>T|null):T|null {
-  try {return decode(localStorage.getItem(key))??decode(localStorage.getItem(key+'.backup'));} catch {return null;}
+  try {key=exampleKey(key);return decode(localStorage.getItem(key))??decode(localStorage.getItem(key+'.backup'));} catch {return null;}
 }
 export function storeProgress(key:string,value:object):boolean {
-  try {
+  try {key=exampleKey(key);
     const previous=localStorage.getItem(key);
     if(previous){try{const record=JSON.parse(previous);if(typeof record?.version==='number'&&record.version>1)return false;}catch{/* Recovery can replace truncated JSON. */}}
     // Retain a valid previous record. A broken primary must not replace a good backup.

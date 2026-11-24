@@ -1,3 +1,4 @@
+import {cityArenaLevel,QUDUM_ENTRY,requestArenaExit} from './adventure/arenaDoor.ts';
 import {districtReturnUrl,districtExitLabel} from './adventure/districtReturn.ts';
 import {hajjLevelMessage} from './adventure/levelMessages.ts';
 import {mountSimplePlayHud} from './simplePlayHud.ts';
@@ -28,6 +29,7 @@ import './miqatRoom.css';
 export function mountMiqatRoom(){
  const setup=readSetup()??defaultSetup();
  if(!readSetup()&&!saveSetup(setup)){document.body.textContent='Pengaturan belum dapat disimpan. Periksa penyimpanan browser lalu muat ulang.';return;}
+ const cityLevel=cityArenaLevel(),directQudum=cityLevel===2;
  const requestedArrival=new URLSearchParams(location.search).has('arrival');
  const requestedSai=new URLSearchParams(location.search).has('sai');
  const requestedTawaf=new URLSearchParams(location.search).has('tawaf');
@@ -38,8 +40,8 @@ export function mountMiqatRoom(){
  const guide=gateGuide(setup.avatar),mapUrl=tenantUrl('./adventure-map.html?journey='+setup.program);
  let lesson=readMiqatLesson(setup.program,setup.avatar),failed=false,portrait=()=>false,disposed=false;
  let arrival:ReturnType<typeof mountArrivalJourney>|null=null;
- const resumeTawaf=setup.program==='hajj'&&canEnterContinuousTawaf()&&(requestedTawaf||requestedSai||readTawafTour(setup.avatar).active);
- const resumeArrival=canEnterArrival(setup.program)&&(resumeTawaf||requestedArrival||readArrivalJourney(setup.program,setup.avatar).active);
+ const resumeTawaf=cityLevel!==1&&setup.program==='hajj'&&canEnterContinuousTawaf()&&(requestedTawaf||requestedSai||readTawafTour(setup.avatar).active);
+ const resumeArrival=cityLevel!==1&&canEnterArrival(setup.program)&&(resumeTawaf||requestedArrival||directQudum||readArrivalJourney(setup.program,setup.avatar).active);
  const root=document.createElement('main');root.className='miqatRoom';root.innerHTML='<div class="miqatWorld"><canvas aria-label="Arena 3D Miqat dan Ihram"></canvas><div class="miqatGuideTag"></div></div><header class="miqatHeader"><div><b>HAJJI<span>.DIGITAL</span></b><small>LEVEL 1 · MIQAT & IHRAM</small></div><button id="miqatPause" aria-haspopup="dialog">Jeda / bantuan</button></header><section class="miqatObjective" aria-labelledby="miqatGoal"><div class="miqatEyebrow" id="miqatCount"></div><h1 id="miqatGoal"></h1><p id="miqatHint"></p><div class="miqatProgress" aria-label="Progres persiapan"><span></span></div><div class="miqatActions"><button id="miqatWalk">Jalan ke penanda</button><button id="miqatInteract" class="miqatPrimary">Interaksi · E</button></div><p id="miqatNotice" role="status"></p><small>WASD / stik kiri · Geser kamera · E untuk interaksi</small></section>';
  document.body.append(root);
  const $=<T extends HTMLElement>(id:string)=>root.querySelector<T>('#'+id)!;
@@ -93,7 +95,7 @@ export function mountMiqatRoom(){
   card(part<3?'Talbiyah · Bagian '+(part+1)+' dari 3':'Talbiyah · Bacaan lengkap',data,()=>part<3?talbiyah(part+1):advance(5),part<3?'Lanjut bacaan':'Sudah dipelajari, temui pembimbing');
  }
  let beginArrival=()=>{};
- function finished(){const message=hajjLevelMessage(1);show(message.completedTitle, message.recap,[{label:setup.program==='hajj'?districtExitLabel(message.nextLabel):'Lanjut Level 2 · Tawaf',id:'miqatNext',fn:()=>{const url=districtReturnUrl();if(url&&setup.program==='hajj')location.assign(url);else beginArrival();}},{label:'Buka peta perjalanan →',id:'miqatMap',primary:false,fn:()=>location.assign(districtReturnUrl()??mapUrl)}]);}
+ function finished(){const message=hajjLevelMessage(1);show(message.completedTitle, message.recap,[{label:setup.program==='hajj'?districtExitLabel(message.nextLabel):'Lanjut Level 2 · Tawaf',id:'miqatNext',fn:()=>{const url=districtReturnUrl();if(url&&setup.program==='hajj'){close();requestArenaExit();}else beginArrival();}},{label:'Buka peta perjalanan →',id:'miqatMap',primary:false,fn:()=>{if(districtReturnUrl()){close();requestArenaExit();}else location.assign(mapUrl);}}]);}
  function pause(){if(blocked()||lifeOpen())return;show('Perjalanan dijeda','Gerakkan joystick untuk berjalan dan geser layar untuk melihat. Gunakan Lari untuk bergerak lebih cepat, lalu Aksi di penanda. Di PC: WASD, Shift dan E. Progres tersimpan otomatis.',[
   {label:'Lanjut bermain',fn:close,id:'miqatResume'},
   ...(lesson.book||arrival?[{label:'Buka buku panduan',primary:false,fn:()=>card('Buku panduan · Niat',miqatCards(1,setup.avatar,'madinah',setup.program==='hajj'?'qiran':'umrah')[1],()=>card('Buku panduan · Talbiyah',miqatCards(2,setup.avatar,'madinah',setup.program==='hajj'?'qiran':'umrah')[0],close,'Tutup buku'),'Lihat talbiyah')}]:[]),
@@ -111,7 +113,7 @@ export function mountMiqatRoom(){
  }
  let gate:THREE.Mesh;
  const bounds:[number,number,number,number]=[...MIQAT_BOUNDS];
- const obstacles:Obstacle[]=MIQAT_OBSTACLES.map(o=>({...o}));if(lesson.stage===0&&!resumeArrival)obstacles.push(MIQAT_GATE);
+ const obstacles:Obstacle[]=directQudum?[]:MIQAT_OBSTACLES.map(o=>({...o}));if(lesson.stage===0&&!resumeArrival)obstacles.push(MIQAT_GATE);
  function setGoal(){const goal=MIQAT_GOALS[lesson.stage];walker.setGoal(goal.x,goal.z);const i=obstacles.indexOf(MIQAT_GATE);if(lesson.stage>0&&i>=0)obstacles.splice(i,1);gate.visible=lesson.stage===0;$('miqatNotice').textContent='';paint();}
  $('miqatPause').onclick=pause;$('miqatWalk').onclick=()=>arrival?arrival.approach():walker?.approach();$('miqatInteract').onclick=()=>arrival?interact():lesson.stage===6?finished():interact();
  dialog.addEventListener('close',paint);dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
@@ -140,18 +142,20 @@ export function mountMiqatRoom(){
   box(.8,.95,2.6,wood,5,.475,-4.8);box(.95,.08,2.75,gold,5,.99,-4.8);box(2.2,.03,2.8,fabric,3.9,.025,-4.8);label('3 · TALBIYAH',4.4,2.65,-7.45,2.8);
   for(const x of [-5.5,5.5]){box(.7,.7,.7,stone,x,.35,2.3);const crown=new THREE.Mesh(new THREE.SphereGeometry(.7,12,8),green);crown.position.set(x,1.1,2.3);scene.add(crown);}
   for(let z=1;z<9;z+=1.2)box(.12,.012,.65,gold,0,.01,z);
+  const miqatObjects=scene.children.filter(o=>o instanceof THREE.Mesh);
+  if(directQudum)for(const object of miqatObjects)object.visible=false;
   const npc=humanActor(scene,setup.avatar==='female'?0x355c4e:0xf3ecdb,setup.avatar==='female');npc.position.set(0,0,3.5);npc.rotation.y=0;tag.textContent=guide.name+' · Pembimbing';
-  const pilgrim=humanActor(scene,0xece6d5,setup.avatar==='female');pilgrim.position.set(-5.5,0,-7);pilgrim.rotation.y=-Math.PI/2;
-  const start=resumeTawaf?continuousTawafResume(setup.avatar):resumeArrival?arrivalResumePoint(readArrivalJourney(setup.program,setup.avatar).stage):lesson.stage===0?[0,7] as const:lesson.stage===1?[0,2] as const:lesson.stage===2?[-3.8,-1.5] as const:lesson.stage===3?[-3.8,-3.5] as const:lesson.stage===4?[0,-5.5] as const:lesson.stage===5?[3.8,-4.8] as const:[0,2.5] as const;
+  const pilgrim=humanActor(scene,0xece6d5,setup.avatar==='female');pilgrim.position.set(-5.5,0,-7);pilgrim.rotation.y=-Math.PI/2;if(directQudum)pilgrim.visible=false;
+  const start=resumeTawaf?continuousTawafResume(setup.avatar):resumeArrival?(directQudum&&readArrivalJourney(setup.program,setup.avatar).stage===0?QUDUM_ENTRY:arrivalResumePoint(readArrivalJourney(setup.program,setup.avatar).stage)):lesson.stage===0?[0,7] as const:lesson.stage===1?[0,2] as const:lesson.stage===2?[-3.8,-1.5] as const:lesson.stage===3?[-3.8,-3.5] as const:lesson.stage===4?[0,-5.5] as const:lesson.stage===5?[3.8,-4.8] as const:[0,2.5] as const;
   // Expand before controller construction so a restored Level 2 checkpoint stays inside its bounds.
   if(resumeArrival){bounds[1]=36;bounds[3]=72;}
   if(resumeTawaf)for(let i=0;i<4;i++)bounds[i]=canStartSaiTransfer()&&readSaiTransfer(setup.avatar).active?SAI_TRANSFER_BOUNDS[i]:TAWAF_BOUNDS[i];
-  const goal=MIQAT_GOALS[lesson.stage];walker=attachWalker(scene,camera,canvas,host,{avatar:setup.avatar,wardrobe:resumeArrival||lesson.stage>=3?'ritual':'casual',lifeKind:'miqat',blocked,onNear:paint},bounds,obstacles,start,[goal.x,goal.z]);setGoal();
+  const goal=MIQAT_GOALS[lesson.stage];walker=attachWalker(scene,camera,canvas,host,{avatar:setup.avatar,wardrobe:resumeArrival||lesson.stage>=3?'ritual':'casual',lifeKind:'miqat',arenaEntry:directQudum?QUDUM_ENTRY:[0,7],arenaYaw:directQudum?0:Math.PI,blocked,onNear:paint},bounds,obstacles,start,[goal.x,goal.z]);setGoal();
   beginArrival=()=>{if(arrival||!canEnterArrival(setup.program))return;const state=readArrivalJourney(setup.program,setup.avatar);if(!state.active&&!storeArrivalJourney(setup.program,setup.avatar,{version:1,active:true,stage:0})){warning('Perjalanan Level 2 belum dapat disimpan. Progres Level 1 tetap aman.');return;}
-   try{close();gate.visible=false;const i=obstacles.indexOf(MIQAT_GATE);if(i>=0)obstacles.splice(i,1);walker.setWardrobe('ritual');scene.fog=new THREE.Fog(0xc7ddd9,100,300);arrival=mountArrivalJourney({scene,renderer,walker,guide:npc,program:setup.program,avatar:setup.avatar,bounds,obstacles,host,blocked:()=>blocked()||lifeOpen(),show,close,notice:warning,changed:()=>{paintSignature='';},resumeTawaf});paintSignature='';paint();document.title=arrival.tawaf()?'Tawaf Qudum · HAJJI.DIGITAL':'Menemukan Ka’bah · HAJJI.DIGITAL';}
+   try{close();gate.visible=false;const i=obstacles.indexOf(MIQAT_GATE);if(i>=0)obstacles.splice(i,1);walker.setWardrobe('ritual');scene.fog=new THREE.Fog(0xc7ddd9,100,300);arrival=mountArrivalJourney({scene,renderer,walker,guide:npc,program:setup.program,avatar:setup.avatar,bounds,obstacles,host,blocked:()=>blocked()||lifeOpen(),show,close,notice:warning,changed:()=>{paintSignature='';},resumeTawaf,directQudum});paintSignature='';paint();document.title=arrival.tawaf()?'Tawaf Qudum · HAJJI.DIGITAL':'Menemukan Ka’bah · HAJJI.DIGITAL';}
    catch{failed=true;warning('Kawasan belum dapat dimuat. Muat ulang untuk melanjutkan checkpoint Level 2.');paint();}
   };
-  if(resumeArrival)beginArrival();
+  if(resumeArrival)beginArrival();if(directQudum){walker.lookAt(0,3.2,64);root.dataset.arenaEntry='qudum';}
   portrait=installLandscape(()=>{window.dispatchEvent(new Event('blur'));if(dialog.open)dialog.close();paint();});
   const resize=()=>{budget.resize(host.clientWidth,host.clientHeight);camera.aspect=host.clientWidth/Math.max(1,host.clientHeight);camera.updateProjectionMatrix();};const observer=new ResizeObserver(resize);observer.observe(host);resize();
   let frame=0,last=0;const vector=new THREE.Vector3();
