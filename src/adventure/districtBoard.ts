@@ -68,7 +68,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   ctx.textAlign='left';ctx.fillStyle='#e9cb89';ctx.font='bold 31px system-ui';ctx.fillText('HAJJI.DIGITAL',66,70);
   ctx.fillStyle='#fff5dc';ctx.font='bold 66px system-ui';ctx.fillText(program==='hajj'?'PETA PERJALANAN HAJI':'PETA PERJALANAN UMROH',66,151);
   ctx.font='32px system-ui';ctx.fillStyle='#d2e2d4';ctx.fillText('Sentuh level yang terbuka · '+completed+' / '+list.length+' selesai',69,205);
-  const cols=4,rows=Math.ceil(list.length/cols),gap=25,tw=(w-132-3*gap)/4,th=205,y0=262;
+  const cols=4,gap=25,tw=(w-132-3*gap)/4,th=205,y0=262;
   hitZones.length=0;
   // A continuous route snakes through the numbered stops.
   const centers=list.map((_,i)=>{const row=Math.floor(i/cols),col=row%2?cols-1-i%cols:i%cols;return [66+col*(tw+gap)+tw/2,y0+row*(th+gap)+th/2];});
@@ -79,7 +79,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
    ctx.fillStyle=l.done?'#316851':l.available?'#e9c77c':'#30483e';ctx.fillRect(x,y,tw,th);
    ctx.strokeStyle=l.available?'#f8e3a9':'#697d69';ctx.lineWidth=3;ctx.strokeRect(x,y,tw,th);
    ctx.fillStyle=l.available&&!l.done?'#193d2f':'#e4e9dc';ctx.font='bold 55px system-ui';ctx.fillText(String(l.number).padStart(2,'0'),x+22,y+63);
-   ctx.font='bold 35px system-ui';const words=l.title.split(' ');let line='',yy=y+108;
+   ctx.font='bold 32px system-ui';const words=l.title.split(' ');let line='',yy=y+108;
    for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>tw-42&&line){ctx.fillText(line,x+22,yy,tw-42);yy+=39;line=word;}else line=next;}ctx.fillText(line,x+22,yy,tw-42);
    ctx.font='bold 25px system-ui';ctx.fillStyle=l.available&&!l.done?'#37533c':'#c1cec0';ctx.fillText(l.done?'SELESAI':l.available?'MULAI / LANJUT':'TERKUNCI',x+22,y+185,tw-42);
   }
