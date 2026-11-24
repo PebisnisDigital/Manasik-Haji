@@ -193,7 +193,7 @@ function createFoodCourt(scene:THREE.Scene){
  function tube(parent:THREE.Object3D,rt:number,rb:number,h:number,x:number,y:number,z:number,m:THREE.Material){
   const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,12),m);o.position.set(x,y,z);parent.add(o);return o;
  }
- function person(parent:THREE.Group,x:number,z:number,h:number,color:number,skinColor:number,hijab:boolean,vendor:boolean,phase:number){
+ function person(parent:THREE.Group,x:number,z:number,h:number,color:number,skinColor:number,hijab:boolean,vendor:boolean,phase:number,drink=false){
   const body=new THREE.Group();body.position.set(x,0,z);body.scale.setScalar(h);parent.add(body);
   const outfit=material(color),skin=material(skinColor),hair=material(0x29241e),pants=material(0x39484b);
   for(const dx of [-.105,.105]){tube(body,.068,.053,.39,dx,.21,0,pants);box(body,.145,.075,.21,dx,.055,.04,rubber);}
@@ -209,7 +209,7 @@ function createFoodCourt(scene:THREE.Scene){
    tube(arm,.057,.048,.21,0,-.085,0,outfit);tube(arm,.045,.042,.16,0,-.24,0,skin);sphere(arm,.049,0,-.34,0,skin);
    if(side===1){
     if(vendor){const stick=box(arm,.017,.19,.017,0,-.36,.065,wood);stick.rotation.x=.75;}
-    else{const cup=tube(arm,.045,.029,.085,0,-.34,.055,paper);cup.rotation.x=.22;const straw=box(arm,.009,.085,.009,0,-.275,.057,gold);straw.rotation.x=.22;}
+    else if(drink){const cup=tube(arm,.045,.029,.085,0,-.34,.055,paper);cup.rotation.x=.22;const straw=box(arm,.009,.085,.009,0,-.275,.057,gold);straw.rotation.x=.22;}else{const skewer=box(arm,.012,.18,.012,0,-.34,.085,wood);skewer.rotation.x=Math.PI/2;for(let k=0;k<3;k++)sphere(arm,.035,0,-.34,.10+k*.055,cream);}
     actors.push({arm,head,phase,vendor});
    }else arm.rotation.z=side*.1;
   }
@@ -234,7 +234,7 @@ function createFoodCourt(scene:THREE.Scene){
   // Seller faces the customers. Three children gather by each cart and snack.
   person(g,0,-.68,1.56,color,0xb78a67,index%2===1,true,index*.9);
   for(let i=0;i<3;i++){
-   const child=person(g,-.70+i*.70,.83+(i%2)*.38,.99+i*.09,[0x4a83a3,0xd6a24e,0xc06b85][(i+index)%3]!,[0xc99a73,0xe1b793,0x9e7357][i]!,i===1,false,index+i*.8);
+   const child=person(g,-.70+i*.70,.83+(i%2)*.38,.99+i*.09,[0x4a83a3,0xd6a24e,0xc06b85][(i+index)%3]!,[0xc99a73,0xe1b793,0x9e7357][i]!,i===1,false,index+i*.8,index===3||i===2);
    child.rotation.y=Math.PI+(i-1)*.23;
   }
  }
