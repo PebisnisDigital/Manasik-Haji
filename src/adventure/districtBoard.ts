@@ -6,6 +6,7 @@ import {defaultSetup,UMRAH_LEVELS} from '../frontModel.ts';
 import {readStory,saveStory,miqatEntryUrl,withTransfer,umrahDeparture} from '../travelStory.ts';
 import {readCore,coreUrl,gamePage} from '../coreProgress.ts';
 import {tenantUrl} from '../tenant.ts';
+import {checkGateProgress} from './gateProgress.ts';
 import './districtBoard.css';
 type Program='hajj'|'umrah';
 type Level={number:number;title:string;done:boolean;available:boolean;saved:boolean;href:string};
@@ -17,7 +18,7 @@ function levels(program:Program):Level[]{
  if(preview)return (program==='hajj'?NUSUK_LEVELS:UMRAH_LEVELS.map((l,i)=>({...l,number:i+1}))).map(l=>({number:l.number,title:l.title,done:false,available:l.number===1,saved:false,href:''}));
  if(program==='hajj'){
   const route=loadNusukRoute();
-  return route.chapters.map((l,i)=>{const entry=i===0?miqatEntryUrl(demo):withTransfer(l.href);return {...l,available:l.done||i===0||route.chapters[i-1].done||l.saved&&l.available,href:entry.includes('district.html?transfer=')?l.href:entry};});
+  return route.chapters.map((l,i)=>{const entry=i===0?miqatEntryUrl(demo):withTransfer(l.href);return {...l,available:checkGateProgress(route.chapters,l.number).allowed,href:entry.includes('district.html?transfer=')?l.href:entry};});
  }
  const run=readCore('umrah'),step=run?.step??0;
  return UMRAH_LEVELS.map((l,i)=>({number:i+1,title:l.title,done:i<step,available:i===step,saved:!!run&&i===step,href:i===0?miqatEntryUrl(demo):run&&i===step?umrahDeparture(run.step,coreUrl(run,gamePage(run.step)??'manasik.html')):''}));
@@ -54,8 +55,10 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  let list:Level[]=[],launching=false;
  const hitZones:{x:number;y:number;w:number;h:number;number:number}[]=[];
  const closeMap=()=>{dialog.hidden=true;if(dialog.open)dialog.close();};close.onclick=closeMap;dialog.addEventListener('cancel',e=>{e.preventDefault();closeMap();});
+ function check(number:number){const fresh=levels(program),result=checkGateProgress(fresh,number);return {...result,preview,title:fresh.find(l=>l.number===number)?.title??'Level '+number,previousTitle:fresh.find(l=>l.number===number-1)?.title??'',total:fresh.length};}
  function launch(number:number){
   if(launching)return;
+  if(!check(number).allowed){toast('Checkpoint sebelumnya belum selesai.');return;}
   if(preview){toast('Pratinjau: level hanya bisa dimainkan melalui tiket terverifikasi.');return;}
   const level=levels(program).find(x=>x.number===number);
   if(!level?.available||!level.href){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}
@@ -105,5 +108,5 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function open(){draw();dialog.hidden=false;if(!dialog.open)dialog.showModal();close.focus();}
  draw();group.updateMatrixWorld(true);window.addEventListener('storage',draw);window.addEventListener('pageshow',e=>{if(e.persisted){launching=false;draw();}});
  document.documentElement.dataset.districtBoardReady='true';
- return {tap,open,launch,available:()=>list.filter(l=>l.available).map(l=>l.number),next:()=>list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
+ return {tap,open,launch,check,available:()=>list.filter(l=>l.available).map(l=>l.number),next:()=>list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
 }
