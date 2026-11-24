@@ -37,7 +37,7 @@ export async function verifyDistrictBoard():Promise<{program:Program;name:string
 export type DistrictBoardAccess=Awaited<ReturnType<typeof verifyDistrictBoard>>;
 export const BOARD_POINT={x:-8,z:11.7},BOARD_SPAWN={x:-8,z:17.8};
 export const BOARD_SOLID={...BOARD_POINT,w:10.2,d:.65};
-export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAccess,toast:(text:string)=>void){
+export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAccess,toast:(text:string)=>void,onSelect?:(number:number)=>void){
  const {program,name}=access;
  const width=10,height=5.05,base=.75;
  const group=new THREE.Group();group.position.set(BOARD_POINT.x,base+height/2,BOARD_POINT.z);scene.add(group);
@@ -59,15 +59,16 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   if(preview){toast('Pratinjau: level hanya bisa dimainkan melalui tiket terverifikasi.');return;}
   const level=levels(program).find(x=>x.number===number);
   if(!level?.available||!level.href){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}
-  launching=true;location.assign(tenantUrl(level.href));
+  launching=true;try{sessionStorage.setItem('hajji-district-return',mode==='demo'?'demo':'magic');}catch{}location.assign(tenantUrl(level.href));
  }
+ function select(number:number){const level=levels(program).find(l=>l.number===number);if(!level?.available){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}if(onSelect){closeMap();onSelect(number);}else launch(number);}
  function bonus(){if(preview||program!=='hajj'||!loadNusukRoute().complete){toast('Selesaikan 12 level untuk membuka oleh-oleh.');return;}location.assign(tenantUrl('./oleh-oleh.html'));}
  function draw(){
   list=levels(program);const completed=list.filter(l=>l.done).length;
   const w=c.width,h=c.height;ctx.fillStyle='#14392e';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#c9ac6c';ctx.lineWidth=8;ctx.strokeRect(16,16,w-32,h-32);
   ctx.textAlign='left';ctx.fillStyle='#e9cb89';ctx.font='bold 31px system-ui';ctx.fillText('HAJJI.DIGITAL',66,70);
   ctx.fillStyle='#fff5dc';ctx.font='bold 66px system-ui';ctx.fillText(program==='hajj'?'PETA PERJALANAN HAJI':'PETA PERJALANAN UMROH',66,151);
-  ctx.font='32px system-ui';ctx.fillStyle='#d2e2d4';ctx.fillText('Sentuh level yang terbuka · '+completed+' / '+list.length+' selesai',69,205);
+  ctx.font='32px system-ui';ctx.fillStyle='#d2e2d4';ctx.fillText('Pilih tujuan gedung · '+completed+' / '+list.length+' selesai',69,205);
   const cols=4,gap=25,tw=(w-132-3*gap)/4,th=205,y0=262;
   hitZones.length=0;
   // A continuous route snakes through the numbered stops.
@@ -81,14 +82,14 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
    ctx.fillStyle=l.available&&!l.done?'#193d2f':'#e4e9dc';ctx.font='bold 55px system-ui';ctx.fillText(String(l.number).padStart(2,'0'),x+22,y+63);
    ctx.font='bold 32px system-ui';const words=l.title.split(' ');let line='',yy=y+108;
    for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>tw-42&&line){ctx.fillText(line,x+22,yy,tw-42);yy+=39;line=word;}else line=next;}ctx.fillText(line,x+22,yy,tw-42);
-   ctx.font='bold 25px system-ui';ctx.fillStyle=l.available&&!l.done?'#37533c':'#c1cec0';ctx.fillText(l.done?'SELESAI':l.available?'MULAI / LANJUT':'TERKUNCI',x+22,y+185,tw-42);
+   ctx.font='bold 25px system-ui';ctx.fillStyle=l.available&&!l.done?'#37533c':'#c1cec0';ctx.fillText(l.done?'SELESAI':l.available?'KUNJUNGI GEDUNG':'TERKUNCI',x+22,y+185,tw-42);
   }
   ctx.fillStyle='#e9cb89';ctx.font='bold 26px system-ui';ctx.fillText(program==='hajj'?'BONUS OLEH-OLEH · '+(completed===list.length?'TERBUKA':'SELESAIKAN 12 LEVEL'):'JALUR LATIHAN UMROH',66,989);
   if(program==='hajj')hitZones.push({x:66,y:936,w:1000,h:65,number:0});
   if(preview){ctx.textAlign='right';ctx.font='23px system-ui';ctx.fillText('PRATINJAU DESAIN',w-66,989);ctx.textAlign='left';}
   texture.needsUpdate=true;
-  count.textContent=completed+' / '+list.length+' LEVEL';heading.textContent=program==='hajj'?'Peta Perjalanan Haji':'Peta Perjalanan Umroh';subtitle.textContent=(preview?'Pratinjau tanpa transaksi':demo?'Demo lokal':'Selamat datang, '+name)+' · Sentuh level yang terbuka.';
-  grid.replaceChildren();for(const l of list){const b=elem('button','boardLevel '+(l.done?'done':l.available?'available':'locked'));b.type='button';b.dataset.level=String(l.number);b.disabled=!l.available||(!preview&&!l.href);b.append(elem('span','boardNumber',String(l.number).padStart(2,'0')),elem('strong','boardLevelTitle',l.title),elem('small','boardLevelStatus',l.done?'Selesai':l.available?'Mulai / lanjut':'Terkunci'));b.onclick=()=>launch(l.number);grid.append(b);}
+  count.textContent=completed+' / '+list.length+' LEVEL';heading.textContent=program==='hajj'?'Peta Perjalanan Haji':'Peta Perjalanan Umroh';subtitle.textContent=(preview?'Pratinjau tanpa transaksi':demo?'Demo lokal':'Selamat datang, '+name)+' · Pilih gedung tujuan.';
+  grid.replaceChildren();for(const l of list){const b=elem('button','boardLevel '+(l.done?'done':l.available?'available':'locked'));b.type='button';b.dataset.level=String(l.number);b.disabled=!l.available||(!preview&&!l.href);b.append(elem('span','boardNumber',String(l.number).padStart(2,'0')),elem('strong','boardLevelTitle',l.title),elem('small','boardLevelStatus',l.done?'Selesai':l.available?'Kunjungi gedung':'Terkunci'));b.onclick=()=>select(l.number);grid.append(b);}
   foot.replaceChildren(close);if(program==='hajj'){const b=elem('button','boardBonus',completed===list.length?'Buka oleh-oleh':'Bonus · terkunci');b.disabled=preview||completed!==list.length;b.onclick=bonus;foot.append(b);}
  }
  const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
@@ -97,11 +98,11 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   const hit=ray.intersectObject(face)[0];if(!hit?.uv)return false;
   const x=hit.uv.x*c.width,y=(1-hit.uv.y)*c.height;
   const tile=hitZones.find(t=>x>=t.x&&x<=t.x+t.w&&y>=t.y&&y<=t.y+t.h);
-  if(tile){if(tile.number===0)bonus();else launch(tile.number);}else open();
+  if(tile){if(tile.number===0)bonus();else select(tile.number);}else open();
   return true;
  }
  function open(){draw();dialog.hidden=false;if(!dialog.open)dialog.showModal();close.focus();}
  draw();group.updateMatrixWorld(true);window.addEventListener('storage',draw);window.addEventListener('pageshow',e=>{if(e.persisted){launching=false;draw();}});
  document.documentElement.dataset.districtBoardReady='true';
- return {tap,open,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
+ return {tap,open,launch,available:()=>list.filter(l=>l.available).map(l=>l.number),next:()=>list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
 }
