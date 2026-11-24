@@ -10,14 +10,15 @@ import {Clip} from '../sim/States.ts';
 interface Actor {root:THREE.Group;renderKey:string;female:boolean;height:number;palette:number;build:number;brightness:number;cull:boolean;motion:DistrictLocomotion;x:number;z:number;ready:boolean;prayerTime:number}
 interface Pool {actors:Actor[];renderers:Map<string,CrowdRenderer|PlayerRenderer>}
 const pools=new WeakMap<THREE.Scene,Pool>();
+const registrationColors:ReadonlyArray<readonly [number,number,number]> = [[0x315e75,0xe7d7bf,0xd8ae8b],[0xb28b51,0x8a673d,0x78533c],[0x687b63,0xbcc4a0,0xefc8a6],[0x8e5460,0x78414b,0x583c2d],[0x3d465c,0xa8b9cb,0xb37f58],[0xb6a793,0xe1ceaf,0xc3936d],[0x527d76,0x25564b,0x95633f],[0x735f92,0x57416f,0xe4b995],[0xefe7d3,0xc8bb9d,0xab7956],[0x284c3f,0x4a7360,0xcd9f7b]];
 const visibleFrustum=new THREE.Frustum(),clipMatrix=new THREE.Matrix4(),actorSphere=new THREE.Sphere(new THREE.Vector3(),1.2);
 /** Keep gameplay roots and collision coordinates; share the existing skinned VAT renderer. */
-export function humanActor(scene:THREE.Scene,robe=0xf4f1e8,female=false,height=female?1.64:1.74,playerWardrobe?:Wardrobe,appearance?:{palette:number;build:number;brightness:number;cull?:boolean}):THREE.Group {
+export function humanActor(scene:THREE.Scene,robe=0xf4f1e8,female=false,height=female?1.64:1.74,playerWardrobe?:Wardrobe,appearance?:{palette:number;build:number;brightness:number;cull?:boolean;registration?:boolean}):THREE.Group {
   let pool=pools.get(scene);if(!pool){pool={actors:[],renderers:new Map()};pools.set(scene,pool);}
-  const renderKey=String(female)+(playerWardrobe?':player:'+playerWardrobe:':npc');
+  const renderKey=String(female)+(playerWardrobe?':player:'+playerWardrobe:appearance?.registration?':registration':':npc');
   if(!pool.renderers.has(renderKey)){
     const quality={lod0Budget:24,lod1Budget:64,lod0Distance:12,lod1Distance:28,blobShadows:true};
-    const crowd=playerWardrobe?new PlayerRenderer(1,quality,female?'female':'male',playerWardrobe):new CrowdRenderer(256,quality,{robeLength:female?.065:.19,coverHead:female,pilgrimStyle:female?'female':'male'});
+    const crowd=playerWardrobe?new PlayerRenderer(1,quality,female?'female':'male',playerWardrobe):new CrowdRenderer(256,quality,{robeLength:female?.065:appearance?.registration?.45:.19,coverHead:female,pilgrimStyle:female?'female':'male',casual:appearance?.registration??false},appearance?.registration?registrationColors:undefined);
     scene.add(crowd.group);pool.renderers.set(renderKey,crowd);
   }
   const color=new THREE.Color(robe),palette=color.r<.65?9:pool.actors.length%8;
