@@ -29,7 +29,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  const vehicles=initial();let selected:CityVehicle|null=null;
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
  const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xece6d5),gold=mat(0xc5a46b),green=mat(0x1c5040),glass=mat(0x355d68,.32),dark=mat(0x252e30),rubber=mat(0x252526);
- function box(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.Material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);return mesh;}
+ function box(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.MeshStandardMaterial){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);return mesh;}
  box(scene,310,.1,270,0,-.12,0,sand);
  function street(x:number,z:number,w:number,d:number){
   box(scene,w+2,.1,d+2,x,-.015,z,pave);box(scene,w,.1,d,x,.045,z,road);
