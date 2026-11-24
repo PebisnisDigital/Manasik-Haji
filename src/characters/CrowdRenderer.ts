@@ -163,14 +163,14 @@ export class CrowdRenderer {
   private blobMesh: THREE.Mesh | null = null;
   private blobPos: THREE.InstancedBufferAttribute | null = null;
 
-  constructor(capacity: number, quality: CrowdQuality, private readonly variant?: CharacterVariant) {
+  constructor(capacity: number, quality: CrowdQuality, private readonly variant?: CharacterVariant, colors: ReadonlyArray<readonly [number, number, number]> = PALETTES) {
     this.capacity = capacity;
     this.quality = quality;
     this.group.name = 'crowd';
 
-    for (const c of PALETTES) {
+    for (const c of colors) {
       for (let k = 0; k < 3; k++) {
-        this.paletteUniform.push(new THREE.Color(this.variant?.casual&&k===0?0x527987:this.variant?.casual&&k===1&&this.variant.pilgrimStyle==='female'?0x527987:c[k]));
+        this.paletteUniform.push(new THREE.Color(colors===PALETTES&&this.variant?.casual&&k===0?0x527987:colors===PALETTES&&this.variant?.casual&&k===1&&this.variant.pilgrimStyle==='female'?0x527987:c[k]));
       }
     }
 
