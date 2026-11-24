@@ -11,6 +11,7 @@ const family=['Permana','Saputra','Kusuma','Hidayat','Suryana','Pratama','Rahard
 export function plazaName(building:number,index:number){const female=index%2===1,first=(female?firstFemale:firstMale)[(building*3+Math.floor(index/2))%20];return first+' '+family[building-1];}
 const clamp=(n:number)=>Math.min(1,Math.max(0,n));
 const smooth=(n:number)=>{const t=clamp(n);return t*t*(3-2*t);};
+export function guardQueuePhase(t:number,playerReady=false){return playerReady?'player':t<1.55?'check':t<3.7?'allow':'wait';}
 export function queuePose(slot:number,t:number){
  const x=-1.65-slot*.76,z=13.0;
  if(slot===0){const a=smooth((t-1.55)/2.15);return {x:x+1.1*a,z:z-3.05*a,yaw:Math.PI,visible:t<3.7};}
@@ -107,5 +108,5 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
  function playerSlot(number:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;const rank=lane.ticket?.ahead??QUEUE_COUNT;const advance=rank>0&&lane.ticket ? .76*smooth((lane.clock%QUEUE_PERIOD-2.65)/2.55):0;return point(lane.place,-1.65-rank*.76+advance,13);}
  function queueApproach(number:number,stage:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;return stage===0?point(lane.place,-9.3,16.6):stage===1?point(lane.place,-9.3,13):playerSlot(number);}
  function queueNear(hero:Point){return lanes.find(l=>{const tail=point(l.place,-9.3,13);return Math.hypot(hero.x-tail.x,hero.z-tail.z)<4.2;})?.place.number??null;}
- return {solids,update,join,leave,playerSlot,queueApproach,queueNear,ahead:(number:number)=>lanes.find(l=>l.place.number===number)?.ticket?.ahead??null,stats:()=>({buildings:lanes.length,queuePerBuilding:QUEUE_COUNT,queued:lanes.length*QUEUE_COUNT,parkedCars:lanes.length*2,parkedMotorcycles:lanes.length*8,foodStalls:lanes.length,cycles}),dispose:()=>{for(const l of lanes)for(const a of l.actors)scene.remove(a.root);groups.forEach(g=>scene.remove(g));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());}};
+ return {solids,update,join,leave,playerSlot,queueApproach,queueNear,guardStatus:(number:number)=>{const lane=lanes.find(l=>l.place.number===number);if(!lane)return {phase:'wait',name:''};const cycle=Math.floor(lane.clock/QUEUE_PERIOD);return {phase:guardQueuePhase(lane.clock%QUEUE_PERIOD,lane.ticket?.ahead===0),name:plazaName(number,cycle%lane.actors.length)};},ahead:(number:number)=>lanes.find(l=>l.place.number===number)?.ticket?.ahead??null,stats:()=>({buildings:lanes.length,queuePerBuilding:QUEUE_COUNT,queued:lanes.length*QUEUE_COUNT,parkedCars:lanes.length*2,parkedMotorcycles:lanes.length*8,foodStalls:lanes.length,cycles}),dispose:()=>{for(const l of lanes)for(const a of l.actors)scene.remove(a.root);groups.forEach(g=>scene.remove(g));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());}};
 }

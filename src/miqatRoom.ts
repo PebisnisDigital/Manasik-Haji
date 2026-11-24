@@ -1,4 +1,4 @@
-import {districtReturnUrl} from './adventure/districtReturn.ts';
+import {districtReturnUrl,districtExitLabel} from './adventure/districtReturn.ts';
 import {hajjLevelMessage} from './adventure/levelMessages.ts';
 import {mountSimplePlayHud} from './simplePlayHud.ts';
 import {simpleMenuOpen} from './simpleInput.ts';
@@ -93,7 +93,7 @@ export function mountMiqatRoom(){
   card(part<3?'Talbiyah · Bagian '+(part+1)+' dari 3':'Talbiyah · Bacaan lengkap',data,()=>part<3?talbiyah(part+1):advance(5),part<3?'Lanjut bacaan':'Sudah dipelajari, temui pembimbing');
  }
  let beginArrival=()=>{};
- function finished(){const message=hajjLevelMessage(1);show(message.completedTitle, message.recap,[{label:setup.program==='hajj'?message.nextLabel:'Lanjut Level 2 · Tawaf',id:'miqatNext',fn:()=>{const url=districtReturnUrl();if(url&&setup.program==='hajj')location.assign(url);else beginArrival();}},{label:'Buka peta perjalanan →',id:'miqatMap',primary:false,fn:()=>location.assign(mapUrl)}]);}
+ function finished(){const message=hajjLevelMessage(1);show(message.completedTitle, message.recap,[{label:setup.program==='hajj'?districtExitLabel(message.nextLabel):'Lanjut Level 2 · Tawaf',id:'miqatNext',fn:()=>{const url=districtReturnUrl();if(url&&setup.program==='hajj')location.assign(url);else beginArrival();}},{label:'Buka peta perjalanan →',id:'miqatMap',primary:false,fn:()=>location.assign(districtReturnUrl()??mapUrl)}]);}
  function pause(){if(blocked()||lifeOpen())return;show('Perjalanan dijeda','Gerakkan joystick untuk berjalan dan geser layar untuk melihat. Gunakan Lari untuk bergerak lebih cepat, lalu Aksi di penanda. Di PC: WASD, Shift dan E. Progres tersimpan otomatis.',[
   {label:'Lanjut bermain',fn:close,id:'miqatResume'},
   ...(lesson.book||arrival?[{label:'Buka buku panduan',primary:false,fn:()=>card('Buku panduan · Niat',miqatCards(1,setup.avatar,'madinah',setup.program==='hajj'?'qiran':'umrah')[1],()=>card('Buku panduan · Talbiyah',miqatCards(2,setup.avatar,'madinah',setup.program==='hajj'?'qiran':'umrah')[0],close,'Tutup buku'),'Lihat talbiyah')}]:[]),

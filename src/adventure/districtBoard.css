@@ -17,3 +17,5 @@
 .districtHubMode .districtHud .miniMap strong{color:#8cf4a5;font-size:12px}
 .districtHubMode .districtHud .topRight{margin-left:auto}
 @media(max-height:550px){.districtHubMode .districtHud .miniMap{width:clamp(114px,18vw,150px);max-height:45dvh;padding:5px}.districtHubMode .districtHud .miniMap span{font-size:8px}.districtHubMode .districtHud .miniMap strong{font-size:10px}}
+
+.cityStarCounter{display:block!important;text-align:center;color:#f6d47d;font-size:13px;font-weight:900;letter-spacing:.06em;padding:3px 0 1px;border-top:1px solid #d6c18f44}.boardLevel.done .boardLevelStatus{color:#ffe09a}

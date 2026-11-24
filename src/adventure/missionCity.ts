@@ -43,7 +43,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  for(const r of CITY_ROADS)street(r.x,r.z,r.w,r.d);
  const doors:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
  const signs:THREE.CanvasTexture[]=[];
- const guards:{root:THREE.Group;yaw:number;number:number}[]=[];
+ const guards:{root:THREE.Group;yaw:number;number:number;status:THREE.Sprite;ctx:CanvasRenderingContext2D;tex:THREE.CanvasTexture;last:string}[]=[];
  const names=program==='hajj'?NUSUK_LEVELS.map(l=>l.title):UMRAH_LEVELS.map(l=>l.title);
  for(const p of places){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;scene.add(g);
@@ -65,7 +65,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   // Uniformed gate attendant, standing to the side of the entrance.
   const guard=humanActor(scene,0x34475b,false,1.79,undefined,{palette:4,build:1.12,brightness:1,cull:true,registration:true});
   guard.position.set(p.x+Math.cos(p.yaw)*2.95+Math.sin(p.yaw)*11.8,.1,p.z-Math.sin(p.yaw)*2.95+Math.cos(p.yaw)*11.8);
-  guard.rotation.y=p.yaw;guards.push({root:guard,yaw:p.yaw,number:p.number});
+  guard.rotation.y=p.yaw;const bubbleCanvas=document.createElement('canvas');bubbleCanvas.width=512;bubbleCanvas.height=128;const bubbleCtx=bubbleCanvas.getContext('2d')!;const bubbleTex=new THREE.CanvasTexture(bubbleCanvas);bubbleTex.colorSpace=THREE.SRGBColorSpace;signs.push(bubbleTex);const bubble=new THREE.Sprite(new THREE.SpriteMaterial({map:bubbleTex,transparent:true,depthWrite:false}));bubble.position.set(0,2.75,0);bubble.scale.set(2.65,.66,1);bubble.visible=false;guard.add(bubble);guards.push({root:guard,yaw:p.yaw,number:p.number,status:bubble,ctx:bubbleCtx,tex:bubbleTex,last:''});
   const tagCanvas=document.createElement('canvas');tagCanvas.width=512;tagCanvas.height=116;const tg=tagCanvas.getContext('2d')!;
   tg.fillStyle='#173b32';tg.fillRect(0,0,512,116);tg.strokeStyle='#c9aa67';tg.lineWidth=4;tg.strokeRect(4,4,504,108);tg.textAlign='center';tg.fillStyle='#f5e4b6';tg.font='bold 38px system-ui';tg.fillText(p.guardName,256,48);tg.font='bold 25px system-ui';tg.fillText('PETUGAS KEAMANAN',256,87);
   const tagTexture=new THREE.CanvasTexture(tagCanvas);tagTexture.colorSpace=THREE.SRGBColorSpace;signs.push(tagTexture);
@@ -99,7 +99,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   const p=places.find(p=>p.number===target);marker.visible=!!p;if(p){marker.position.x=p.door.x;marker.position.z=p.door.z;}
  }
  function entrance(p:Point){return places.find(b=>distance(p,b.door)<3.5||guards.some(g=>g.number===b.number&&distance(p,{x:g.root.position.x,z:g.root.position.z})<2.4))??null;}
- function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});}updateHumanActors(scene,dt,active,camera);}
+ function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});const q=plazas.guardStatus(g.number);const line=q.phase==='check'?'Periksa progres…':q.phase==='allow'?'Silakan masuk, '+q.name.split(' ')[0]:q.phase==='player'?'Giliran Anda':'Peserta berikutnya';g.status.visible=distance(hero,p)<15&&q.phase!=='wait';if(g.last!==line){g.last=line;g.ctx.fillStyle='#fff4dc';g.ctx.fillRect(0,0,512,128);g.ctx.strokeStyle='#bca16c';g.ctx.lineWidth=5;g.ctx.strokeRect(4,4,504,120);g.ctx.fillStyle='#23463a';g.ctx.font='bold 37px system-ui';g.ctx.textAlign='center';g.ctx.fillText(line,256,76,486);g.tex.needsUpdate=true;}}updateHumanActors(scene,dt,active,camera);}
  function reset(){const fresh=initial();for(const v of fresh)Object.assign(get(v.kind),v);selected=null;}
  return {places,solids,plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,near,take,update,leave,render,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
 }

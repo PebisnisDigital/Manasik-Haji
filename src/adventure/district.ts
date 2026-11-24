@@ -1,3 +1,4 @@
+import {districtVisit,clearDistrictVisit} from './districtReturn.ts';
 import {stepQueueWalk} from './queueWalk.ts';
 import {mountCityMinimap} from './cityMinimap.ts';
 import {mountSimplePlayHud} from '../simplePlayHud.ts';
@@ -57,9 +58,10 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   const rig=new ThirdPersonCamera(camera,[...BUILDINGS,...(hub?CITY_BUILDINGS.slice(0,hub.access.program==='hajj'?12:5):[])].map(b=>new THREE.Box3(new THREE.Vector3(b.x-b.w/2,0,b.z-b.d/2),new THREE.Vector3(b.x+b.w/2,b.height,b.z+b.d/2))));
   const journeyBus=()=>transfer?transferBus(save as TransferSave):busSpawn(save);
   const journeySpawn=()=>hub?hub.module.BOARD_SPAWN:transfer?(transferExit(journeyBus(),save.stage>=4?STATIONS.arrival:STATIONS.luggage)??districtSpawn(save)):(save.stage===5?errandSpawn(errands):null)??districtSpawn(save);
-  const spawn=journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
+  const returning=hub?.access.program==='hajj'&&new URLSearchParams(location.search).get('board')!=='preview'?CITY_BUILDINGS.find(b=>b.number===districtVisit()):undefined;
+  const spawn=returning?{x:returning.door.x+Math.sin(returning.yaw)*2,z:returning.door.z+Math.cos(returning.yaw)*2}:journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
   let hasan=companionSpawn(errands);
-  let bus=journeyBus(),heading=hub?Math.PI:1.3,cameraYaw=hub?Math.PI:1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
+  let bus=journeyBus(),heading=returning?returning.yaw:hub?Math.PI:1.3,cameraYaw=returning?returning.yaw:hub?Math.PI:1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
   const playerMotion=new DistrictLocomotion(),hasanMotion=new DistrictLocomotion(),cameraPresentation=new DistrictCameraPresentation();
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   const keys=new Set<string>(),joy={x:0,y:0},audio=new Ambience();
@@ -81,6 +83,10 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   let cityVehicle:CityVehicle|null=null,targetLevel=1,queuedBuilding:number|null=null,queueStage=0,queueAuthorized:number|null=null;
   const journeyBoard=hub?.module.createWorldJourneyBoard(world.scene,hub.access,toast,n=>{targetLevel=n;toast('Tujuan: Gedung '+n+' · ikuti penanda pada peta.');});
   if(journeyBoard)targetLevel=journeyBoard.next();
+  let pendingExit=returning?.number??null;
+  const starCounter=document.createElement('div');starCounter.className='cityStarCounter';starCounter.setAttribute('aria-label','Bintang perjalanan');if(hub?.access.program==='hajj')document.querySelector('.miniMap')?.append(starCounter);
+  function refreshStars(){if(!journeyBoard||hub?.access.program!=='hajj')return;const n=journeyBoard.stars().length;starCounter.textContent='★ '+n+' / 12';document.documentElement.dataset.cityStars=String(n);}
+  refreshStars();
   const boardPoint=hub?.module.BOARD_POINT;
   const walkAllowed=(x:number,z:number)=>city?city.walk({x,z}):canStand(x,z)&&(!hub||Math.abs(x-hub.module.BOARD_SOLID.x)>=hub.module.BOARD_SOLID.w/2+.4||Math.abs(z-hub.module.BOARD_SOLID.z)>=hub.module.BOARD_SOLID.d/2+.4);
   function toast(text:string){el('notification').textContent=text;el('notification').hidden=false;clearTimeout(toastTimer);toastTimer=window.setTimeout(()=>el('notification').hidden=true,3500);}
@@ -130,17 +136,24 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   function frameCamera(cut=false){cameraPresentation.transition(driving,cut||reducedMotion.matches);if(cut||reducedMotion.matches)rig.reset();playerMotion.reset();lastLook=performance.now();}
   function exitBus(){const p=transfer?transferExit(bus):exitPoint(bus);if(!p){toast('Berhenti dahulu dan pastikan sisi bus bebas.');return;}clearSimpleInput();hero.set(p.x,0,p.z);heading=bus.yaw;cameraYaw=heading;driving=false;bus.speed=0;frameCamera();controls.clear();}
   function boardBus(){clearSimpleInput();driving=true;bus.speed=0;cameraYaw=bus.yaw;frameCamera();controls.clear();advance('board');toast('Joystick untuk gas dan kemudi · Rem untuk berhenti · Aksi untuk turun');}
+  function receiveStar(number:number){if(!journeyBoard||!city)return;const building=city.places.find(b=>b.number===number);if(!building)return;const status=journeyBoard.check(number);const title=building.guardName+' · Gedung '+number;
+    if(!status.done){showDialog(title,'Misi Level '+number+' belum selesai. Checkpoint tetap tersimpan. Silakan kembali mengantre untuk melanjutkan.',[{text:'Baik',run:()=>{pendingExit=null;clearDistrictVisit();}}],'PEMERIKSAAN KELUAR');return;}
+    const award=journeyBoard.claim(number);if(!award.stored){showDialog(title,'Bintang belum tersimpan. Periksa penyimpanan browser, lalu coba lagi.',[{text:'Coba lagi',run:()=>receiveStar(number)}],'BINTANG BELUM TERSIMPAN');return;}
+    refreshStars();targetLevel=journeyBoard.next();pendingExit=null;clearDistrictVisit();
+    showDialog(title,(award.awarded?'Alhamdulillah! Level '+number+' telah selesai. Saya berikan satu bintang emas.':'Level '+number+' sudah selesai dan bintangnya sudah tercatat.')+' Total bintang: '+award.stars.length+'/12. '+(award.stars.length===12?'Selamat! Semua bintang terkumpul.':'Silakan lanjutkan perjalanan ke gedung berikutnya.'),[{text:award.stars.length===12?'Lihat hadiah perjalanan':'Lanjut perjalanan',id:'guardStar',run:()=>{if(award.stars.length===12)journeyBoard.open();}}],'★ '+award.stars.length+' / 12 BINTANG PERJALANAN');
+  }
   function cityEnter(){if(!city||!journeyBoard||cityVehicle||queueAuthorized===null)return;const building=city.places.find(b=>b.number===queueAuthorized);if(!building)return;queueAuthorized=null;
     const number=building.number,initial=journeyBoard.check(number),title=building.guardName+' · Gedung '+number;
     const check=()=>{const result=journeyBoard.check(number);const eyebrow='PEMERIKSAAN PROGRES · LEVEL '+number;
+      if(result.done&&hub?.access.program==='hajj'&&!result.preview){receiveStar(number);return;}
       if(!result.allowed){showDialog(title,'Maaf, checkpoint Level '+(number-1)+' · '+result.previousTitle+' belum selesai. Silakan tuntaskan level tersebut dahulu.',[{text:'Kembali ke perjalanan',id:'guardDenied'},{text:'Lihat peta level',secondary:true,run:()=>journeyBoard.open()}],eyebrow);return;}
-      showDialog(title,(number===1?'Tiket kawasan sudah diperiksa saat masuk.':'Checkpoint Level '+(number-1)+' telah selesai.')+' '+(result.preview?'Ini simulasi pemeriksaan pada pratinjau.':'Alhamdulillah, silakan masuk dan mulai misi.'),[{text:result.preview?'Lihat simulasi izin masuk':'Silakan masuk · Level '+number,id:'guardEnter',run:()=>{if(Math.hypot(hero.x-building.door.x,hero.z-building.door.z)>5){toast('Dekati pintu gedung kembali.');return;}journeyBoard.launch(number);}},{text:'Nanti dulu',secondary:true}],eyebrow);
+      showDialog(title,(number===1?'Tiket aktif. Level 1 belum selesai.':'Level '+(number-1)+' telah selesai dan Level '+number+' belum selesai.')+' '+(result.preview?'Ini simulasi pemeriksaan pada pratinjau.':'Alhamdulillah, silakan masuk dan mulai misi.'),[{text:result.preview?'Lihat simulasi izin masuk':'Silakan masuk · Level '+number,id:'guardEnter',run:()=>{if(Math.hypot(hero.x-building.door.x,hero.z-building.door.z)>5){toast('Dekati pintu gedung kembali.');return;}journeyBoard.launch(number);}},{text:'Nanti dulu',secondary:true}],eyebrow);
     };
     showDialog(title,number===1?'Assalamualaikum! Selamat datang di Gedung 1 · '+initial.title+'. Boleh saya periksa akses perjalanan Anda?':'Assalamualaikum! Apakah Anda sudah menyelesaikan Level '+(number-1)+' · '+initial.previousTitle+'? Izinkan saya memeriksa progres Anda.',[{text:'Periksa progres saya',id:'guardCheck',run:check},{text:'Kembali',secondary:true}], 'POS KEAMANAN · GEDUNG '+number);
   }
   function interact(){
     if(!controls.playable())return;
-    if(city){if(queuedBuilding!==null){city.leaveQueue(queuedBuilding);queuedBuilding=null;queueStage=0;controls.clear();toast('Keluar antrean. Tekan AKSI untuk ikut kembali.');return;}if(cityVehicle){const p=city.leave(cityVehicle);if(!p){toast('Rem sampai berhenti, lalu cari sisi yang kosong.');return;}hero.set(p.x,0,p.z);heading=cityVehicle.yaw;cameraYaw=heading;cityVehicle=null;driving=false;bus={...city.bus()};frameCamera(true);controls.clear();return;}
+    if(city){if(pendingExit!==null&&!cityVehicle){const b=city.places.find(b=>b.number===pendingExit);if(b&&Math.hypot(hero.x-b.door.x,hero.z-b.door.z)<5){receiveStar(b.number);return;}}if(queuedBuilding!==null){city.leaveQueue(queuedBuilding);queuedBuilding=null;queueStage=0;controls.clear();toast('Keluar antrean. Tekan AKSI untuk ikut kembali.');return;}if(cityVehicle){const p=city.leave(cityVehicle);if(!p){toast('Rem sampai berhenti, lalu cari sisi yang kosong.');return;}hero.set(p.x,0,p.z);heading=cityVehicle.yaw;cameraYaw=heading;cityVehicle=null;driving=false;bus={...city.bus()};frameCamera(true);controls.clear();return;}
       const building=city.queueNear(hero)??city.entrance(hero)?.number;if(building!==undefined&&building!==null){if(city.joinQueue(building)){queuedBuilding=building;queueStage=0;controls.clear();toast('Ikut antrean Gedung '+building);}return;}const v=city.near(hero);if(v){cityVehicle=city.take(v.kind);bus=cityVehicle;driving=true;cameraYaw=v.yaw;wheelAngle=0;frameCamera(true);controls.clear();toast('Naik '+city.label(v.kind)+' · Rem lalu AKSI untuk turun');return;}journeyBoard?.open();return;}
     if(driving){exitBus();return;}
     const distance=(p:{x:number;z:number})=>Math.hypot(hero.x-p.x,hero.z-p.z);
@@ -191,6 +204,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   if(hub){intro.hidden=true;started=true;document.documentElement.classList.add('districtHubMode');document.title='Distrik Perjalanan — HAJJI.DIGITAL';el('objectiveNumber').parentElement!.firstChild!.textContent='HAJJI.DIGITAL ';el('districtCoins').closest('.rewardCard')?.setAttribute('hidden','');el('actionHint').textContent='Pilih gedung · naik kendaraan · masuk pintu';el('missionButton').setAttribute('aria-label','Baca peta perjalanan');canvas.focus();}else{intro.hidden=false;intro.showModal();}
   function resize(){budget.resize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   window.addEventListener('resize',resize);resize();frameCamera(true);
+  if(returning)queueMicrotask(()=>receiveStar(returning.number));
   const f={f0:0,f1:0,frac:0,frameB:0,blend:0},projected=new THREE.Vector3();
   function submit(r:Pick<CrowdRenderer,'submit'>,x:number,z:number,yaw:number,phase:number,moving:boolean,palette=0,motion?:DistrictLocomotion){if(!motion){resolveFrames(moving?Clip.WALK:Clip.IDLE,phase,f);f.frameB=f.f0;}const pose=motion?.pose??f;const distance=Math.hypot(x-camera.position.x,z-camera.position.z);r.submit(distance<20?0:distance<60?1:2,x,.1,z,yaw,1.74,1,pose.f0,pose.f1,pose.frac,pose.frameB,pose.blend,palette,1);}
   function label(id:string,p:{x:number;z:number}){const item=el(id);projected.set(p.x,2.5,p.z).project(camera);item.hidden=!started||projected.z>1||projected.z< -1||Math.hypot(hero.x-p.x,hero.z-p.z)>28;item.style.left=(projected.x*.5+.5)*innerWidth+'px';item.style.top=(-projected.y*.5+.5)*innerHeight+'px';}
