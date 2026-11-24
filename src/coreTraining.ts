@@ -1,3 +1,4 @@
+import {districtReturnUrl} from './adventure/districtReturn.ts';
 import {mountSimplePlayHud,notifySimplePlay} from './simplePlayHud.ts';
 import {simpleMenuOpen} from './simpleInput.ts';
 import {earlierHajjSaiDone} from './adventure/nusukMode.ts';
@@ -99,7 +100,7 @@ function run(initial:CoreSave){
   fieldActivity=mountAqabah({id:practice?j.id+':practice:'+crypto.randomUUID():j.id,avatar:j.avatar,level:(number,title)=>{$('levelLabel').textContent='PETUALANGAN HAJI • LEVEL '+number+'/12 · '+title;Array.from($('track').children).forEach((el,i)=>el.className=i<number-1?'done':i===number-1?'active':'');},host:$('mapActions'),legacyThrows:practice?0:j.step===8?readCheckpoint(j):7,after:!practice&&j.step===9,practice,blocked,base,action,arrive,
    needsBus:()=>!readStory().arrivals.includes('hajj:aqabah'),bus:()=>location.assign(transferUrl('hajj:aqabah')),takbir:()=>{reading.pulse();guide.announce('Allahu akbar.','aqabah-takbir-'+performance.now(),0,true);},
    scene:kind=>{onSiteNear=null;onMiniNear=null;demo?.dispose();demo=null;siteView?.dispose();siteView=null;site(kind);return siteView;},
-   thrown:()=>{if(!saveCheckpoint(j,7)){$('notice').textContent='Lontaran belum tersimpan. Coba lagi.';return;}move(8);if(j.step===9){const message=hajjLevelMessage(7);notifySimplePlay(message.completedTitle+'. '+message.nextLabel);}},finish:()=>practice?render():move(9)});
+   thrown:()=>{if(!saveCheckpoint(j,7)){$('notice').textContent='Lontaran belum tersimpan. Coba lagi.';return;}move(8);if(j.step===9){const url=districtReturnUrl();if(url){location.assign(url);return;}const message=hajjLevelMessage(7);notifySimplePlay(message.completedTitle+'. '+message.nextLabel);}},finish:()=>practice?render():move(9)});
  }
  function hajjStage(){switch(j.step){
  case 5:if(chapter?.id==='ihram'){fieldJourney('mina');break;}scene('prep');base('Ihram haji','Setelah umroh awal dan tahallul, masuk ihram haji dari tempat tinggal di Makkah pada waktunya. Tarwiyah di Mina adalah sunah dalam contoh alur ini.','8 ZULHIJAH');arabic('لَبَّيْكَ اللَّهُمَّ حَجًّا','Labbaika Allahumma hajjan.','Aku memenuhi panggilan-Mu untuk haji, ya Allah. Niat dalam hati; contoh lafaz untuk belajar.');atMini('prep',chapter?'Berangkat ke Mina':'Lanjut ke Arafah',()=>{if(!chapter){move(5);return;}disposeScene();site('mina');base('Temukan perkemahan Mina','Ikuti penanda menuju rombongan. Setelah persiapan di Mina, lanjutkan perjalanan ke Arafah.','LEVEL 04 • MINA');arrive('Selesaikan level Mina',()=>move(5));});break;
@@ -121,10 +122,12 @@ function run(initial:CoreSave){
   if(ending)action('Terima oleh-oleh dari '+gateGuide(j.avatar).name,()=>location.assign(tenantUrl('./oleh-oleh.html')));
   const next=nextChapter(chapter);
   if(chapter.id==='ihram'||chapter.id==='arafah'||chapter.id==='muzdalifah'||chapter.id==='aqabah')action(chapter.id==='ihram'?'Mainkan kegiatan Mina lagi':chapter.id==='arafah'?'Mainkan kegiatan Arafah lagi':chapter.id==='aqabah'?'Mainkan kegiatan Aqabah lagi':'Mainkan kegiatan Muzdalifah lagi',()=>{disposeScene();if(chapterPause)chapterPause.hidden=false;chapter.id==='aqabah'?aqabahJourney(true):chapter.id==='muzdalifah'?muzdalifahJourney(true):fieldJourney(chapter.id==='arafah'?'arafah':'mina',true);});
-  if(next)action((readStory().briefed&&!['arafah','muzdalifah','aqabah'].includes(next.id)?'Naik bus · ':'Lanjut ')+hajjLevelMessage(nusukNumber(next.id)).label,()=>location.assign(tenantUrl(withTransfer(chapterHref(next)))));
+  const districtReturn=chapter.id!=='arrival'?districtReturnUrl():null;
+  if(districtReturn&&!ending)action('Kembali ke distrik · pilih gedung berikutnya',()=>location.assign(districtReturn));
+  else if(next)action((readStory().briefed&&!['arafah','muzdalifah','aqabah'].includes(next.id)?'Naik bus · ':'Lanjut ')+hajjLevelMessage(nusukNumber(next.id)).label,()=>location.assign(tenantUrl(withTransfer(chapterHref(next)))));
   else if(!progress.complete)action('Lengkapi level '+progress.next.number+' • '+progress.next.title,()=>location.assign(tenantUrl(withTransfer(progress.next.href))));
-  action('Peta 12 level',()=>location.assign(tenantUrl('./adventure-map.html')),true);
-  action('Kembali ke kawasan',()=>location.assign(tenantUrl('./district.html')),true);
+  action('Peta 12 level',()=>location.assign(districtReturnUrl()??tenantUrl('./adventure-map.html')),true);
+  action('Kembali ke kawasan',()=>location.assign(districtReturnUrl()??tenantUrl('./district.html')),true);
   $('notice').textContent='Lencana adalah pencapaian permainan. Bukan sertifikat atau penilaian sahnya ibadah.';
  }
  function arrivalMission(){

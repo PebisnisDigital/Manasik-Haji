@@ -1,3 +1,4 @@
+import {districtReturnUrl} from './districtReturn.ts';
 import {nusukNumber,NUSUK_LEVELS} from './nusukModel.ts';
 import {hajjLevelMessage} from './levelMessages.ts';
 import {notifySimplePlay} from '../simplePlayHud.ts';
@@ -12,7 +13,7 @@ export function mountAqabah(h:Hooks){
  const notice=()=>document.getElementById('notice')!;
  function persist(next:AqabahSave){if(!storeAqabah(next,h.legacyThrows,h.after)){running=false;view?.setCampPose(null);notice().textContent='Kegiatan belum tersimpan atau berubah di tab lain. Muat ulang untuk melanjutkan checkpoint.';return false;}state=next;return true;}
  function applyHair(){return h.practice||finishHaircut(h.avatar,h.avatar==='female'?'trim':'shave','hajj');}
- function next(){if(state.beat===1&&!view?.campCare('hydrate')){notice().textContent='Air dan bekal belum tersimpan. Coba lagi.';return;}if(state.beat===9&&!applyHair()){notice().textContent='Hasil tahallul belum tersimpan. Coba lagi.';return;}const previous=state.beat;if(persist({...state,beat:state.beat+1,elapsed:0})){running=false;view?.setCampPose(null);draw();if(previous===7){const message=hajjLevelMessage(8);notifySimplePlay(message.completedTitle+'. '+message.nextLabel);}}else buttons();}
+ function next(){if(state.beat===1&&!view?.campCare('hydrate')){notice().textContent='Air dan bekal belum tersimpan. Coba lagi.';return;}if(state.beat===9&&!applyHair()){notice().textContent='Hasil tahallul belum tersimpan. Coba lagi.';return;}const previous=state.beat;if(persist({...state,beat:state.beat+1,elapsed:0})){running=false;view?.setCampPose(null);draw();if(previous===7){const url=districtReturnUrl();if(url){location.assign(url);return;}const message=hajjLevelMessage(8);notifySimplePlay(message.completedTitle+'. '+message.nextLabel);}}else buttons();}
  function start(){if(!view?.near())return;notice().textContent='';if(!aqabahDuration(state.beat)||state.beat===9&&state.cuts===3){next();return;}running=true;if(state.beat===9)view.setCampPose({clip:Clip.TASHAHHUD,phase:.5});buttons();}
  function throwOne(){if(!view?.near()||inFlight||state.throws>=7)return;inFlight=true;h.takbir();buttons();view.throwStone(2,()=>{if(disposed)return;inFlight=false;if(persist({...state,throws:state.throws+1})){notice().textContent='Allahu akbar · '+state.throws+'/7 kerikil masuk area Aqabah.';draw();}else buttons();});}
  function buttons(){document.getElementById('actions')!.replaceChildren();
