@@ -9,7 +9,7 @@ export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height
 const profiles={motor:{label:'Motor',w:.48,d:1.05,wheelbase:1.35,max:14,acc:5},mobil:{label:'Mobil',w:1.0,d:2.25,wheelbase:2.7,max:16,acc:4.2},bus:{label:'Bus',w:1.45,d:4.8,wheelbase:5.1,max:11,acc:3.5}};
 export type CityVehicle=Vehicle&{kind:CityKind};
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.z-b.z);
-const initial=():CityVehicle[]=>[{kind:'motor',x:1,z:18.3,yaw:Math.PI/2,speed:0,steer:0},{kind:'mobil',x:3,z:28.7,yaw:Math.PI/2,speed:0,steer:0},{kind:'bus',x:-4,z:24,yaw:Math.PI/2,speed:0,steer:0}];
+const initial=():CityVehicle[]=>[{kind:'motor',x:1,z:18.3,yaw:Math.PI/2,speed:0,steer:0},{kind:'mobil',x:3,z:28.7,yaw:Math.PI/2,speed:0,steer:0},{kind:'bus',x:-20,z:24,yaw:Math.PI/2,speed:0,steer:0}];
 const footprint=(v:CityVehicle):Rect=>{const p=profiles[v.kind],c=Math.abs(Math.cos(v.yaw)),s=Math.abs(Math.sin(v.yaw));return {x:v.x,z:v.z,w:2*(c*p.w+s*p.d),d:2*(s*p.w+c*p.d)};};
 function inside(p:Point,r:Rect,pad=0){return Math.abs(p.x-r.x)<r.w/2+pad&&Math.abs(p.z-r.z)<r.d/2+pad;}
 export function cityCanStand(p:Point,solids:readonly Rect[],radius=.4){const b=CITY_BOUNDS;return p.x>b.minX+radius&&p.x<b.maxX-radius&&p.z>b.minZ+radius&&p.z<b.maxZ-radius&&!solids.some(r=>inside(p,r,radius));}
