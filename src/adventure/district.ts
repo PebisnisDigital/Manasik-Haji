@@ -1,3 +1,4 @@
+import {stepQueueWalk} from './queueWalk.ts';
 import {mountCityMinimap} from './cityMinimap.ts';
 import {mountSimplePlayHud} from '../simplePlayHud.ts';
 import {simpleSprinting,clearSimpleInput} from '../simpleInput.ts';
@@ -202,6 +203,8 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   function tick(now:number){
     frame=requestAnimationFrame(tick);const dt=Math.min(.06,(now-previous)/1000);previous=now;const active=controls.playable(),step=active?dt:0;clock+=step*1000;
     const beforeX=hero.x,beforeZ=hero.z;
+    const followingQueue=queuedBuilding!==null&&queueStage===2;
+    city?.advanceQueues(hero,step);
     const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'))-joy.y;
     const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'))+joy.x;
     if(city&&cityVehicle){if(active){const before=cityVehicle;cityVehicle=city.drive(cityVehicle,forward,right,(simpleSprinting()||keys.has('Space')),step);city.update(cityVehicle);wheelAngle=(wheelAngle+wheelTravel(before,cityVehicle))%(Math.PI*2);bus=cityVehicle;if(now-lastLook>1500)cameraYaw+=Math.atan2(Math.sin(bus.yaw-cameraYaw),Math.cos(bus.yaw-cameraYaw))*followAlpha(3,step);}hero.set(cityVehicle.x,0,cityVehicle.z);}
@@ -211,7 +214,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
         if(save.stage===3&&atTerminal(bus)&&(!transfer||(save as TransferSave).gate===TRANSFER_ROUTE.length))advance('arrive');}
       hero.set(bus.x,0,bus.z);
     }else if(active&&city&&queuedBuilding!==null){
-      const q=city.queueApproach(queuedBuilding,queueStage);if(q){const dx=q.x-hero.x,dz=q.z-hero.z,d=Math.hypot(dx,dz);if(d>.08){const move=Math.min(d,2.8*step);hero.x+=dx/d*move;hero.z+=dz/d*move;heading+=Math.atan2(Math.sin(Math.atan2(dx,dz)-heading),Math.cos(Math.atan2(dx,dz)-heading))*followAlpha(14,step);audio.step();}else if(queueStage<2)queueStage++;else if(city.queueAhead(queuedBuilding)===0){const number=queuedBuilding;city.leaveQueue(number);queuedBuilding=null;queueAuthorized=number;cityEnter();}}
+      const q=city.queueApproach(queuedBuilding,queueStage);if(q){const next=stepQueueWalk(hero,q,step);hero.x=next.x;hero.z=next.z;if(next.yaw!==null&&next.travel>.00005){heading+=Math.atan2(Math.sin(next.yaw-heading),Math.cos(next.yaw-heading))*followAlpha(14,step);audio.step();}if(next.arrived){if(queueStage<2)queueStage++;else if(city.queueAhead(queuedBuilding)===0){const number=queuedBuilding;city.leaveQueue(number);queuedBuilding=null;queueAuthorized=number;cityEnter();}}}
     }else if(active){
       const m=cameraMove(forward,right,cameraYaw),speed=((simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'))&&life.canSprint()?4.4:2.8)*life.factor(hero);
       const nextX=hero.x+m.x*speed*step,nextZ=hero.z+m.z*speed*step;
@@ -221,7 +224,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     }
     if(city){document.documentElement.dataset.playerQueue=queuedBuilding===null?'idle':String(city.queueAhead(queuedBuilding));}
     if(!hub)life.tick(step,hero,active,simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'),driving);
-    playerMotion.update(driving?0:Math.hypot(hero.x-beforeX,hero.z-beforeZ),step,active&&!driving);
+    playerMotion.update(driving?0:Math.hypot(hero.x-beforeX,hero.z-beforeZ),step,active&&!driving,followingQueue?.76:1.42);
     let companionTravel=0;
     if(!hub&&!transfer&&save.stage===5&&errands.stage===1&&active){const next=stepCompanion(hasan,hero,step,driving,bus);companionTravel=Math.hypot(next.x-hasan.x,next.z-hasan.z);
       if(next.gate!==hasan.gate){errands={...errands,escortGate:next.gate};persistErrands();}hasan=next;}

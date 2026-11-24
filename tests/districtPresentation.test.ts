@@ -62,3 +62,6 @@ describe('bus wheel presentation',()=>{
     expect(wheelTravel({...bus,yaw:Math.PI-.1},{...bus,z:-BUS_WHEEL_RADIUS,yaw:-Math.PI+.1})).toBeCloseTo(1);
   });
 });
+
+import {stepQueueWalk} from '../src/adventure/queueWalk.ts';
+describe('automatic queue walking',()=>{it('follows small slot movements continuously and uses walking frames without keyboard input',()=>{let p={x:0,z:0};const motion=new DistrictLocomotion();for(let i=1;i<=120;i++){const next=stepQueueWalk(p,{x:i*.004,z:0},1/60);expect(next.travel).toBeGreaterThan(0);p=next;motion.update(next.travel,1/60,true,.76);}expect(p.x).toBeCloseTo(.48,8);expect(motion.moving).toBe(true);expect(motion.phase).toBeCloseTo(.48/.76,8);expect(motion.pose.f0).toBeGreaterThanOrEqual(CLIP_OFFSETS[Clip.WALK]);const idle=stepQueueWalk(p,p,1/60);motion.update(idle.travel,1/60,true,.76);expect(motion.moving).toBe(false);});it('moves without teleporting or overshooting a slot',()=>{const next=stepQueueWalk({x:0,z:0},{x:2,z:0},.1);expect(next.x).toBeCloseTo(.28);expect(next.arrived).toBe(false);expect(stepQueueWalk({x:0,z:0},{x:.01,z:0},.1).arrived).toBe(true);});});
