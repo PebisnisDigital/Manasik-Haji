@@ -30,7 +30,8 @@ async function travelToLevelOne(){
   await page.keyboard.down('a');
   try{await page.waitForFunction(()=>{const t=document.getElementById('mapPlayer').getAttribute('transform');const m=t.match(/translate\(([-.\d]+)/);return m&&Number(m[1])<54;},{},{timeout:25000});}finally{await page.keyboard.up('a');}
   await page.keyboard.down('s');
-  try{await page.waitForURL(/play=miqat/,{timeout:50000});}finally{await page.keyboard.up('s');}
+  try{await page.locator('[data-choice="guardCheck"]').waitFor({timeout:50000});}finally{await page.keyboard.up('s');}
+  assert.match(page.url(),/district\.html/);await page.locator('[data-choice="guardCheck"]').click();await page.locator('[data-choice="guardEnter"]').click();await page.waitForURL(/play=miqat/,{timeout:30000});
  }finally{await page.keyboard.up('Shift');}
 }
 async function enter(token,guide,fresh=true){await page.goto(BASE+'/index.html?access=1#token='+token);await board(fresh);await travelToLevelOne();await page.locator('.miqatRoom[data-ready=true]').waitFor();assert.match(await page.locator('.miqatGuideTag').textContent(),new RegExp(guide));assert.equal(await page.locator('#vehicleInfo').count(),0);}
