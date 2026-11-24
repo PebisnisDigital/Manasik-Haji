@@ -17,7 +17,7 @@ function levels(program:Program):Level[]{
  if(preview)return (program==='hajj'?NUSUK_LEVELS:UMRAH_LEVELS.map((l,i)=>({...l,number:i+1}))).map(l=>({number:l.number,title:l.title,done:false,available:l.number===1,saved:false,href:''}));
  if(program==='hajj'){
   const route=loadNusukRoute();
-  return route.chapters.map((l,i)=>({...l,available:l.done||i===0||route.chapters[i-1].done||l.saved&&l.available,href:i===0?miqatEntryUrl(demo):withTransfer(l.href)}));
+  return route.chapters.map((l,i)=>{const entry=i===0?miqatEntryUrl(demo):withTransfer(l.href);return {...l,available:l.done||i===0||route.chapters[i-1].done||l.saved&&l.available,href:entry.includes('district.html?transfer=')?l.href:entry};});
  }
  const run=readCore('umrah'),step=run?.step??0;
  return UMRAH_LEVELS.map((l,i)=>({number:i+1,title:l.title,done:i<step,available:i===step,saved:!!run&&i===step,href:i===0?miqatEntryUrl(demo):run&&i===step?umrahDeparture(run.step,coreUrl(run,gamePage(run.step)??'manasik.html')):''}));
