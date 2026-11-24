@@ -1,3 +1,4 @@
+import {isExampleMode,validExampleCode} from './exampleAccess.ts';
 import {districtVisit,clearDistrictVisit} from './districtReturn.ts';
 import {stepQueueWalk} from './queueWalk.ts';
 import {mountCityMinimap} from './cityMinimap.ts';
@@ -59,9 +60,10 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   const journeyBus=()=>transfer?transferBus(save as TransferSave):busSpawn(save);
   const journeySpawn=()=>hub?hub.module.BOARD_SPAWN:transfer?(transferExit(journeyBus(),save.stage>=4?STATIONS.arrival:STATIONS.luggage)??districtSpawn(save)):(save.stage===5?errandSpawn(errands):null)??districtSpawn(save);
   const returning=hub?.access.program==='hajj'&&new URLSearchParams(location.search).get('board')!=='preview'?CITY_BUILDINGS.find(b=>b.number===districtVisit()):undefined;
-  const spawn=returning?{x:returning.door.x+Math.sin(returning.yaw)*2,z:returning.door.z+Math.cos(returning.yaw)*2}:journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
+  const first=CITY_BUILDINGS[0]!;const quick=hub&&isExampleMode()&&new URLSearchParams(location.search).get('start')==='1';
+  const spawn=returning?{x:returning.door.x+Math.sin(returning.yaw)*2,z:returning.door.z+Math.cos(returning.yaw)*2}:quick?{x:first.x+Math.cos(first.yaw)*-9.3+Math.sin(first.yaw)*17,z:first.z-Math.sin(first.yaw)*-9.3+Math.cos(first.yaw)*17}:journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
   let hasan=companionSpawn(errands);
-  let bus=journeyBus(),heading=returning?returning.yaw:hub?Math.PI:1.3,cameraYaw=returning?returning.yaw:hub?Math.PI:1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
+  let bus=journeyBus(),heading=returning?returning.yaw:quick?first.yaw+Math.PI:hub?Math.PI:1.3,cameraYaw=returning?returning.yaw:quick?first.yaw+Math.PI:hub?Math.PI:1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
   const playerMotion=new DistrictLocomotion(),hasanMotion=new DistrictLocomotion(),cameraPresentation=new DistrictCameraPresentation();
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   const keys=new Set<string>(),joy={x:0,y:0},audio=new Ambience();
@@ -85,7 +87,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   if(journeyBoard)targetLevel=journeyBoard.next();
   let pendingExit=returning?.number??null;
   const starCounter=document.createElement('div');starCounter.className='cityStarCounter';starCounter.setAttribute('aria-label','Bintang perjalanan');if(hub?.access.program==='hajj')document.querySelector('.miniMap')?.append(starCounter);
-  function refreshStars(){if(!journeyBoard||hub?.access.program!=='hajj')return;const n=journeyBoard.stars().length;starCounter.textContent='★ '+n+' / 12';document.documentElement.dataset.cityStars=String(n);}
+  function refreshStars(){if(!journeyBoard||hub?.access.program!=='hajj')return;const n=journeyBoard.stars().length;starCounter.textContent='★ '+n+' / 12';document.documentElement.dataset.cityStars=String(n);if(isExampleMode())starCounter.textContent='CONTOH · ★ '+n+' / 12';}
   refreshStars();
   const boardPoint=hub?.module.BOARD_POINT;
   const walkAllowed=(x:number,z:number)=>city?city.walk({x,z}):canStand(x,z)&&(!hub||Math.abs(x-hub.module.BOARD_SOLID.x)>=hub.module.BOARD_SOLID.w/2+.4||Math.abs(z-hub.module.BOARD_SOLID.z)>=hub.module.BOARD_SOLID.d/2+.4);
@@ -144,11 +146,18 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   }
   function cityEnter(){if(!city||!journeyBoard||cityVehicle||queueAuthorized===null)return;const building=city.places.find(b=>b.number===queueAuthorized);if(!building)return;queueAuthorized=null;
     const number=building.number,initial=journeyBoard.check(number),title=building.guardName+' · Gedung '+number;
+    let exampleCode='';
     const check=()=>{const result=journeyBoard.check(number);const eyebrow='PEMERIKSAAN PROGRES · LEVEL '+number;
+      if(result.example&&!validExampleCode(exampleCode)){askCode('Kode salah. Silakan masukkan kembali kode akses gratis.');return;}
       if(result.done&&hub?.access.program==='hajj'&&!result.preview){receiveStar(number);return;}
       if(!result.allowed){showDialog(title,'Maaf, checkpoint Level '+(number-1)+' · '+result.previousTitle+' belum selesai. Silakan tuntaskan level tersebut dahulu.',[{text:'Kembali ke perjalanan',id:'guardDenied'},{text:'Lihat peta level',secondary:true,run:()=>journeyBoard.open()}],eyebrow);return;}
-      showDialog(title,(number===1?'Tiket aktif. Level 1 belum selesai.':'Level '+(number-1)+' telah selesai dan Level '+number+' belum selesai.')+' '+(result.preview?'Ini simulasi pemeriksaan pada pratinjau.':'Alhamdulillah, silakan masuk dan mulai misi.'),[{text:result.preview?'Lihat simulasi izin masuk':'Silakan masuk · Level '+number,id:'guardEnter',run:()=>{if(Math.hypot(hero.x-building.door.x,hero.z-building.door.z)>5){toast('Dekati pintu gedung kembali.');return;}journeyBoard.launch(number);}},{text:'Nanti dulu',secondary:true}],eyebrow);
+      showDialog(title,(number===1?(result.example?'Kode CONTOH diterima. Level 1 belum selesai.':'Tiket aktif. Level 1 belum selesai.'):'Level '+(number-1)+' telah selesai dan Level '+number+' belum selesai.')+' '+(result.preview?'Ini simulasi pemeriksaan pada pratinjau.':'Alhamdulillah, silakan masuk dan mulai misi.'),[{text:result.preview?'Lihat simulasi izin masuk':'Silakan masuk · Level '+number,id:'guardEnter',run:()=>{if(Math.hypot(hero.x-building.door.x,hero.z-building.door.z)>5){toast('Dekati pintu gedung kembali.');return;}journeyBoard.launch(number,exampleCode);}},{text:'Nanti dulu',secondary:true}],eyebrow);
     };
+    function askCode(message='Assalamualaikum! Untuk latihan gratis, apa kata kunci akses Anda?'){
+      showDialog(title,message,[{text:'Periksa kode dan progres',id:'guardCodeCheck',keepOpen:true,run:()=>{exampleCode=input.value;if(!validExampleCode(exampleCode)){input.setCustomValidity('Kode belum tepat.');input.reportValidity();return;}check();}},{text:'Kembali',secondary:true}],'AKSES CONTOH · GEDUNG '+number);
+      const input=document.createElement('input');input.type='text';input.id='guardExampleCode';input.className='guardExampleCode';input.placeholder='Masukkan kata kunci';input.autocomplete='off';input.setAttribute('aria-label','Kata kunci akses gratis');input.addEventListener('input',()=>input.setCustomValidity(''));input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();(el('dialogActions').querySelector('[data-choice="guardCodeCheck"]') as HTMLButtonElement)?.click();}});el('dialogActions').prepend(input);input.focus();
+    }
+    if(initial.example){askCode();return;}
     showDialog(title,number===1?'Assalamualaikum! Selamat datang di Gedung 1 · '+initial.title+'. Boleh saya periksa akses perjalanan Anda?':'Assalamualaikum! Apakah Anda sudah menyelesaikan Level '+(number-1)+' · '+initial.previousTitle+'? Izinkan saya memeriksa progres Anda.',[{text:'Periksa progres saya',id:'guardCheck',run:check},{text:'Kembali',secondary:true}], 'POS KEAMANAN · GEDUNG '+number);
   }
   function interact(){

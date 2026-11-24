@@ -1,10 +1,11 @@
+import {isExampleMode,exampleKey} from './adventure/exampleAccess.ts';
 import {configured,rest,session} from './commercialApi.ts';
 export interface Brand{slug:string;name:string;logo_url:string;accent:string;whatsapp:string;description:string}
 export const SAMPLE:Brand={slug:'demo-travel',name:'Demo Travel Manasik',logo_url:'',accent:'#246648',whatsapp:'',description:'Contoh identitas mitra • bukan travel nyata.'};
 const PREVIEW='manasik-preview-v3';
 export const slug=(()=>{const s=typeof location==='undefined'?'':new URLSearchParams(location.search).get('mitra')??'';return /^[a-z0-9][a-z0-9-]{1,49}$/.test(s)?s:'';})();
-export function scopedKey(k:string):string{return slug?k+':'+slug+':'+(session()?.user?.id??'guest'):k;}
-export function tenantUrl(path:string):string{if(!slug)return path;const u=new URL(path,location.href);if(u.origin!==location.origin)return path;u.searchParams.set('mitra',slug);return u.pathname+u.search+u.hash;}
+export function scopedKey(k:string):string{return exampleKey(slug?k+':'+slug+':'+(isExampleMode()?'guest':session()?.user?.id??'guest'):k);}
+export function tenantUrl(path:string):string{if(!slug&&!isExampleMode())return path;const u=new URL(path,location.href);if(u.origin!==location.origin)return path;if(slug)u.searchParams.set('mitra',slug);if(isExampleMode())u.searchParams.set('contoh','1');return u.pathname+u.search+u.hash;}
 export function previewBrand():Brand{try{const v=JSON.parse(localStorage.getItem(PREVIEW)??'null');if(v&&v.slug===SAMPLE.slug)return cleanBrand(v);}catch{}return SAMPLE;}
 export function savePreview(b:Brand){localStorage.setItem(PREVIEW,JSON.stringify(cleanBrand({...b,slug:SAMPLE.slug})));}
 export function cleanBrand(b:Brand):Brand{return {slug:b.slug,name:String(b.name??'').slice(0,100),logo_url:/^https:\/\//i.test(b.logo_url??'')?String(b.logo_url).slice(0,500):'',accent:/^#[0-9a-f]{6}$/i.test(b.accent??'')?b.accent:'#246648',whatsapp:/^[0-9]{8,15}$/.test(b.whatsapp??'')?b.whatsapp:'',description:String(b.description??'').slice(0,240)};}
@@ -18,13 +19,13 @@ let brand:Brand|null=null;
 export function brandAccent(){return brand?.accent??(slug===SAMPLE.slug?previewBrand().accent:'#28634f');}
 export function brandName(){return brand?.name??(slug===SAMPLE.slug?previewBrand().name:'MANASIK 3D');}
 export function reportProgress(mode:'umrah'|'hajj',n:number):void{
- if(!configured||!slug||slug===SAMPLE.slug||!session())return;
+ if(isExampleMode()||!configured||!slug||slug===SAMPLE.slug||!session())return;
  try{const k=scopedKey('manasik-pending-'+mode);const prev=Number(localStorage.getItem(k)??0);localStorage.setItem(k,String(Math.max(n,Number.isFinite(prev)?prev:0)));}catch{}
  void flush().catch(()=>{});
 }
 let flushing=false;
 export async function flush(){
- if(flushing||!configured||!slug||slug===SAMPLE.slug||!session())return;flushing=true;
+ if(isExampleMode()||flushing||!configured||!slug||slug===SAMPLE.slug||!session())return;flushing=true;
  try{const p=await lookup();if(!p?.id)return;const uid=session()!.user.id;
  for(const mode of ['umrah','hajj'] as const){const k=scopedKey('manasik-pending-'+mode);const raw=localStorage.getItem(k);if(raw===null)continue;const n=Number(raw),max=mode==='umrah'?5:13;if(!Number.isInteger(n)||n<0||n>max){localStorage.removeItem(k);continue;}
  const rows=await rest<{user_id:string}[]>('manasik_participants?partner_id=eq.'+p.id+'&user_id=eq.'+uid+'&'+mode+'_stage=lt.'+n,{method:'PATCH',auth:true,body:{[mode+'_stage']:n},prefer:'return=representation'});void rows;

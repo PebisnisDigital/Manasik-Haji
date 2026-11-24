@@ -1,5 +1,6 @@
+import {exampleKey} from './exampleAccess.ts';
 export const QUEST_KEYS = {
-  tawaf: 'manasik-tawaf-quest-v1', sai: 'manasik-sai-quest-v1', tahallul: 'manasik-tahallul-quest-v1',
+  tawaf: exampleKey('manasik-tawaf-quest-v1'), sai: exampleKey('manasik-sai-quest-v1'), tahallul: exampleKey('manasik-tahallul-quest-v1'),
 } as const;
 export type Chapter = keyof typeof QUEST_KEYS;
 export interface RouteProgress {version:1;stage:number;count:number;gate:number}

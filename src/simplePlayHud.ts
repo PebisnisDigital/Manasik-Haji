@@ -1,3 +1,4 @@
+import {districtReturnUrl} from './adventure/districtReturn.ts';
 import {mountGraphics} from './graphicsQuality.ts';
 import {NUSUK_LEVELS} from './adventure/nusukModel.ts';
 import {nusukHajjActive} from './adventure/nusukMode.ts';
@@ -56,7 +57,7 @@ export function mountSimplePlayHud(kind:Kind){
   if(overlay())return;options.replaceChildren();
   const links=[['Peta level','./adventure-map.html?journey='+(nusukHajjActive()?'hajj':'umrah')],['Menu utama','./index.html?lobby=1']];
   const help=document.createElement('button');help.type='button';help.textContent='Cara main';help.onclick=()=>{assign(el('simpleSettingsTitle'),'Cara main');const p=document.createElement('p');p.textContent='Joystick untuk berjalan. Geser layar untuk melihat. Lari mempercepat gerakan; Aksi untuk berinteraksi atau mengikuti penanda. Di bus, Lari berubah menjadi Rem. PC: WASD/panah, Shift dan tombol AKSI.';options.replaceChildren(p);};options.append(help);
-  try{const hub=sessionStorage.getItem('hajji-district-return');if(hub==='magic'||hub==='demo'&&['localhost','127.0.0.1'].includes(location.hostname))links.unshift(['Kembali ke distrik','./district.html?board='+hub]);}catch{}
+  const district=districtReturnUrl();if(district)links.unshift(['Kembali ke distrik',district]);
   for(const [label,href]of links){const a=document.createElement('a');a.textContent=label;a.href=tenantUrl(href);options.append(a);}
   const selectors=kind==='field'?'.coreVoice button,.coreVoice select':kind==='miqat'?'#miqatPause,#arrivalLook,.tawafRadio button':kind==='district'?'#pauseButton,#cameraButton':kind==='tawaf'||kind==='sai'?'.hud button:not(#auto):not(#pause):not(#brisk),.hud select:not(#avatar)':'#sound,#voice,#camera,#focus,#helpButton,#helpBtn,#guide';
   for(const source of new Set(document.querySelectorAll<HTMLElement>(selectors+',.graphicsControl select,.companionButton,.missionTrigger'))){if(source instanceof HTMLSelectElement){const label=document.createElement('label');label.textContent=source.id==='cameraMode'?'Kamera':'Grafis';const select=source.cloneNode(true) as HTMLSelectElement;select.removeAttribute('id');select.value=source.value;select.onchange=()=>{source.value=select.value;source.dispatchEvent(new Event('change',{bubbles:true}));};label.append(select);options.append(label);}else if(!source.closest('[hidden]'))proxy(source);}
