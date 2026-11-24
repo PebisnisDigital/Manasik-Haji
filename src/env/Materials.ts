@@ -150,6 +150,7 @@ export interface EnvMaterials {
   gold: THREE.MeshStandardMaterial;
   goldDark: THREE.MeshStandardMaterial;
   blackStoneSurround: THREE.MeshStandardMaterial;
+  blackStone: THREE.MeshStandardMaterial;
   glass: THREE.MeshStandardMaterial;
   lampWarm: THREE.MeshBasicMaterial;
   brass: THREE.MeshStandardMaterial;
@@ -409,10 +410,11 @@ export function createMaterials(renderer: THREE.WebGLRenderer, quality: 'low' | 
       metalness: 0.8,
     }),
     blackStoneSurround: new THREE.MeshStandardMaterial({
-      color: 0xc9a44e,
-      roughness: 0.26,
-      metalness: 0.9,
+      color: 0xd9dfe4,
+      roughness: 0.23,
+      metalness: 0.62,
     }),
+    blackStone: new THREE.MeshStandardMaterial({color:0x211b1b,roughness:.38,metalness:.08}),
     glass: new THREE.MeshStandardMaterial({
       color: 0x2a3540,
       roughness: 0.12,

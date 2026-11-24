@@ -1,3 +1,4 @@
+import {HARAM_LANDMARKS} from './haramLandmarks.ts';
 import {playerKey} from './playerCloud.ts';
 import {readField} from './adventure/campaignProgress.ts';
 import {fieldChapter} from './adventure/hajjCampaign.ts';
@@ -7,11 +8,12 @@ import {canStartSaiTransfer,readSaiTransfer,saiTransferResume} from './saiTransf
 
 export const TAWAF_CENTRE={x:0,z:64},TAWAF_RADIUS=30,TAWAF_STEP=Math.PI/4;
 export const TAWAF_BOUNDS=[-36,36,-8.1,96] as const;
+const landmarkLook=(id:string):readonly [number,number,number]=>{const p=HARAM_LANDMARKS.find(l=>l.id===id)!.at;return [p.x,p.y,p.z+64];};
 export const TAWAF_PLACES=[
- {id:'hajar',title:'Hajar Aswad & garis awal',x:23,z:64,look:[8.5,2,64],hint:'Cari sudut Hajar Aswad: amati garis awal yang menjulur dari sisi Ka’bah. Jelajahi sendiri dan dekati tanda saat menemukannya.',body:'Kenali sudut Hajar Aswad dan garis awal yang sejajar dengannya. Kita mengenali titik ini dari jalur yang lapang, tanpa perlu menerobos jemaah. Hitungan latihan belum dimulai.'},
- {id:'maqam',title:'Maqam Ibrahim',x:21,z:48,look:[12.7,2,51.3],hint:'Cari Maqam Ibrahim, bangunan kecil berwarna emas dan kaca di dekat Ka’bah. Perhatikan bentuknya dari pelataran.',body:'Kenali bangunan kecil berwarna emas dan kaca di pelataran ini. Gunakan sebagai penanda orientasi arena, lalu ikuti pembimbing ke titik berikutnya. Penjelajahan ini belum menambah putaran.'},
- {id:'hijr',title:'Hijr Ismail',x:-18,z:48,look:[-6,1.2,58],hint:'Cari Hijr Ismail: perhatikan dinding rendah melengkung di sisi Ka’bah. Berjalanlah di luar kawasan dindingnya.',body:'Perhatikan dinding rendah melengkung di sisi Ka’bah. Jalur latihan berputar mengitari bagian luar kawasan ini. Ikuti penanda hijau agar tetap pada rute yang disediakan.'},
- {id:'yamani',title:'Rukun Yamani',x:0,z:87,look:[0,2,72.5],hint:'Cari sudut Rukun Yamani di sisi berikutnya. Amati sudut Ka’bah dari pelataran dan dekati penanda pengenalannya.',body:'Kenali sudut Rukun Yamani. Bagian perjalanan sesudahnya menuju Hajar Aswad dapat dikenali dengan penanda arah. Setelah mengenali arena, kita kembali ke garis awal untuk mulai menghitung.'},
+ {id:'hajar',title:'Hajar Aswad & garis awal',x:23,z:64,look:landmarkLook('hajar'),hint:'Cari sudut Hajar Aswad: amati garis awal yang menjulur dari sisi Ka’bah. Jelajahi sendiri dan dekati tanda saat menemukannya.',body:'Kenali Hajar Aswad berbingkai perak dan garis awal yang sejajar dengannya. Kita mengenali titik ini dari jalur yang lapang, tanpa perlu menerobos jemaah. Hitungan latihan belum dimulai.'},
+ {id:'maqam',title:'Maqam Ibrahim',x:21,z:48,look:landmarkLook('maqam'),hint:'Cari Maqam Ibrahim, bangunan kecil berwarna emas dan kaca di dekat Ka’bah. Perhatikan bentuknya dari pelataran.',body:'Kenali Maqam Ibrahim, tempat batu bersejarah Nabi Ibrahim yang dilindungi bingkai emas dan kaca. Gunakan sebagai penanda orientasi arena, lalu ikuti pembimbing ke titik berikutnya. Penjelajahan ini belum menambah putaran.'},
+ {id:'hijr',title:'Hijr Ismail',x:-18,z:48,look:landmarkLook('hijr'),hint:'Cari Hijr Ismail: perhatikan dinding rendah melengkung di sisi Ka’bah. Berjalanlah di luar kawasan dindingnya.',body:'Perhatikan dinding rendah melengkung di sisi Ka’bah. Jalur latihan berputar mengitari bagian luar kawasan ini. Ikuti penanda hijau agar tetap pada rute yang disediakan.'},
+ {id:'yamani',title:'Rukun Yamani',x:0,z:87,look:landmarkLook('yamani'),hint:'Cari sudut Rukun Yamani di sisi berikutnya. Amati sudut Ka’bah dari pelataran dan dekati penanda pengenalannya.',body:'Kenali sudut Rukun Yamani. Bagian perjalanan sesudahnya menuju Hajar Aswad dapat dikenali dengan penanda arah. Setelah mengenali arena, kita kembali ke garis awal untuk mulai menghitung.'},
 ] as const;
 export const TAWAF_EXTRA_SOLIDS=[{x:-6,z:58,w:14,d:14},{x:12.7,z:51.3,w:3.2,d:3.2},{x:21.6,z:74.4,w:5.3,d:5.3}];
 export interface TawafTour{version:1;active:boolean;poi:number;started:boolean}

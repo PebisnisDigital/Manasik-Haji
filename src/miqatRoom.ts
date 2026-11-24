@@ -122,7 +122,7 @@ export function mountMiqatRoom(){
  try{
   const renderer=new THREE.WebGLRenderer({canvas,antialias:graphicsTier()!=='low',powerPreference:'low-power'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;
   const budget=createRenderBudget(renderer,{maxFps:30}),scene=new THREE.Scene();scene.background=new THREE.Color(0xc7ddd9);scene.fog=new THREE.Fog(0xc7ddd9,26,65);scene.add(new THREE.HemisphereLight(0xfffcf2,0x728d7d,2.5));const sun=new THREE.DirectionalLight(0xffe9be,2.4);sun.position.set(-8,13,6);scene.add(sun);staticShadows(renderer,sun,15);
-  const camera=new THREE.PerspectiveCamera(58,1,.08,360),materials:THREE.Material[]=[];
+  const camera=new THREE.PerspectiveCamera(58,1,.08,520),materials:THREE.Material[]=[];
   const mat=(color:number)=>{const m=new THREE.MeshStandardMaterial({color,roughness:.86});materials.push(m);return m;};
   const stone=mat(0xe8ddc4),white=mat(0xfcf8e9),green=mat(0x214e43),gold=mat(0xc4a668),wood=mat(0x896044),floor=mat(0xd7d1bd),fabric=mat(0x769c8b),glass=mat(0x91b9b9);
   surfaceDetail(stone,'stone',3,2);surfaceDetail(floor,'marble',8,10);surfaceDetail(white,'fabric',2,2);

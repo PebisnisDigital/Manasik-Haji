@@ -20,6 +20,7 @@
 import * as THREE from 'three';
 import { HIJR, KAABA, MAQAM, ZAMZAM } from '../config/site.ts';
 import { HIJR_CENTRE, HIJR_NORMAL } from '../sim/Obstacles.ts';
+import {BLACK_STONE_LOCAL,DOOR_LOCAL_Z} from '../haramLandmarks.ts';
 import type { EnvMaterials } from './Materials.ts';
 
 /** Build the Kaaba with its kiswah, hizam band, door and stone base. */
@@ -51,6 +52,7 @@ export function buildKaaba(mat: EnvMaterials): THREE.Group {
   // Slightly tapered: the kiswah hangs, it does not stand rigid.
   const body = new THREE.Mesh(taperedBox(w, h, d, 0.994), mat.kiswah);
   body.position.y = KAABA.baseHeight + h / 2;
+  body.name='kaaba-body';
   body.castShadow = true;
   body.receiveShadow = true;
   g.add(body);
@@ -78,7 +80,7 @@ export function buildKaaba(mat: EnvMaterials): THREE.Group {
   doorFrame.position.set(
     w / 2 + 0.05,
     KAABA.baseHeight + KAABA.doorSill + KAABA.doorHeight / 2,
-    0,
+    DOOR_LOCAL_Z,
   );
   doorFrame.castShadow = true;
   g.add(doorFrame);
@@ -87,7 +89,7 @@ export function buildKaaba(mat: EnvMaterials): THREE.Group {
     new THREE.BoxGeometry(0.1, KAABA.doorHeight, KAABA.doorWidth),
     mat.goldDark,
   );
-  door.position.set(w / 2 + 0.16, KAABA.baseHeight + KAABA.doorSill + KAABA.doorHeight / 2, 0);
+  door.position.set(w / 2 + 0.16, KAABA.baseHeight + KAABA.doorSill + KAABA.doorHeight / 2, DOOR_LOCAL_Z);
   g.add(door);
 
   // Two door leaves suggested by a recessed centre line.
@@ -99,30 +101,29 @@ export function buildKaaba(mat: EnvMaterials): THREE.Group {
   split.position.x += 0.02;
   g.add(split);
 
-  // --- Black Stone surround at the East corner (local +X +Z corner) -------
-  // In local coordinates the East corner sits at (+w/2, ., +d/2) before the
-  // group's 45 degree yaw is applied.
-  const surround = new THREE.Mesh(
-    new THREE.TorusGeometry(0.32, 0.075, 8, 20, Math.PI * 1.55),
-    mat.blackStoneSurround,
-  );
-  surround.position.set(w / 2 - 0.28, KAABA.baseHeight + 1.5, d / 2 - 0.28);
-  surround.rotation.set(0, Math.PI * 0.25, 0);
-  g.add(surround);
-
-  const stone = new THREE.Mesh(
-    new THREE.SphereGeometry(0.16, 10, 8),
-    new THREE.MeshStandardMaterial({ color: 0x110f10, roughness: 0.55, metalness: 0.1 }),
-  );
-  stone.position.copy(surround.position);
-  g.add(stone);
-
+  // Relief on raised golden door: geometric ornament, not invented scripture.
+  for(const dz of [-.42,.42])for(const dy of [-.97,0,.97]){
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(.07,.82,.70),mat.gold);panel.position.set(w/2+.24,door.position.y+dy,DOOR_LOCAL_Z+dz);g.add(panel);
+    const medallion=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,6,20),mat.brass);medallion.rotation.y=Math.PI/2;medallion.position.set(w/2+.30,door.position.y+dy,DOOR_LOCAL_Z+dz);g.add(medallion);
+  }
+  // Hajar Aswad: face the outward bisector, never place geometry inside the wall.
+  const blackStone=new THREE.Group();blackStone.name='hajar-aswad';blackStone.position.set(BLACK_STONE_LOCAL.x,BLACK_STONE_LOCAL.y,BLACK_STONE_LOCAL.z);blackStone.rotation.y=Math.PI/4;g.add(blackStone);
+  const mount=new THREE.Mesh(new THREE.SphereGeometry(1,28,16),mat.blackStoneSurround);mount.scale.set(.36,.48,.095);mount.position.z=.025;blackStone.add(mount);
+  const recess=new THREE.Mesh(new THREE.SphereGeometry(1,24,14),mat.blackStone);recess.scale.set(.245,.335,.082);recess.position.z=.10;blackStone.add(recess);
+  const frame=new THREE.Mesh(new THREE.TorusGeometry(.292,.059,10,36),mat.blackStoneSurround);frame.scale.set(1,1.37,.87);frame.position.z=.125;blackStone.add(frame);
+  // A small aggregate of irregular dark fragments, simplified for teaching.
+  for(const [x,y,r] of [[-.09,.15,.083],[.075,.17,.074],[-.105,.015,.081],[.045,.025,.092],[.105,-.09,.065],[-.09,-.12,.076],[.015,-.21,.071]] as const){const piece=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),mat.blackStone);piece.scale.set(.94,1.1,.43);piece.position.set(x,y,.169);blackStone.add(piece);}
+  // Mizab, the gold rain gutter over the Hijr-facing roof edge.
+  const mizab=new THREE.Group();mizab.name='mizab-rahmah';mizab.position.set(0,KAABA.baseHeight+h-.18,-d-.82);g.add(mizab);
+  const trough=new THREE.Mesh(new THREE.BoxGeometry(.27,.12,2.20),mat.gold);mizab.add(trough);
+  for(const x of [-.16,.16]){const side=new THREE.Mesh(new THREE.BoxGeometry(.055,.20,2.20),mat.gold);side.position.set(x,.10,0);mizab.add(side);}
+  const lip=new THREE.Mesh(new THREE.BoxGeometry(.39,.12,.12),mat.brass);lip.position.z=-1.08;mizab.add(lip);
   // --- Multazam / corner reinforcement stitching --------------------------
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
       const seam = new THREE.Mesh(
         new THREE.BoxGeometry(0.1, h - 0.4, 0.1),
-        mat.goldDark,
+        mat.kiswah,
       );
       seam.position.set((sx * w) / 2, KAABA.baseHeight + h / 2, (sz * d) / 2);
       g.add(seam);
@@ -169,7 +170,7 @@ export function buildHijr(mat: EnvMaterials): THREE.Group {
   });
   geo.rotateX(-Math.PI / 2);
 
-  const wall = new THREE.Mesh(geo, mat.marbleBand);
+  const wall = new THREE.Mesh(geo, mat.marbleLight);
   wall.castShadow = true;
   wall.receiveShadow = true;
   g.add(wall);
@@ -230,14 +231,17 @@ export function buildMaqam(mat: EnvMaterials): THREE.Group {
 
   const cageHeight = MAQAM.totalHeight - MAQAM.baseHeight - MAQAM.domeRadius;
   const glass = new THREE.Mesh(
-    new THREE.CylinderGeometry(MAQAM.domeRadius, MAQAM.domeRadius, cageHeight, 16, 1, true),
+    new THREE.CylinderGeometry(MAQAM.domeRadius, MAQAM.domeRadius, cageHeight, 6, 1, true),
     mat.glass,
   );
   glass.position.y = MAQAM.baseHeight + cageHeight / 2;
   g.add(glass);
 
+  const innerStone=new THREE.Mesh(new THREE.BoxGeometry(.50,.50,.50),mat.stoneWarm);innerStone.position.y=MAQAM.baseHeight+.54;g.add(innerStone);
+  const stand=new THREE.Mesh(new THREE.CylinderGeometry(.37,.47,.28,6),mat.goldDark);stand.position.y=MAQAM.baseHeight+.14;g.add(stand);
+  for(const y of [MAQAM.baseHeight+.08,MAQAM.baseHeight+cageHeight*.43]){const band=new THREE.Mesh(new THREE.CylinderGeometry(MAQAM.domeRadius+.03,MAQAM.domeRadius+.03,.09,6,1,true),mat.gold);band.position.y=y;g.add(band);}
   // Gilt ribs around the glass.
-  const ribs = 8;
+  const ribs = 6;
   for (let i = 0; i < ribs; i++) {
     const a = (i / ribs) * Math.PI * 2;
     const rib = new THREE.Mesh(
@@ -250,6 +254,11 @@ export function buildMaqam(mat: EnvMaterials): THREE.Group {
       Math.sin(a) * MAQAM.domeRadius,
     );
     g.add(rib);
+    const a2=a+Math.PI/3;
+    const mid=new THREE.Vector3(Math.cos(a)+Math.cos(a2),0,Math.sin(a)+Math.sin(a2)).multiplyScalar(MAQAM.domeRadius*.5);
+    for(const y of [MAQAM.baseHeight+.40,MAQAM.baseHeight+.85,MAQAM.baseHeight+1.30])for(const sign of [-1,1]){
+      const lattice=new THREE.Mesh(new THREE.BoxGeometry(.52,.045,.045),mat.gold);lattice.position.set(mid.x,y,mid.z);lattice.rotation.y=-Math.atan2(mid.z,mid.x)+Math.PI/2;lattice.rotateZ(sign*Math.PI/5);g.add(lattice);
+    }
   }
 
   const ring = new THREE.Mesh(
