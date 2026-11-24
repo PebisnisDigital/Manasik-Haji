@@ -60,6 +60,7 @@ function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  const screen=box(scene,.32,.22,.045,x-.42,1.26,-3.68,ink);screen.rotation.x=-.12;box(scene,.07,.12,.06,x-.42,1.13,-3.68,green);
  const pen=makeAdmin(scene,x,female);
  sign(scene,'GERBANG','KEBERANGKATAN',side*6,2.77,-5.68,2.05,.53);
+ sign(scene,'MULAI ANTREAN','TEKAN AKSI',x,1.95,5.34,1.95,.56);box(scene,.82,.025,.76,x,.021,4.93,gold);
  const railX=side*4.83;for(let i=0;i<5;i++){const z=-2.30+i*1.55;post(scene,railX,z);if(i)rope(scene,railX,z-1.55,z);}
  const lane:Lane={ticket:null,side,female,queue:[],spare:null,outgoing:null,exitStep:0,service:side<0?1.3:4.1,pen,clock:0,nextName:0,names:female?namesFemale:namesMale};
  for(let i=0;i<11;i++){

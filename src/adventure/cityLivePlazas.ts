@@ -59,6 +59,7 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
   box(cream,-3.7,.035,13.0,12.2,.07,4.4);
   for(const z of [12.35,13.75]){for(let i=0;i<6;i++)box(gold,-9.65+i*1.48,.49,z,.08,.95,.08);box(gold,-5.95,.88,z,7.6,.045,.045);}
   sign(g,'ANTREAN PESERTA','SIMULASI',-7.6,2.25,12.0,3.4,.85);
+  sign(g,'MULAI ANTREAN','TEKAN AKSI',-9.3,1.30,14.2,2.1,.58);box(light,-9.3,.09,13,.92,.035,.92);
   // Side parking: not in the roadway or the guard approach.
   box(road,15.5,.015,0,8.3,.06,21);for(let i=0;i<4;i++)box(stripe,15.5,.052,-9.7+i*5.5,7.8,.018,.08);
   sign(g,'PARKIR','MOBIL & MOTOR',15.4,2.85,9.8,3.6,.9);
@@ -103,7 +104,7 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
  update({x:0,z:0},0);
  function join(number:number){const lane=lanes.find(l=>l.place.number===number);if(!lane||lane.ticket)return false;lane.ticket=joinQueue(QUEUE_COUNT);return true;}
  function leave(number:number){const lane=lanes.find(l=>l.place.number===number);if(lane)lane.ticket=null;}
- function playerSlot(number:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;return point(lane.place,-1.65-(lane.ticket?.ahead??QUEUE_COUNT)*.76,13);}
+ function playerSlot(number:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;const rank=lane.ticket?.ahead??QUEUE_COUNT;const advance=rank>0&&lane.ticket ? .76*smooth((lane.clock%QUEUE_PERIOD-2.65)/2.55):0;return point(lane.place,-1.65-rank*.76+advance,13);}
  function queueApproach(number:number,stage:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;return stage===0?point(lane.place,-9.3,16.6):stage===1?point(lane.place,-9.3,13):playerSlot(number);}
  function queueNear(hero:Point){return lanes.find(l=>{const tail=point(l.place,-9.3,13);return Math.hypot(hero.x-tail.x,hero.z-tail.z)<4.2;})?.place.number??null;}
  return {solids,update,join,leave,playerSlot,queueApproach,queueNear,ahead:(number:number)=>lanes.find(l=>l.place.number===number)?.ticket?.ahead??null,stats:()=>({buildings:lanes.length,queuePerBuilding:QUEUE_COUNT,queued:lanes.length*QUEUE_COUNT,parkedCars:lanes.length*2,parkedMotorcycles:lanes.length*8,foodStalls:lanes.length,cycles}),dispose:()=>{for(const l of lanes)for(const a of l.actors)scene.remove(a.root);groups.forEach(g=>scene.remove(g));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());}};
