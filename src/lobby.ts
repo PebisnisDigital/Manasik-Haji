@@ -122,8 +122,9 @@ if(guideMode){
  $('cinematicIntro').remove();$('hajjLabel').textContent='PAK HUSEN · PENDAFTARAN';$('umrahLabel').textContent='BU SALMA · PENDAFTARAN';document.querySelector('#lobby .brand')!.textContent='HAJII.DIGITAL';
  const meet=document.createElement('a');meet.className='guideMeet';meet.href='#';meet.onclick=e=>{e.preventDefault();go(gateGuide(avatar).slot);};document.querySelector('.chooser')!.prepend(meet);
  const settingsLink=document.createElement('a');settingsLink.className='gateSettings';settingsLink.href=tenantUrl('./index.html?setup=1');settingsLink.textContent='⚙ Perjalanan, suara & grafis';document.querySelector('.chooser')!.append(settingsLink);
- document.querySelector('#avatarModal h1')!.textContent='Pilih karakter pemain';
- for(const a of ['male','female'] as const){const note=document.createElement('small');note.textContent='Didampingi '+gateGuide(a).name;btn(a).append(note);}
+ document.querySelector('#avatarModal h1')!.textContent='Pilih karakter';
+ // Keep the entrance character picker minimal. Comfort settings and account access remain in the main menu.
+ for(const element of document.querySelectorAll('#avatarModal #comfortIntro, #avatarModal .fine, #avatarModal .pwaInstall, #avatarModal .accountLink'))element.remove();
  if(entranceMode){modal=true;$('avatarModal').hidden=false;$('instruction').textContent='Pilih karakter · ngobrol dengan penjaga · daftar · berangkat';meet.textContent='PILIH KARAKTER TERLEBIH DAHULU';btn(readSetup()?.avatar??'male').focus();}else selectAtGate(readSetup()?.avatar??'male');
  document.documentElement.dataset.guideReady='true';
 }
