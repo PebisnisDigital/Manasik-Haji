@@ -13,6 +13,10 @@ function ticket(avatar,program='hajj'){const r=store.create({name:'QA Magic '+av
 async function board(fresh=true){
  await page.waitForFunction(()=>document.documentElement.dataset.districtBoardReady==='true');
  assert.match(page.url(),/district\.html\?board=/);assert.equal(new URL(page.url()).hash,'');
+ assert.equal(await page.locator('.boardReadDialog[open]').count(),0);
+ assert.equal(await page.locator('#districtWorld').isVisible(),true);
+ await page.locator('#missionButton').click();
+ await page.locator('.boardReadDialog[open]').waitFor();
  assert.equal(await page.locator('.boardLevel').count(),12);
  assert.equal(await page.locator('.boardLevel[data-level="1"]').isEnabled(),true);
  if(fresh){assert.equal(await page.locator('.boardLevel:disabled').count(),11);assert.equal(await page.locator('.boardBonus').isDisabled(),true);}
