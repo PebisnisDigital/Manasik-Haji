@@ -45,17 +45,17 @@ function persist(){
   saveStatus(stored);
 }
 function persistErrands(){let stored=false;try{stored=storeErrands(localStorage,errandsKey,errands);}catch{}saveStatus(stored);}
-function boot(){
+function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;module:typeof import('./districtBoard.ts')}){
   const canvas=el<HTMLCanvasElement>('districtWorld');canvas.tabIndex=0;
   const renderer=new THREE.WebGLRenderer({canvas,antialias:graphicsTier()!=='low',powerPreference:'high-performance'});
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;
   const budget=createRenderBudget(renderer),world=createDistrictWorld(renderer,arafahToMuzdalifah),camera=new THREE.PerspectiveCamera(61,1,.1,230);
   const rig=new ThirdPersonCamera(camera,BUILDINGS.map(b=>new THREE.Box3(new THREE.Vector3(b.x-b.w/2,0,b.z-b.d/2),new THREE.Vector3(b.x+b.w/2,b.height,b.z+b.d/2))));
   const journeyBus=()=>transfer?transferBus(save as TransferSave):busSpawn(save);
-  const journeySpawn=()=>transfer?(transferExit(journeyBus(),save.stage>=4?STATIONS.arrival:STATIONS.luggage)??districtSpawn(save)):(save.stage===5?errandSpawn(errands):null)??districtSpawn(save);
+  const journeySpawn=()=>hub?hub.module.BOARD_SPAWN:transfer?(transferExit(journeyBus(),save.stage>=4?STATIONS.arrival:STATIONS.luggage)??districtSpawn(save)):(save.stage===5?errandSpawn(errands):null)??districtSpawn(save);
   const spawn=journeySpawn(),hero=new THREE.Vector3(spawn.x,0,spawn.z);
   let hasan=companionSpawn(errands);
-  let bus=journeyBus(),heading=1.3,cameraYaw=1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
+  let bus=journeyBus(),heading=hub?Math.PI:1.3,cameraYaw=hub?Math.PI:1.3,driving=false,started=false,lastLook=0,clock=0,fast=false,sound=journeyAmbience(),wheelAngle=0;
   const playerMotion=new DistrictLocomotion(),hasanMotion=new DistrictLocomotion(),cameraPresentation=new DistrictCameraPresentation();
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
   const keys=new Set<string>(),joy={x:0,y:0},audio=new Ambience();
@@ -72,6 +72,9 @@ function boot(){
   const routes=[[-28,14,-14,14,-14,19,-28,19],[-3,-16,3,-16,3,-3,-3,-3],[30,14,32,14,32,-2,30,-2],[-45,-12,-45,10,-48,10,-48,-12]];
   const npcs=Array.from({length:graphicsTier()==='low'?6:12},(_,i)=>{const route=routes[i%routes.length],index=i%4;return {x:route[index*2],z:route[index*2+1],route,index:(index+1)%4,yaw:0,motion:new DistrictLocomotion(i*.13),palette:i%8,waiting:false};});
   let toastTimer=0;
+  const journeyBoard=hub?.module.createWorldJourneyBoard(world.scene,hub.access,toast);
+  const boardPoint=hub?.module.BOARD_POINT;
+  const walkAllowed=(x:number,z:number)=>canStand(x,z)&&(!hub||Math.abs(x-hub.module.BOARD_SOLID.x)>=hub.module.BOARD_SOLID.w/2+.4||Math.abs(z-hub.module.BOARD_SOLID.z)>=hub.module.BOARD_SOLID.d/2+.4);
   function toast(text:string){el('notification').textContent=text;el('notification').hidden=false;clearTimeout(toastTimer);toastTimer=window.setTimeout(()=>el('notification').hidden=true,3500);}
   function advance(event:DistrictEvent){const next=advanceDistrict(save,event);if(next===save)return;save=next;persist();audio.reward();toast(transfer?(save.stage===4?'Bus tiba · rem, turun, lalu temui '+transferGuide:save.stage===5?'Siap memulai misi':'Ikuti rute bersama rombongan'):'+20 poin · '+(save.stage===5?'Misi kawasan selesai':DISTRICT_STEPS[save.stage].title));}
   function advanceBonus(event:Parameters<typeof advanceErrand>[1]){const next=advanceErrand(errands,event);if(next===errands)return;const points=errandReward(next)-errandReward(errands);errands=next;persistErrands();if(points){audio.reward();toast('+'+points+' poin · '+(event==='finishEscort'?'Pak Hasan tiba di halte':'Paket sampai ke pembimbing'));}}
@@ -121,6 +124,7 @@ function boot(){
   function boardBus(){clearSimpleInput();driving=true;bus.speed=0;cameraYaw=bus.yaw;frameCamera();controls.clear();advance('board');toast('Joystick untuk gas dan kemudi · Rem untuk berhenti · Aksi untuk turun');}
   function interact(){
     if(!controls.playable())return;
+    if(hub){journeyBoard?.open();return;}
     if(driving){exitBus();return;}
     const distance=(p:{x:number;z:number})=>Math.hypot(hero.x-p.x,hero.z-p.z);
     if(save.stage===5&&distance(hasan)<2.8){
@@ -149,7 +153,8 @@ function boot(){
   const controls=attachAdventureControls({canvas,keys,joy,active:()=>started&&!budget.lost(),look:(dx,dy)=>{cameraYaw-=dx*.004;rig.orbitPitch(dy);lastLook=performance.now();},interact,pause,extraKeys:['Space']});
   dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});intro.addEventListener('cancel',e=>e.preventDefault());
   el('pauseButton').onclick=pause;el('interactButton').onclick=interact;
-  el('missionButton').onclick=missionBook;
+  el('missionButton').onclick=hub?()=>journeyBoard?.open():missionBook;
+  if(hub){let tap:{x:number;y:number;id:number}|null=null;canvas.addEventListener('pointerdown',e=>{if(e.button===0&&controls.playable())tap={x:e.clientX,y:e.clientY,id:e.pointerId};});canvas.addEventListener('pointerup',e=>{const t=tap;tap=null;if(t&&t.id===e.pointerId&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<8&&controls.playable()&&boardPoint&&Math.hypot(hero.x-boardPoint.x,hero.z-boardPoint.z)<22)journeyBoard?.tap(e.clientX,e.clientY,camera,canvas);});canvas.addEventListener('pointercancel',()=>{tap=null;});}
   el('cameraButton').onclick=()=>{cameraYaw=driving?bus.yaw:heading;lastLook=0;rig.reset();};
   el('fastButton').onclick=()=>{fast=!fast;el('fastButton').setAttribute('aria-pressed',String(fast));};
   const life=installLife(world.scene,{chapter:'district',station:{x:-7,z:18},bag:{x:-18,z:14},active:()=>controls.playable()&&!driving});
@@ -166,7 +171,7 @@ function boot(){
   if(transfer)el('startDistrict').textContent=save.stage>=4?'Temui '+transferGuide+' di terminal':magicBoarding?'Naik bus bersama '+transferGuide+' →':'Ayo naik bus →';
   if(magicBoarding){const article=intro.querySelector('article')!,description=article.querySelector('p');if(description)description.textContent=(demoBoarding?'DEMO · Tidak ada transaksi pembayaran. ':'')+'Assalamualaikum, saya '+transferGuide+'. Bus sudah siap. Mari naik bersama, kemudian kamu bisa mengemudikan bus menuju '+transfer!.title+'. Gunakan W/S untuk maju-mundur, A/D untuk belok, dan Spasi untuk rem. Di HP gunakan joystick dan Rem.';}
   el('startDistrict').onclick=()=>{const chosen=avatar.value==='female'?'female':'male';if(save.avatar!==chosen){save={...save,avatar:chosen};makePlayer();}persist();intro.hidden=true;intro.close();started=true;controls.clear();if(magicBoarding&&save.stage<4)boardBus();if(sound)void audio.start();canvas.focus();};
-  intro.hidden=false;intro.showModal();
+  if(hub){intro.hidden=true;started=true;document.documentElement.classList.add('districtHubMode');document.title='Distrik Perjalanan — HAJJI.DIGITAL';el('objectiveNumber').parentElement!.firstChild!.textContent='HAJJI.DIGITAL ';el('districtCoins').closest('.rewardCard')?.setAttribute('hidden','');el('actionHint').textContent='Sentuh level pada papan di depanmu';el('missionButton').setAttribute('aria-label','Baca peta perjalanan');canvas.focus();}else{intro.hidden=false;intro.showModal();}
   function resize(){budget.resize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
   window.addEventListener('resize',resize);resize();frameCamera(true);
   const f={f0:0,f1:0,frac:0,frameB:0,blend:0},projected=new THREE.Vector3();
@@ -191,20 +196,21 @@ function boot(){
     }else if(active){
       const m=cameraMove(forward,right,cameraYaw),speed=((simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'))&&life.canSprint()?4.4:2.8)*life.factor(hero);
       const nextX=hero.x+m.x*speed*step,nextZ=hero.z+m.z*speed*step;
-      if(canStand(nextX,hero.z)&&!insideBus({x:nextX,z:hero.z},bus))hero.x=nextX;
-      if(canStand(hero.x,nextZ)&&!insideBus({x:hero.x,z:nextZ},bus))hero.z=nextZ;
+      if(walkAllowed(nextX,hero.z)&&!insideBus({x:nextX,z:hero.z},bus))hero.x=nextX;
+      if(walkAllowed(hero.x,nextZ)&&!insideBus({x:hero.x,z:nextZ},bus))hero.z=nextZ;
       if(Math.hypot(hero.x-beforeX,hero.z-beforeZ)>.001){const desired=Math.atan2(m.x,m.z);heading+=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading))*followAlpha(14,step);audio.step();}
     }
-    life.tick(step,hero,active,simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'),driving);
+    if(!hub)life.tick(step,hero,active,simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'),driving);
     playerMotion.update(driving?0:Math.hypot(hero.x-beforeX,hero.z-beforeZ),step,active&&!driving);
     let companionTravel=0;
-    if(!transfer&&save.stage===5&&errands.stage===1&&active){const next=stepCompanion(hasan,hero,step,driving,bus);companionTravel=Math.hypot(next.x-hasan.x,next.z-hasan.z);
+    if(!hub&&!transfer&&save.stage===5&&errands.stage===1&&active){const next=stepCompanion(hasan,hero,step,driving,bus);companionTravel=Math.hypot(next.x-hasan.x,next.z-hasan.z);
       if(next.gate!==hasan.gate){errands={...errands,escortGate:next.gate};persistErrands();}hasan=next;}
     hasanMotion.update(companionTravel,step,active);
     let bonusGoal:Point|null=errands.stage===0?hasan:errands.stage===1?hasan.waiting==='distance'||Math.hypot(hero.x-hasan.x,hero.z-hasan.z)>6.5?hasan:ESCORT_PATH[Math.min(3,hasan.gate+1)]:errands.stage===2?ERRAND_STATIONS.rizal:errands.stage===3?ERRAND_STATIONS.delivery:null;
-    const walkingNavigation=!transfer&&save.stage===5&&!driving&&(errands.stage===0||errands.stage===2||errands.stage===3);
+    const walkingNavigation=!hub&&!transfer&&save.stage===5&&!driving&&(errands.stage===0||errands.stage===2||errands.stage===3);
     if(walkingNavigation&&bonusGoal){if(now-navigationTime>300||navigationStage!==errands.stage){walkingPath=walkingRoute(hero,bonusGoal);navigationTime=now;navigationStage=errands.stage;}bonusGoal=walkingPath.find((p,i)=>i>0&&Math.hypot(p.x-hero.x,p.z-hero.z)>1)??bonusGoal;}
-    world.update(clock,bus,save.stage,save.stage===2,hero,heading,transfer?{target:save.stage>=4?STATIONS.arrival:save.stage===3?transferCue(bus,(save as TransferSave).gate).target:bus,parcel:false}:save.stage===5?{target:bonusGoal,parcel:errands.stage===3&&!driving}:undefined,wheelAngle);
+    world.update(clock,bus,save.stage,save.stage===2,hero,heading,hub?{target:null,parcel:false}:transfer?{target:save.stage>=4?STATIONS.arrival:save.stage===3?transferCue(bus,(save as TransferSave).gate).target:bus,parcel:false}:save.stage===5?{target:bonusGoal,parcel:errands.stage===3&&!driving}:undefined,wheelAngle);
+    if(hub)world.luggage.visible=false;
     player.beginFrame();if(!driving)submit(player,hero.x,hero.z,heading,0,false,save.avatar==='female'?8:0,playerMotion);player.endFrame();
     crowd.beginFrame();submit(crowd,STATIONS.briefing.x,STATIONS.briefing.z,Math.atan2(hero.x+12,hero.z-17),clock*.00015,false,9);
     for(const n of npcs){
@@ -222,7 +228,7 @@ function boot(){
     rig.update(cameraPresentation.focus.x,cameraPresentation.focus.z,cameraPresentation.focus.yaw,dt);
     const targetFov=driving&&!reducedMotion.matches?61+Math.abs(bus.speed)*.45:61;
     if(Math.abs(camera.fov-targetFov)>.02){camera.fov+=(targetFov-camera.fov)*followAlpha(3,step);camera.updateProjectionMatrix();}
-    const goal=transfer?(save.stage>=4?STATIONS.arrival:save.stage===3?transferCue(bus,(save as TransferSave).gate).target:bus):save.stage===5?(bonusGoal??STATIONS.arrival):save.stage===2?bus:DISTRICT_STEPS[save.stage].target;
+    const goal=boardPoint??(transfer?(save.stage>=4?STATIONS.arrival:save.stage===3?transferCue(bus,(save as TransferSave).gate).target:bus):save.stage===5?(bonusGoal??STATIONS.arrival):save.stage===2?bus:DISTRICT_STEPS[save.stage].target);
     el('mapPlayer').setAttribute('transform',`translate(${hero.x+70} ${hero.z+57}) rotate(${180-(driving?bus.yaw:heading)*180/Math.PI})`);
     el('mapGoal').setAttribute('cx',String(goal.x+70));el('mapGoal').setAttribute('cy',String(goal.z+57));
     const bonusTitles=['Opsional: temui Pak Hasan','Dampingi Pak Hasan ke halte','Opsional: temui petugas kedai','Antar paket ke Bu Salma','Semua bantuan selesai'];
@@ -230,6 +236,7 @@ function boot(){
     const bonusDetails=['Ada jemaah yang membutuhkan teman berjalan. Ikuti penanda emas di pelataran.',escortHint,'Pak Rizal berada di deretan kedai sebelah utara penginapan.','Bawa paket ke pelataran terminal, lalu serahkan melalui Interaksi.','Dua misi tambahan selesai. Lanjutkan manasik atau jelajahi kawasan.'];
     text('missionTitle',save.stage===5?bonusTitles[errands.stage]:DISTRICT_STEPS[save.stage].title);text('missionDetail',save.stage===5?bonusDetails[errands.stage]:DISTRICT_STEPS[save.stage].detail);text('objectiveNumber',save.stage<5?`MISI ${save.stage+1} / 5`:errands.stage===4?'2/2 BANTUAN SELESAI':'MISI TAMBAHAN · '+(errands.stage<2?'1/2':'2/2'));el('missionFill').style.width=(save.stage===5?[0,25,50,75,100][errands.stage]:save.stage*20)+'%';text('districtCoins',String(districtReward(save)+(save.stage===5?errandReward(errands):0)));
     if(transfer){const gate=(save as TransferSave).gate;text('missionTitle',save.stage<3?(muzdalifahToMina?'Naik bus Muzdalifah → Mina':minaToArafah?'Naik bus Mina → Arafah':arafahToMuzdalifah?'Naik bus malam ke Muzdalifah':'Naik bus rombongan'):save.stage===3?(muzdalifahToMina?'Muzdalifah → Mina · Aqabah':minaToArafah?'Mina → Arafah · bersama rombongan':arafahToMuzdalifah?'Arafah → Muzdalifah · malam':'Menuju '+transfer.title):'Temui '+transferGuide+' di terminal');text('missionDetail',save.stage<3?'Dekati bus dan tekan E / Interaksi. '+transferGuide+' menunggu rombongan siap berangkat.':save.stage===3?'Ikuti garis rute. Pelan di tikungan, lalu rem di terminal.':'Parkir dan turun dari bus, lalu dekati '+transferGuide+' untuk memulai misi.');text('objectiveNumber','PERJALANAN KE LEVEL '+transfer.number);el('missionFill').style.width=(save.stage>=4?100:Math.round(gate/TRANSFER_ROUTE.length*85))+'%';}
+    if(hub&&journeyBoard){const p=journeyBoard.progress();text('missionTitle','Peta Perjalanan '+(hub.access.program==='hajj'?'Haji':'Umroh'));text('missionDetail','Sentuh level yang terbuka pada papan. Kamu juga bisa berjalan dan melihat kawasan.');text('objectiveNumber',p.done+' / '+p.total+' LEVEL SELESAI');el('missionFill').style.width=(p.done/p.total*100)+'%';}
     if(transfer){busGuide.hidden=!driving||!active;const gate=(save as TransferSave).gate;const line=save.stage>=4?'Kita sudah sampai. Tekan E atau Turun, lalu temui saya di pelataran terminal.':gate<8?(muzdalifahToMina?'Kita menuju Mina pada 10 Zulhijah. Bawa tujuh kerikil dan ikuti petugas di Jamarat.':minaToArafah?'Kita berangkat dari Mina menuju Arafah pada pagi 9 Zulhijah. Ikuti rute dengan tenang dan lanjutkan talbiyah.':arafahToMuzdalifah?'Kita meninggalkan Arafah setelah matahari terbenam. Lanjutkan talbiyah dan kemudikan bus dengan tenang menuju Muzdalifah.':'Ikuti garis rute ke kiri, lalu kelilingi kawasan. Tidak perlu mengebut; saya menemanimu lewat radio.'):gate<16?'Lihat bangunan di sepanjang jalan. Pelankan bus di tikungan dan jaga rombongan tetap nyaman.':gate<21?'Sebentar lagi tiba di lokasi '+transfer.title+'. Persiapanmu dan bekal akan terbawa ke misi.':'Terminal ada di depan. Tahan Rem sampai bus berhenti, lalu turun untuk bertemu saya.';if(busGuideLine.textContent!==line)busGuideLine.textContent=line;}
     const navigation=driving&&save.stage===3;el('mapRoute').toggleAttribute('hidden',!navigation&&!walkingNavigation);el('routeCue').hidden=!navigation&&!walkingNavigation;
     if(navigation){el('mapRoute').setAttribute('points',(transfer?TRANSFER_ROUTE:TERMINAL_ROUTE).map(p=>`${p.x+70},${p.z+57}`).join(' '));const cue=transfer?transferCue(bus,(save as TransferSave).gate):routeCue(bus);text('routeCue',cue.text+' · '+cue.remaining+' m');}
@@ -245,8 +252,9 @@ function boot(){
     if(!transfer&&!driving&&save.stage===5&&Math.hypot(hero.x-hasan.x,hero.z-hasan.z)<2.8)prompt='Bicara dengan Pak Hasan';
     else if(!transfer&&!driving&&save.stage===5&&Math.hypot(hero.x-ERRAND_STATIONS.rizal.x,hero.z-ERRAND_STATIONS.rizal.z)<2.8)prompt='Bicara dengan Pak Rizal';
     else if(!prompt&&npcs.some(n=>Math.hypot(hero.x-n.x,hero.z-n.z)<2))prompt='Sapa jemaah';
+    if(hub)prompt=boardPoint&&Math.hypot(hero.x-boardPoint.x,hero.z-boardPoint.z)<12?'Baca peta perjalanan':'';
     el('interactButton').hidden=!prompt;el<HTMLButtonElement>('interactButton').disabled=driving&&Math.abs(bus.speed)>.5;text('interactButton',prompt+' · E');
-    label('npcFarid',STATIONS.briefing);label('npcSalma',guidePoint);if(magicBoarding&&driving&&save.stage<4)el('npcSalma').hidden=true;label('npcHasan',hasan);label('npcRizal',ERRAND_STATIONS.rizal);if(save.stage!==5){el('npcHasan').hidden=true;el('npcRizal').hidden=true;}budget.draw(now,world.scene,camera,!active);
+    label('npcFarid',STATIONS.briefing);label('npcSalma',guidePoint);if(magicBoarding&&driving&&save.stage<4)el('npcSalma').hidden=true;label('npcHasan',hasan);label('npcRizal',ERRAND_STATIONS.rizal);if(save.stage!==5){el('npcHasan').hidden=true;el('npcRizal').hidden=true;}if(hub){for(const id of ['npcFarid','npcSalma','npcHasan','npcRizal'])el(id).hidden=true;}budget.draw(now,world.scene,camera,!active);
   }
   mountSimplePlayHud('district');
   if(import.meta.env.DEV){
@@ -255,6 +263,6 @@ function boot(){
     Object.defineProperty(window,'__districtDebug',{configurable:true,value:Object.freeze({snapshot:()=>({stage:save.stage,transfer:transfer?{id:transfer.id,gate:(save as TransferSave).gate}:null,avatar:save.avatar,life:life.snapshot(),driving,x:hero.x,z:hero.z,heading,cameraYaw,bus:{...bus},errands:{...errands},hasan:{...hasan},calls:renderer.info.render.calls,npcs:npcs.length,waiting:npcs.filter(n=>n.waiting).length,playable:controls.playable(),presentation:{focus:{...cameraPresentation.focus},framing:{...rig.framing},camera:camera.position.toArray(),fov:camera.fov,locomotion:{moving:playerMotion.moving,phase:playerMotion.phase,...playerMotion.pose},wheels:world.wheels.map(w=>({front:w.front,steer:w.steering.rotation.y,roll:w.rolling.rotation.x}))},lighting:{lights:[...lights],casters,environment:!!world.scene.environment,shadowMap:renderer.shadowMap.enabled,toneMapping:renderer.toneMapping,colorMapsNotSRGB:[...colorMapsNotSRGB]}})})});
   }
   frame=requestAnimationFrame(tick);
-  window.addEventListener('pagehide',e=>{controls.clear();audio.stop();if(e.persisted)return;cancelAnimationFrame(frame);life.dispose();controls.dispose();audio.dispose();player.dispose();crowd.dispose();salma.dispose();budget.dispose();world.dispose();renderer.dispose();},{once:true});
+  window.addEventListener('pagehide',e=>{controls.clear();audio.stop();if(e.persisted)return;cancelAnimationFrame(frame);journeyBoard?.dispose();life.dispose();controls.dispose();audio.dispose();player.dispose();crowd.dispose();salma.dispose();budget.dispose();world.dispose();renderer.dispose();},{once:true});
 }
-if(new URLSearchParams(location.search).has('board')){void import('./districtBoard.ts').then(m=>m.mountDistrictBoard());}else if(requestedTransfer&&!transfer){location.replace(tenantUrl('./adventure-map.html?journey='+readSetup()?.program));}else try{boot();}catch(error){intro.hidden=true;if(intro.open)intro.close();el('districtError').hidden=false;el('errorMessage').textContent='Kawasan membutuhkan WebGL. '+(error instanceof Error?error.message:'Coba muat ulang browser.');console.error(error);}
+if(new URLSearchParams(location.search).has('board')){document.documentElement.classList.add('districtHubLoading');void import('./districtBoard.ts').then(async m=>{const access=await m.verifyDistrictBoard();save={...save,avatar:journeyAvatar(save.avatar)};document.documentElement.classList.remove('districtHubLoading');boot({access,module:m});}).catch(error=>{document.documentElement.classList.remove('districtHubLoading');el('districtError').hidden=false;el('districtError').querySelector('h2')!.textContent='AKSES BELUM AKTIF';el('errorMessage').textContent=error instanceof Error?error.message:'Buka kembali magic link pribadi.';const panel=el('districtError');panel.querySelectorAll('a').forEach(a=>a.remove());const a=document.createElement('a');a.className='primary';a.href=tenantUrl('./index.html');a.textContent='Kembali ke gerbang';panel.append(a);});}else if(requestedTransfer&&!transfer){location.replace(tenantUrl('./adventure-map.html?journey='+readSetup()?.program));}else try{boot();}catch(error){intro.hidden=true;if(intro.open)intro.close();el('districtError').hidden=false;el('errorMessage').textContent='Kawasan membutuhkan WebGL. '+(error instanceof Error?error.message:'Coba muat ulang browser.');console.error(error);}
