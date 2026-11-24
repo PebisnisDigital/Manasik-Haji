@@ -11,7 +11,7 @@ import {attachWalker,type Obstacle,type WalkOptions} from './coreWalk.ts';
 import {Clip} from './sim/States.ts';
 export type Site='arafah'|'muzdalifah'|'mina'|'jamarat';
 export interface SiteView{focus(i:number):void;throwStone(i:number,onFinish:()=>void):void;dispose():void;near():boolean;approach():void;setGoal(x:number,z:number):void;setTime(progress:number):void;setPrayer(on:boolean):void;setMinaCamp(beat:number):void;setArafahActivity(beat:number):void;setAqabahActivity(beat:number,cuts:number,progress:number,active?:boolean):void;setMuzdalifahActivity(beat:number,stones:number,pickup:number,dawn:number):void;campCare(action:'refill'|'rest'|'hydrate'):boolean;setCampPose(pose:{clip:number;phase:number}|null):void}
-export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions,options:{aqabah?:boolean}={}):SiteView{
+export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions,options:{aqabah?:boolean;exitWalk?:boolean}={}):SiteView{
  const canvas=document.createElement('canvas');canvas.setAttribute('aria-label','Rekonstruksi ilustratif '+site+'; geser untuk memutar kamera');host.replaceChildren(canvas);
  const profile=graphicsProfile(),tier=graphicsTier();const r=new THREE.WebGLRenderer({canvas,antialias:tier!=='low',powerPreference:'low-power'});const budget=createRenderBudget(r,{maxFps:60});r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=nightExposure();function nightExposure(){return site==='muzdalifah'?1.1:.98;}
  const night=site==='muzdalifah';const s=new THREE.Scene();s.background=new THREE.Color(night?0x18283b:0xc9d9da);s.fog=new THREE.Fog(night?0x18283b:0xc9d9da,42,130);
@@ -96,7 +96,7 @@ export function createSite(host:HTMLElement,site:Site,walk?:WalkOptions,options:
  const aqabah=site==='jamarat'&&options.aqabah?aqabahActivities(s,walk?.avatar??'male'):null;
  const cam=new THREE.PerspectiveCamera(47,1,.1,180);let orbit=.2,elev=.43,dist=site==='jamarat'?22:34,focusX=0;const center=new THREE.Vector3(0,1.5,0);
  const level=cityArenaLevel(),entry:readonly [number,number]=site==='jamarat'?(level===8?[3,12]:level===9?[-8,11]:[0,9]):[0,12];
- const walker=walk?attachWalker(s,cam,canvas,host,{...walk,lifeKind:site},site==='jamarat'?[-14,14,3.45,options.aqabah?22:10]:[-18,18,-10,13],obstacles,entry,site==='jamarat'?[8,4.5]:site==='muzdalifah'?[0,3.5]:[0,-3]):null;if(walker)cam.fov=58;
+ const walker=walk?attachWalker(s,cam,canvas,host,{...walk,lifeKind:site,arenaEntry:entry},site==='jamarat'?[-14,14,3.45,options.aqabah?22:10]:[-18,18,-10,13],obstacles,options.exitWalk&&site==='mina'?[0,8]:entry,site==='jamarat'?[8,4.5]:site==='muzdalifah'?[0,3.5]:[0,-3]):null;if(walker)cam.fov=58;
  const locationSigns:{mesh:THREE.Mesh;position:THREE.Vector3}[]=[];s.traverse(o=>{if(o instanceof THREE.Mesh&&o.userData.locationSign)locationSigns.push({mesh:o,position:o.getWorldPosition(new THREE.Vector3())});});
  const stone=mesh(new THREE.DodecahedronGeometry(.11,0),rock,0,0,0);stone.visible=false;
  let shot:{i:number;elapsed:number;finish:()=>void;origin:THREE.Vector3}|null=null;let raf=0,disposed=false,drag:number|null=null,px=0,py=0,lastTime=0;
