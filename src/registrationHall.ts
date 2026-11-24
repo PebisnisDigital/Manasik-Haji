@@ -3,8 +3,8 @@ import {humanActor} from './characters/HumanActors.ts';
 
 type LaneNPC={root:THREE.Group;label:THREE.Sprite;canvas:HTMLCanvasElement;nameIndex:number;target:THREE.Vector3};
 type Lane={side:number;female:boolean;queue:LaneNPC[];spare:LaneNPC|null;outgoing:LaneNPC|null;exitStep:number;service:number;pen:THREE.Group;clock:number;nextName:number;names:readonly string[]};
-const namesMale=['Ahmad','Rizky','Hasan','Bilal','Yusuf','Umar','Ismail','Ibrahim','Faisal','Omar','Farid','Musa','Salman','Zaid','Abdullah','Hamza'];
-const namesFemale=['Aisyah','Fatimah','Nur','Maryam','Khadijah','Zahra','Siti','Amina','Hana','Safiya','Leila','Zainab','Rania','Nadia','Halima','Sumayyah'];
+const namesMale=['Asep','Dedi','Ujang','Agus','Bambang','Eko','Jajang','Yanto','Dadang','Sutrisno','Wawan','Tatang','Rudi','Dadan','Wahyu','Hendra','Rizky','Budi','Ari','Rohmat','Slamet','Bayu','Dimas','Joko'];
+const namesFemale=['Siti','Neneng','Nining','Yuni','Dewi','Sri','Titin','Enung','Rina','Wati','Euis','Nani','Yayah','Ratna','Wulan','Rini','Tuti','Sulastri','Fitri','Ayu','Nia','Rahayu','Linda','Dian'];
 const material=(color:number)=>new THREE.MeshStandardMaterial({color,roughness:.72});
 const green=material(0x194c3c),gold=material(0xc6a260),wood=material(0x815f40),cream=material(0xe7dac0),paper=material(0xfff8e9),ink=material(0x243c48);
 function box(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.Material){
@@ -32,7 +32,7 @@ function label(root:THREE.Group,height:number):{label:THREE.Sprite;canvas:HTMLCa
 }
 function rename(npc:LaneNPC,lane:Lane){
  const name=lane.names[lane.nextName++%lane.names.length];npc.nameIndex=lane.nextName;
- const c=npc.canvas,g=c.getContext('2d')!;g.clearRect(0,0,c.width,c.height);g.fillStyle='#163b30ed';g.fillRect(0,4,256,56);g.strokeStyle='#d5bb79';g.lineWidth=2;g.strokeRect(2,6,252,52);g.font='bold 30px sans-serif';g.textAlign='center';g.fillStyle='#fff4db';g.fillText(name+' · NPC',128,44,242);npc.label.material.map!.needsUpdate=true; npc.root.userData.registrationName=name;
+ const c=npc.canvas,g=c.getContext('2d')!;g.clearRect(0,0,c.width,c.height);g.fillStyle='#163b30ed';g.fillRect(0,4,256,56);g.strokeStyle='#d5bb79';g.lineWidth=2;g.strokeRect(2,6,252,52);g.font='bold 30px sans-serif';g.textAlign='center';g.fillStyle='#fff4db';g.fillText(name,128,44,242);npc.label.material.map!.needsUpdate=true; npc.root.userData.registrationName=name;
 }
 function makeAdmin(scene:THREE.Scene,x:number,female:boolean){
  const admin=new THREE.Group();admin.position.set(x,0,-4.06);scene.add(admin);
@@ -76,7 +76,70 @@ function advance(npc:LaneNPC,dt:number,speed:number){
  const distance=Math.min(d,speed*dt);p.x+=dx/d*distance;p.z+=dz/d*distance;
  const yaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(yaw-npc.root.rotation.y),Math.cos(yaw-npc.root.rotation.y));npc.root.rotation.y+=delta*(1-Math.exp(-dt*9));return distance===d;
 }
+
+/** Parked Indonesian-style MPVs and scooters; outside the pedestrian and gate lanes. */
+function createParking(scene:THREE.Scene){
+ const asphalt=material(0x686e6a),stripe=material(0xe8e3ce),rubber=material(0x25292c),chrome=material(0xaab3b4),glass=material(0x284450),lamp=material(0xfaf0d4),tail=material(0xc13835),plate=material(0x171d20);
+ glass.roughness=.28;chrome.metalness=.55;
+ function wheel(parent:THREE.Group,x:number,y:number,z:number,r:number,width:number){
+  const tire=new THREE.Mesh(new THREE.CylinderGeometry(r,r,width,18),rubber);tire.rotation.z=Math.PI/2;tire.position.set(x,y,z);parent.add(tire);
+  const rim=new THREE.Mesh(new THREE.CylinderGeometry(r*.55,r*.55,width+.018,14),chrome);rim.rotation.z=Math.PI/2;rim.position.copy(tire.position);parent.add(rim);
+ }
+ function rod(parent:THREE.Group,a:THREE.Vector3,b:THREE.Vector3,r:number,m:THREE.Material){
+  const v=b.clone().sub(a),part=new THREE.Mesh(new THREE.CylinderGeometry(r,r,v.length(),8),m);part.position.copy(a.clone().add(b).multiplyScalar(.5));part.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),v.normalize());parent.add(part);
+ }
+ function mpv(x:number,z:number,color:number,yaw:number){
+  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=yaw;g.name='parked-mpv';scene.add(g);
+  const paint=material(color);paint.roughness=.34;paint.metalness=.23;
+  // Hood, passenger cabin, windows, pillars, bumper, lamps and wheels.
+  box(g,1.72,.50,3.85,0,.59,0,paint);
+  box(g,1.70,.14,3.97,0,.34,0,rubber);
+  box(g,1.59,.24,1.02,0,.88,1.30,paint);
+  box(g,1.54,.62,2.52,0,1.15,-.33,glass);
+  box(g,1.60,.10,2.61,0,1.48,-.33,paint);
+  for(const side of [-1,1]){
+   for(const pz of [-1.49,-.66,.20,.85])box(g,.075,.60,.075,side*.795,1.15,pz,paint);
+   box(g,.055,.085,.22,side*.87,.80,.30,chrome);
+   box(g,.055,.085,.22,side*.87,.80,-.63,chrome);
+   box(g,.18,.12,.20,side*.94,1.12,.88,paint);
+   for(const pz of [-1.28,1.28])wheel(g,side*.81,.30,pz,.30,.20);
+   box(g,.40,.15,.07,side*.56,.78,1.96,lamp);
+   box(g,.30,.18,.065,side*.64,.80,-1.96,tail);
+  }
+  const wind=box(g,1.46,.64,.045,0,1.13,.97,glass);wind.rotation.x=-.28;
+  box(g,1.14,.14,.07,0,.62,1.97,rubber);box(g,.38,.13,.035,0,.43,2.015,plate);box(g,.38,.13,.035,0,.55,-2.015,plate);
+ }
+ function scooter(x:number,z:number,color:number,yaw:number){
+  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=yaw;g.name='parked-scooter';scene.add(g);
+  const paint=material(color);paint.roughness=.38;paint.metalness=.16;
+  wheel(g,0,.215,.60,.215,.12);wheel(g,0,.215,-.57,.215,.14);
+  box(g,.38,.18,.94,0,.36,-.12,paint);box(g,.29,.075,.54,0,.46,.18,rubber);
+  box(g,.40,.37,.63,0,.60,-.40,paint);
+  box(g,.39,.115,.64,0,.82,-.40,rubber);
+  const front=box(g,.38,.50,.26,0,.65,.45,paint);front.rotation.x=-.20;
+  box(g,.33,.15,.34,0,.92,.48,paint);box(g,.25,.09,.045,0,.94,.67,lamp);box(g,.26,.07,.04,0,.68,-.74,tail);
+  for(const side of [-1,1]){
+   rod(g,new THREE.Vector3(side*.065,.22,.58),new THREE.Vector3(side*.065,.84,.39),.023,chrome);
+   rod(g,new THREE.Vector3(0,.99,.42),new THREE.Vector3(side*.32,.99,.38),.026,rubber);
+   rod(g,new THREE.Vector3(side*.23,.99,.38),new THREE.Vector3(side*.32,1.20,.38),.013,chrome);
+   box(g,.13,.09,.045,side*.32,1.20,.38,rubber);
+  }
+  box(g,.22,.10,.035,0,.43,-.76,plate);
+  rod(g,new THREE.Vector3(-.10,.38,-.16),new THREE.Vector3(-.26,.02,-.22),.018,chrome);
+ }
+ for(const side of [-1,1]){
+  box(scene,5.05,.035,10.4,side*9.24,.014,.65,asphalt);
+  for(let i=0;i<5;i++)box(scene,1.78,.009,.04,side*7.38,.037,-3.2+i*1.52,stripe);
+  box(scene,.045,.009,9.7,side*11.65,.037,.65,stripe);
+  mpv(side*10.0,-.25,side<0?0xf0efeb:0x59636a,side<0?.10:-.10);
+  const colors=[0x263c4b,0xb32f35,0xe8e9de,0x355d59,0x34559b,0x222528];
+  for(let i=0;i<6;i++)scooter(side*7.0,-1.55+i*1.13,colors[(i+(side<0?0:2))%colors.length]!,side<0?-Math.PI/2:Math.PI/2);
+  sign(scene,'PARKIR','MOBIL & MOTOR',side*9.6,2.12,-4.55,1.65,.48);
+ }
+}
+
 export function createRegistrationHall(scene:THREE.Scene){
+ createParking(scene);
  const lanes=[createLane(scene,-1,false),createLane(scene,1,true)];
  let completed=0;
  function update(dt:number){
