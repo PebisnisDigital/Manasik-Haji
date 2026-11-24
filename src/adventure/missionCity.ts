@@ -1,3 +1,4 @@
+import {humanActor,updateHumanActors,disposeHumanActors} from '../characters/HumanActors.ts';
 import * as THREE from 'three';
 import {DISTRICT_SOLIDS,type Point,type Rect,type Vehicle} from './districtModel.ts';
 import {NUSUK_LEVELS} from './nusukModel.ts';
@@ -5,7 +6,8 @@ import {UMRAH_LEVELS} from '../frontModel.ts';
 export type CityKind='motor'|'mobil'|'bus';
 export const CITY_BOUNDS={minX:-150,maxX:150,minZ:-128,maxZ:128};
 const layout=[[-35,100,Math.PI],[35,100,Math.PI],[105,100,Math.PI],[120,38,-Math.PI/2],[120,-38,-Math.PI/2],[105,-100,0],[35,-100,0],[-35,-100,0],[-105,-100,0],[-120,-38,Math.PI/2],[-120,38,Math.PI/2],[-105,100,Math.PI]] as const;
-export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height:8+(i%3)*2,number:i+1,door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
+const guardNames=['Asep','Dedi','Jajang','Bambang','Eko','Sutrisno','Wawan','Dadang','Agus','Yanto','Rudi','Slamet'] as const;
+export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height:8+(i%3)*2,number:i+1,guardName:'Pak '+guardNames[i],door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
 const profiles={motor:{label:'Motor',w:.48,d:1.05,wheelbase:1.35,max:14,acc:5},mobil:{label:'Mobil',w:1.0,d:2.25,wheelbase:2.7,max:16,acc:4.2},bus:{label:'Bus',w:1.45,d:4.8,wheelbase:5.1,max:11,acc:3.5}};
 export type CityVehicle=Vehicle&{kind:CityKind};
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -41,6 +43,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  for(const z of [-24,24])for(const x of [-70,70])street(x,z,64,9);
  const doors:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
  const signs:THREE.CanvasTexture[]=[];
+ const guards:{root:THREE.Group;yaw:number;number:number}[]=[];
  const names=program==='hajj'?NUSUK_LEVELS.map(l=>l.title):UMRAH_LEVELS.map(l=>l.title);
  for(const p of places){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;scene.add(g);
@@ -59,6 +62,17 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   const c=document.createElement('canvas');c.width=1024;c.height=256;const t=c.getContext('2d')!;
   t.fillStyle='#193d31';t.fillRect(0,0,1024,256);t.strokeStyle='#d8b972';t.lineWidth=7;t.strokeRect(9,9,1006,238);t.fillStyle='#f2d18b';t.font='bold 62px system-ui';t.textAlign='center';t.fillText('GEDUNG '+String(p.number).padStart(2,'0'),512,88);t.fillStyle='#fff4d9';t.font='bold 46px system-ui';t.fillText(names[p.number-1]??'Level '+p.number,512,172,945);
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;signs.push(tex);const sign=new THREE.Mesh(new THREE.PlaneGeometry(15,3.75),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));sign.position.set(0,5.4,10.25);g.add(sign);
+  // Uniformed gate attendant, standing to the side of the entrance.
+  const guard=humanActor(scene,0x34475b,false,1.79,undefined,{palette:4,build:1.12,brightness:1,cull:true,registration:true});
+  guard.position.set(p.x+Math.cos(p.yaw)*2.95+Math.sin(p.yaw)*11.8,.1,p.z-Math.sin(p.yaw)*2.95+Math.cos(p.yaw)*11.8);
+  guard.rotation.y=p.yaw;guards.push({root:guard,yaw:p.yaw,number:p.number});
+  const tagCanvas=document.createElement('canvas');tagCanvas.width=512;tagCanvas.height=116;const tg=tagCanvas.getContext('2d')!;
+  tg.fillStyle='#173b32';tg.fillRect(0,0,512,116);tg.strokeStyle='#c9aa67';tg.lineWidth=4;tg.strokeRect(4,4,504,108);tg.textAlign='center';tg.fillStyle='#f5e4b6';tg.font='bold 38px system-ui';tg.fillText(p.guardName,256,48);tg.font='bold 25px system-ui';tg.fillText('PETUGAS KEAMANAN',256,87);
+  const tagTexture=new THREE.CanvasTexture(tagCanvas);tagTexture.colorSpace=THREE.SRGBColorSpace;signs.push(tagTexture);
+  const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tagTexture,transparent:true,depthWrite:false}));tag.position.set(0,2.11,0);tag.scale.set(1.65,.374,1);guard.add(tag);
+  const badge=box(guard,.13,.09,.025,-.15,1.36,.18,gold);badge.rotation.y=0;
+  // A low security podium identifies the checkpoint without obstructing the door.
+  box(g,.70,1.05,.55,4.3,.525,11.8,green);box(g,.82,.07,.65,4.3,1.08,11.8,gold);box(g,.38,.025,.26,4.3,1.13,11.8,white);
   const cap=new THREE.Mesh(new THREE.SphereGeometry(1.65,16,8,0,Math.PI*2,0,Math.PI/2),green);cap.position.set(0,p.height+.38,0);g.add(cap);
   for(const x of [-9.2,9.2]){box(g,.26,2.7,.26,x,p.height+1.2,9.1,gold);}
  }
@@ -84,7 +98,8 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   for(let i=0;i<doors.length;i++){const color=available.includes(i+1)?0xb9934c:0x35413e;if(doors[i]!.material.color.getHex()!==color)doors[i]!.material.color.setHex(color);}
   const p=places.find(p=>p.number===target);marker.visible=!!p;if(p){marker.position.x=p.door.x;marker.position.z=p.door.z;}
  }
- function entrance(p:Point){return places.find(b=>distance(p,b.door)<2.1)??null;}
+ function entrance(p:Point){return places.find(b=>distance(p,b.door)<3.5||guards.some(g=>g.number===b.number&&distance(p,{x:g.root.position.x,z:g.root.position.z})<2.4))??null;}
+ function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});}updateHumanActors(scene,dt,active,camera);}
  function reset(){const fresh=initial();for(const v of fresh)Object.assign(get(v.kind),v);selected=null;}
- return {places,solids,near,take,update,leave,render,entrance,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>signs.forEach(t=>t.dispose())};
+ return {places,solids,near,take,update,leave,render,entrance,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
 }
