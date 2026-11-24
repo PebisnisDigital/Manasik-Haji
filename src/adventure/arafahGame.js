@@ -1,0 +1,99 @@
+import * as THREE from 'three';
+import { createAdventureFeel } from './feel.js';
+import { createAdventureVisuals } from './visuals.js';
+import { createAvatarUpgrade } from './avatarUpgrade.js';
+const avatars=createAvatarUpgrade(THREE);
+const visuals=createAdventureVisuals(THREE);
+const feel=createAdventureFeel(THREE);
+// Level 07: Mina to Arafah. This is a fictional navigation lesson, not a real-time or legally valid rite.
+const $=id=>document.getElementById(id);
+const KEY='manasik-arafah-quest-v1', PREV='manasik-mina-quest-v1';
+const demo=new URLSearchParams(location.search).has('demo');
+function prevDone(){try{const s=JSON.parse(localStorage.getItem(PREV)||'null');return s?.version===1&&s.stage===8;}catch{return false;}}
+if(!prevDone()&&!demo){location.replace('./adventure-map.html');throw new Error('Level 06 required');}
+const QUESTS=[
+ {area:'mina',x:-25,z:8,label:'Temui ketua rombongan',hint:'Cari pembimbing A07 di depan tenda Mina.',action:'Temui'},
+ {area:'mina',x:-8,z:-9,label:'Temukan titik kumpul',hint:'Jelajahi jalur tenda dan temukan rombongan A07.',action:'Bergabung'},
+ {area:'mina',x:23,z:-4,label:'Naik bus ke Arafah',hint:'Cari bus rombongan A07 di jalan utama.',action:'Naik bus'},
+ {area:'arafah',x:-36,z:9,label:'Tiba di Arafah',hint:'Temui petugas penyambut rombongan.',action:'Temui'},
+ {area:'arafah',x:-25,z:-19,label:'Cari papan sektor',hint:'Temukan papan arah menuju sektor A07.',action:'Baca peta'},
+ {area:'arafah',x:-5,z:-19,label:'Ambil bekal air',hint:'Datangi pos air minum rombongan sebelum melanjutkan.',action:'Ambil air'},
+ {area:'arafah',x:16,z:17,label:'Temukan tenda A07',hint:'Ikuti penanda dan cari tenda A07, bukan tenda sektor lain.',action:'Periksa'},
+ {area:'arafah',x:16,z:17,label:'Ikuti panduan wukuf',hint:'Temui pembimbing tenda untuk membaca panduan singkat.',action:'Panduan'},
+ {area:'arafah',x:31,z:6,label:'Bergabung kembali',hint:'Lapor ke pembimbing sebelum bersiap menuju Muzdalifah.',action:'Lapor'},
+ {area:'arafah',x:31,z:6,label:'Level Arafah tuntas',hint:'Misi navigasi dan panduan selesai.',action:''}
+];
+const state={version:1,stage:0,avatar:'male',water:false,guide:false};
+let scene,renderer,camera,world,player,beacon,coach,coachDoor;
+let px=-38,pz=13,camYaw=2.3,heading=0,active=false,traveling=false,coachOpen=false,voice=false,lastTime=0,toastUntil=0,raf=0;
+let crowd=[],decor=[],lamp=[],cameraFollow=new THREE.Vector3(),cameraLook=new THREE.Vector3();
+const keySet=new Set(),stick={pointer:null,x:0,y:0},look={pointer:null,x:0},mats=new Map();
+const geomBox=(x,y,z)=>new THREE.BoxGeometry(x,y,z),geomSphere=(r=.5)=>new THREE.SphereGeometry(r,12,9);
+function mat(color,glow=0){const k=color+':'+glow;if(!mats.has(k))mats.set(k,new THREE.MeshStandardMaterial({color,roughness:.81,emissive:color,emissiveIntensity:glow}));return mats.get(k);}
+function mesh(geo,color,x,y,z,parent=world,glow=0){const o=new THREE.Mesh(geo,mat(color,glow));o.position.set(x,y,z);o.receiveShadow=true;parent.add(o);return o;}
+function person(parent,color=0xf1f0e9,headwear=true){const group=new THREE.Group();parent.add(group);mesh(new THREE.CylinderGeometry(.33,.47,1.52,9),color,0,1.05,0,group);mesh(geomSphere(.255),0x9c7355,0,2.02,0,group);for(const x of [-.18,.18])mesh(new THREE.CylinderGeometry(.12,.14,.6,8),0xd3d3c7,x,.32,0,group);if(headwear){mesh(new THREE.ConeGeometry(.46,.83,10),color,0,2.05,0,group);}else{mesh(new THREE.SphereGeometry(.255,10,8,0,Math.PI*2,0,Math.PI*.44),0xecece4,0,2.15,0,group);}return group;}
+function sign(label,x,y,z,w=6,green=true){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=200;const ctx=canvas.getContext('2d');ctx.fillStyle=green?'#1e614b':'#58675f';ctx.fillRect(0,0,512,200);ctx.strokeStyle='#e5cc89';ctx.lineWidth=12;ctx.strokeRect(9,9,494,182);ctx.font='bold 62px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff2d0';ctx.fillText(label,256,103,490);const tx=new THREE.CanvasTexture(canvas);tx.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(w,w*.39),new THREE.MeshBasicMaterial({map:tx,side:THREE.DoubleSide}));m.position.set(x,y,z);world.add(m);return m;}
+function tent(x,z,label,isGoal=false){const cols=isGoal?0xeee2ce:0xeae5d8;mesh(geomBox(7.5,2.8,6.8),cols,x,1.4,z);const roof=mesh(new THREE.ConeGeometry(4.8,2.7,4),isGoal?0xf9ebd2:0xf4f0e7,x,4.14,z);roof.rotation.y=Math.PI/4;roof.scale.set(1,.89,.94);mesh(geomBox(1.9,2.1,.11),isGoal?0x337e5b:0x74928a,x,1.05,z+3.47);sign(label,x,3.22,z+3.55,2.4,isGoal);if(isGoal){const ring=mesh(new THREE.RingGeometry(4.7,4.88,50),0xeac276,x,.06,z);ring.rotation.x=-Math.PI/2;}}
+function mountain(x,z,w,h,shade){const m=mesh(new THREE.ConeGeometry(w,h,7),shade,x,h*.42,z);m.rotation.y=.31;}
+function baseEnvironment(arafah){scene.background=new THREE.Color(arafah?0xc3cdbb:0xb6c4b6);scene.fog=new THREE.Fog(arafah?0xc3cdbb:0xb6c4b6,75,190);const canvas=document.createElement('canvas');canvas.width=canvas.height=256;const ctx=canvas.getContext('2d');ctx.fillStyle=arafah?'#c7c1b5':'#c5bdb2';ctx.fillRect(0,0,256,256);for(let i=0;i<8;i++)for(let j=0;j<8;j++){ctx.strokeStyle='#a79e9150';ctx.strokeRect(i*32+2,j*32+2,28,28);}const texture=new THREE.CanvasTexture(canvas);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(10,10);texture.colorSpace=THREE.SRGBColorSpace;const floor=mesh(new THREE.PlaneGeometry(180,160),0xffffff,0,-.025,0);floor.rotation.x=-Math.PI/2;floor.material= new THREE.MeshStandardMaterial({map:texture,roughness:.96});
+for(let i=-4;i<=4;i++){const x=i*12;for(const z of [-33,32]){mesh(new THREE.CylinderGeometry(.40,.55,7,10),0xe6ddca,x,3.5,z);mesh(geomSphere(.55),0xffdba3,x,7.2,z,world,.5);}}
+mountain(-92,87,34,35,0x998f7b);mountain(77,83,42,44,0xaaa28c);mountain(-86,-91,36,32,0xb0a28d);
+}
+function makeBus(x,z){coach=new THREE.Group();coach.position.set(x,0,z);world.add(coach);mesh(geomBox(4.4,3.8,11),0xe8e6dd,0,2.3,0,coach);mesh(geomBox(4.45,1,11),0x4b836c,0,2.45,0,coach);mesh(geomBox(4.48,1.03,9.2),0x5d8790,0,3.28,0,coach);for(const i of [-1,1])for(const a of [-3.5,3.5]){mesh(new THREE.CylinderGeometry(.85,.85,.39,14),0x29302c,i*2.17,.95,a,coach).rotation.z=Math.PI/2;}coachDoor=mesh(geomBox(.12,2.8,1.7),0x236c58,-2.25,1.85,2.2,coach);sign('A07',x,5,z+5.3,2.8);}
+function buildMina(){baseEnvironment(false);for(const x of [-30,-18,-6,6,18])for(const z of [-19,-7,5,17]){if(x===18&&z===-7)continue;tent(x,z,x===-30&&z===5?'A07':'MINA');}
+makeBus(23,-4);person(world,0x41826d,true).position.set(-25,0,8);person(world,0x457c67,true).position.set(-8,0,-9);
+for(let i=0;i<35;i++){const p=person(world,i%4===0?0xc8ccbd:0xf5f0e5,i%3===0);p.position.set(-39+(i*11.7)%78,0,-28+(i*8.19)%55);crowd.push({p,speed:.1+(i%4)*.07,dir:i%2?1:-1});}}
+function buildArafah(){baseEnvironment(true);for(const x of [-21,-9,3,15,27])for(const z of [-23,-11,1,13]){const isGoal=x===15&&z===13;tent(x,z,isGoal?'A07':'SEKTOR '+(1+Math.abs(x+z)%8),isGoal);}
+for(const z of [-20,20]){mesh(geomBox(85,.12,.18),0xf3e8d4,0,.045,z);for(let x=-40;x<=40;x+=12){mesh(new THREE.CylinderGeometry(.3,.38,5,8),0xdcd0b6,x,2.5,z);}}
+person(world,0x4b8d6d,true).position.set(-36,0,9);
+mesh(geomBox(9,.8,4),0x507f6b,-25,.4,-19);mesh(geomBox(9,3,.16),0x275c45,-25,2.1,-21);sign('ARAH A07',-25,4,-20.82,6.7);
+mesh(geomBox(8,.8,4),0x7db0a6,-5,.4,-19);for(let i=0;i<5;i++)mesh(new THREE.CylinderGeometry(.3,.38,1.3,10),0x5dbad2,-8+i*1.4,1.4,-19);
+sign('AIR MINUM',-5,3.7,-21,6.4);
+person(world,0x508975,true).position.set(16,0,17);person(world,0x468168,true).position.set(31,0,6);
+mountain(78,48,27,23,0xa18e78);
+for(let i=0;i<50;i++){const x=-41+(i*17.71)%82,z=-29+(i*11.29)%58;if(Math.hypot(x-16,z-17)<8)continue;const p=person(world,i%6===0?0xdbd4c9:0xf5f0e7,i%4===0);p.position.set(x,0,z);crowd.push({p,speed:.12+(i%5)*.07,dir:i%2?-1:1});}}
+function build(){if(world){scene.remove(world);world.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();if(o.material?.map&&o.material.map instanceof THREE.Texture&&o.material.map.image instanceof HTMLCanvasElement)o.material.map.dispose();}});}world=new THREE.Group();scene.add(world);world.add(new THREE.HemisphereLight(0xeafff3,0x7d7462,3));const sun=new THREE.DirectionalLight(0xffe6b7,3.6);sun.position.set(-26,65,18);world.add(sun);crowd=[];const arafah=QUESTS[state.stage].area==='arafah';if(arafah)buildArafah();else buildMina();player=person(world,state.avatar==='female'?0x518773:0xf6f3e8,state.avatar==='female');player.position.set(px,0,pz);beacon=new THREE.Group();world.add(beacon);mesh(new THREE.CylinderGeometry(.18,.25,2,12),0xf5c46c,0,1.5,0,beacon,.55);mesh(new THREE.OctahedronGeometry(.48),0xffd87c,0,2.8,0,beacon,.7);const light=new THREE.PointLight(0xffd17d,3.7,9);light.position.y=2;beacon.add(light);refresh();}
+function read(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(!s||s.version!==1||!Number.isInteger(s.stage)||s.stage<0||s.stage>9||!['male','female'].includes(s.avatar))return;state.stage=s.stage;state.avatar=s.avatar;state.water=!!s.water;state.guide=!!s.guide;const at=QUESTS[state.stage];if(at.area==='mina'){px=state.stage===0?-38:state.stage===1?-25:-8;pz=state.stage===0?13:state.stage===1?8:-9;}else{px=state.stage===3?-42:state.stage===4?-36:state.stage===5?-25:state.stage===6?-5:state.stage>=8?17:15;pz=state.stage===3?12:state.stage===4?9:state.stage===5?-19:state.stage===6?-19:state.stage>=8?17:15;}camYaw=state.stage>=3?1.5:2.3;}catch{}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch{}}
+function announce(text){$('voiceText').textContent=text;if(voice&&'speechSynthesis' in window){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='id-ID';u.rate=.93;u.volume=.6;speechSynthesis.speak(u);}catch{}}}
+function toast(text,duration=2.5){$('toast').textContent=text;$('toast').hidden=false;toastUntil=performance.now()+duration*1000;}
+function refresh(){const s=state.stage,quest=QUESTS[s];$('title').textContent=quest.label;$('hint').textContent=quest.hint;$('area').textContent=quest.area==='mina'?'MINA · 9 DZULHIJJAH':'ARAFAH · HARI WUKUF';$('score').textContent=Math.min(9,s)+'/9';$('fill').style.width=(s/9*100)+'%';$('target').textContent=quest.label.toUpperCase();const near=Math.hypot(px-quest.x,pz-quest.z)<3.4;$('action').hidden=!active||!near||s>=9;$('action').textContent=quest.action;if(beacon)beacon.visible=s<9;}
+function begin(){$('intro').hidden=true;$('pause').hidden=true;$('help').hidden=true;$('brief').hidden=true;active=state.stage<9;refresh();announce(QUESTS[state.stage].hint);if(state.stage===9){active=false;$('end').hidden=false;}}
+function pause(){active=false;$('pause').hidden=false;$('checkpoint').textContent='Checkpoint '+state.stage+'/9 · '+QUESTS[state.stage].area.toUpperCase();refresh();}
+function reset(){if(!confirm('Ulangi Level 07 dari awal?'))return;state.stage=0;state.water=false;state.guide=false;px=-38;pz=13;camYaw=2.3;active=false;traveling=false;persist();$('end').hidden=true;$('pause').hidden=true;$('intro').hidden=false;build();}
+function proceed(){state.stage++;persist();refresh();}
+function travel(){traveling=true;active=false;$('travel').hidden=false;proceed();window.setTimeout(()=>{px=-42;pz=12;camYaw=1.5;build();traveling=false;$('travel').hidden=true;active=true;refresh();toast('TIBA DI ARAFAH',3);announce('Selamat tiba di Arafah. Cari petugas rombongan dan jalur sektor A07.');},3300);}
+function interaction(){const s=state.stage,q=QUESTS[s];if(!active||s>=9||traveling||Math.hypot(px-q.x,pz-q.z)>3.4)return;
+if(s===0){proceed();toast('ROMBONGAN A07');announce('Temukan titik kumpul A07 di jalur tenda sebelah utara.');}
+else if(s===1){active=false;$('brief').hidden=false;$('briefHeading').textContent='Titik kumpul A07';$('briefInfo').textContent='Perjalanan ke Arafah diatur pembimbing. Cari bus dengan kode A07, ikuti petugas, dan tetap bersama rombongan.';$('briefConfirm').textContent='Lanjut cari bus';}
+else if(s===2){travel();}
+else if(s===3){proceed();toast('PETUGAS DITEMUKAN');announce('Cari papan peta arah menuju A07. Jangan bergantung pada jalan pintas.');}
+else if(s===4){active=false;$('sector').hidden=false;}
+else if(s===5){state.water=true;proceed();toast('BEKAL AIR DISIAPKAN');announce('Bekal air sudah siap. Sekarang cari tenda A07 di sektor rombongan.');}
+else if(s===6){proceed();toast('TENDA A07 DITEMUKAN');announce('Kamu menemukan tenda yang dituju. Temui pembimbing untuk panduan wukuf.');}
+else if(s===7){active=false;$('wukuf').hidden=false;}
+else if(s===8){proceed();active=false;$('end').hidden=false;toast('LEVEL 07 TUNTAS',3);announce('Misi Arafah selesai. Bersiap mengikuti rombongan menuju Muzdalifah setelah waktunya.');}
+refresh();}
+function briefConfirm(){if(state.stage!==1)return;$('brief').hidden=true;proceed();active=true;toast('MENUJU BUS A07');announce('Cari bus hijau A07 di sebelah timur kawasan Mina.');}
+function chooseSector(code){if(state.stage!==4)return;if(code!=='A07'){toast('COBA SEKTOR A07');return;}$('sector').hidden=true;proceed();active=true;toast('SEKTOR A07');announce('Jalur sektor benar. Ambil bekal air di pos terdekat.');}
+function wukufDone(){if(state.stage!==7)return;state.guide=true;$('wukuf').hidden=true;proceed();active=true;toast('PANDUAN WUKUF DIBACA');announce('Panduan terbaca. Tahap selanjutnya adalah kembali ke petugas rombongan.');}
+function move(dt,now){if(!active)return;const fb=Number(keySet.has('KeyW')||keySet.has('ArrowUp'))-Number(keySet.has('KeyS')||keySet.has('ArrowDown'))-stick.y,lr=Number(keySet.has('KeyD')||keySet.has('ArrowRight'))-Number(keySet.has('KeyA')||keySet.has('ArrowLeft'))+stick.x,len=Math.hypot(fb,lr);if(len<.08)return;const dx=(Math.sin(camYaw)*fb+Math.cos(camYaw)*lr)/Math.max(1,len),dz=(Math.cos(camYaw)*fb-Math.sin(camYaw)*lr)/Math.max(1,len),speed=keySet.has('ShiftLeft')||keySet.has('ShiftRight')?8.4:6.2;
+let x=Math.max(-44,Math.min(44,px+dx*dt*speed)),z=Math.max(-30,Math.min(30,pz+dz*dt*speed));
+const ar=QUESTS[state.stage].area==='arafah';for(const tx of ar?[-21,-9,3,15,27]:[-30,-18,-6,6,18])for(const tz of ar?[-23,-11,1,13]:[-19,-7,5,17]){if(!ar&&tx===18&&tz===-7)continue;const vx=x-tx,vz=z-tz;if(Math.abs(vx)<4.2&&Math.abs(vz)<3.9){const pxn=4.2-Math.abs(vx),pzn=3.9-Math.abs(vz);if(pxn<pzn)x=tx+Math.sign(vx||1)*4.2;else z=tz+Math.sign(vz||1)*3.9;}}
+for(const c of crowd){const vx=x-c.p.position.x,vz=z-c.p.position.z,d=Math.hypot(vx,vz);if(d>.005&&d<.75){x+=vx/d*(.75-d)*.5;z+=vz/d*(.75-d)*.5;}}
+px=x;pz=z;heading=Math.atan2(dx,dz);player.rotation.y+=Math.atan2(Math.sin(heading-player.rotation.y),Math.cos(heading-player.rotation.y))*Math.min(1,dt*10);player.position.set(px,Math.sin(now*.012)*.05,pz);refresh();}
+function render(now){const dt=Math.min(.047,(now-(lastTime||now))/1000);lastTime=now;if(renderer&&!document.hidden){move(dt,now);for(const c of crowd){const dz=c.speed*c.dir*dt;c.p.position.z+=dz;if(c.p.position.z>28)c.p.position.z=-28;if(c.p.position.z< -28)c.p.position.z=28;c.p.rotation.y=c.dir>0?0:Math.PI;}const q=QUESTS[state.stage];beacon.position.set(q.x,.16+Math.sin(now*.003)*.15,q.z);beacon.rotation.y=now*.0009;cameraFollow.set(px-Math.sin(camYaw)*10,6.2,pz-Math.cos(camYaw)*10);camera.position.lerp(cameraFollow,Math.min(1,dt*5));cameraLook.set(px,1.4,pz);camera.lookAt(cameraLook);avatars.update({player,sex:state.avatar,active,dt,now,npcs:crowd});feel.update({scene,renderer,camera,player,dt,now,active,aiming:false});visuals.update({scene,root:world,player,mode:QUESTS[state.stage].area,now});renderer.render(scene,camera);$('miniPlayer').setAttribute('cx',String(100+px/45*85));$('miniPlayer').setAttribute('cy',String(100-pz/35*85));$('miniTarget').setAttribute('cx',String(100+q.x/45*85));$('miniTarget').setAttribute('cy',String(100-q.z/35*85));if(!$('toast').hidden&&now>toastUntil)$('toast').hidden=true;}raf=requestAnimationFrame(render);}
+function fit(){const w=Math.max(1,innerWidth),h=Math.max(1,innerHeight);camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h,false);}
+function controls(){const joy=$('joy'),knob=$('knob'),canvas=$('world');
+function moveStick(e){if(e.pointerId!==stick.pointer)return;const r=joy.getBoundingClientRect(),radius=r.width*.36;let x=(e.clientX-r.left-r.width/2)/radius,y=(e.clientY-r.top-r.height/2)/radius;const l=Math.hypot(x,y);if(l>1){x/=l;y/=l;}stick.x=x;stick.y=y;knob.style.left=(50+x*35)+'%';knob.style.top=(50+y*35)+'%';}
+joy.addEventListener('pointerdown',e=>{if(stick.pointer!==null)return;stick.pointer=e.pointerId;joy.setPointerCapture(e.pointerId);moveStick(e);});joy.addEventListener('pointermove',moveStick);
+const stop=e=>{if(e.pointerId!==stick.pointer)return;stick.pointer=null;stick.x=stick.y=0;knob.style.left='50%';knob.style.top='50%';};for(const event of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(event,stop);
+canvas.addEventListener('pointerdown',e=>{if(look.pointer!==null)return;look.pointer=e.pointerId;look.x=e.clientX;canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointermove',e=>{if(e.pointerId!==look.pointer)return;camYaw-=(e.clientX-look.x)*.004;look.x=e.clientX;});for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(e.pointerId===look.pointer)look.pointer=null;});
+addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();keySet.add(e.code);if(e.code==='KeyE'&&!e.repeat)interaction();if(e.code==='Escape'&&active)pause();});addEventListener('keyup',e=>keySet.delete(e.code));addEventListener('blur',()=>{keySet.clear();stick.x=stick.y=0;});document.addEventListener('visibilitychange',()=>{if(document.hidden){active=false;keySet.clear();}else if(!traveling&&['intro','pause','brief','sector','wukuf','help','end'].every(id=>$(id).hidden))active=true;});
+}
+$('start').onclick=begin;$('resume').onclick=begin;$('action').onclick=interaction;$('menu').onclick=pause;$('reset').onclick=reset;$('replay').onclick=reset;$('helpButton').onclick=()=>{active=false;$('help').hidden=false;};$('helpClose').onclick=begin;$('camera').onclick=()=>{camYaw=heading;};
+$('briefConfirm').onclick=briefConfirm;$('briefBack').onclick=()=>{$('brief').hidden=true;begin();};$('sectorA').onclick=()=>chooseSector('A07');$('sectorB').onclick=()=>chooseSector('B03');$('sectorC').onclick=()=>chooseSector('C01');$('sectorBack').onclick=()=>{$('sector').hidden=true;begin();};$('wukufDone').onclick=wukufDone;$('wukufBack').onclick=()=>{$('wukuf').hidden=true;begin();};
+$('avatar').onchange=e=>{if(state.stage!==0)return;state.avatar=e.target.value;persist();if(world){world.remove(player);player=person(world,state.avatar==='female'?0x518773:0xf6f3e8,state.avatar==='female');player.position.set(px,0,pz);}};
+$('voiceButton').onclick=()=>{voice=!voice;$('voiceButton').textContent=voice?'Suara ON':'Suara OFF';announce(QUESTS[state.stage].hint);};
+read();$('avatar').value=state.avatar;refresh();
+try{renderer=new THREE.WebGLRenderer({canvas:$('world'),antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(1.4,devicePixelRatio||1));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;scene=new THREE.Scene();camera=new THREE.PerspectiveCamera(65,1,.1,230);build();fit();addEventListener('resize',fit);controls();requestAnimationFrame(render);if(state.stage===9){$('intro').hidden=true;$('end').hidden=false;}}catch(err){const div=document.createElement('div');div.className='error';div.textContent='Dunia 3D tidak dapat dimuat. Coba browser terbaru dengan WebGL aktif.';document.body.append(div);console.error(err);}

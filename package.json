@@ -49,7 +49,9 @@
     "qa:muzdalifah": "node tools/muzdalifah-gameplay-qa.mjs",
     "qa:aqabah": "node tools/aqabah-gameplay-qa.mjs",
     "qa:nusuk": "node tools/nusuk-route-qa.mjs",
-    "qa:simple": "node tools/simple-play-qa.mjs early && node tools/simple-play-qa.mjs field && node tools/simple-play-qa.mjs late && node tools/simple-play-qa.mjs bus && node tools/simple-play-qa.mjs smoke"
+    "qa:simple": "node tools/simple-play-qa.mjs early && node tools/simple-play-qa.mjs field && node tools/simple-play-qa.mjs late && node tools/simple-play-qa.mjs bus && node tools/simple-play-qa.mjs smoke",
+    "prebuild": "node tools/build-character-models.mjs && node tools/validate-character-models.mjs",
+    "predev": "node tools/build-character-models.mjs && node tools/validate-character-models.mjs"
   },
   "dependencies": {
     "three": "^0.185.1"

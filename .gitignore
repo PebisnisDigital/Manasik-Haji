@@ -4,6 +4,9 @@ dist
 qa-output
 private-data/
 .vercel/
+# Recreated and validated by predev/prebuild.
+public/assets/characters/pilgrim-male.glb
+public/assets/characters/pilgrim-female.glb
 
 # Local Git metadata and secrets
 .git-codex/
