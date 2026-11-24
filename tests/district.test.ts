@@ -100,3 +100,6 @@ describe('live plaza ambient queues',()=>{
  it('assigns unique Indonesian names to 132 queue actors',()=>{const names=new Set<string>();for(let b=1;b<=12;b++)for(let i=0;i<=QUEUE_COUNT;i++)names.add(plazaName(b,i));expect(names.size).toBe(132);});
  it('has ten visible people at rest and recycles the front and rear slots',()=>{expect(Array.from({length:11},(_,i)=>queuePose(i,0)).filter(p=>p.visible).length).toBe(10);expect(queuePose(0,5).visible).toBe(false);expect(queuePose(10,5).visible).toBe(true);expect(queuePose(10,QUEUE_PERIOD-.001).x).toBeCloseTo(queuePose(9,0).x,1);expect(queuePose(1,QUEUE_PERIOD-.001).x).toBeCloseTo(queuePose(0,0).x,1);});
 });
+
+import {joinQueue,serveQueue,queueReady} from '../src/queueTicket.ts';
+describe('FIFO player tickets',()=>{it('requires all ten preceding participants to finish before service',()=>{let ticket=joinQueue(10);for(let i=0;i<10;i++){expect(queueReady(ticket)).toBe(false);ticket=serveQueue(ticket);}expect(queueReady(ticket)).toBe(true);expect(serveQueue(ticket).ahead).toBe(0);});it('leaving and joining again never preserves the old position',()=>{expect(serveQueue(joinQueue(10)).ahead).toBe(9);expect(joinQueue(10).ahead).toBe(10);expect(queueReady(null)).toBe(false);});});

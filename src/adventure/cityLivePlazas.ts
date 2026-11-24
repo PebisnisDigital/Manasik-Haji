@@ -1,3 +1,4 @@
+import {joinQueue,serveQueue,type QueueTicket} from '../queueTicket.ts';
 import * as THREE from 'three';
 import {humanActor} from '../characters/HumanActors.ts';
 import {tenantUrl} from '../tenant.ts';
@@ -40,7 +41,7 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
  function tag(root:THREE.Group,name:string,height:number){const c=document.createElement('canvas');c.width=384;c.height=80;const ctx=c.getContext('2d')!;ctx.fillStyle='#173d32';ctx.fillRect(0,0,384,80);ctx.strokeStyle='#d4bd83';ctx.lineWidth=3;ctx.strokeRect(2,2,380,76);ctx.font='bold 29px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff4df';ctx.fillText(name,192,51,366);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;textures.push(t);const m=new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false});materials.push(m);const s=new THREE.Sprite(m);s.position.set(0,height+.30,0);s.scale.set(1.85,.385,1);root.add(s);return s;}
  function point(p:Place,x:number,z:number):Point{return {x:p.x+Math.cos(p.yaw)*x+Math.sin(p.yaw)*z,z:p.z-Math.sin(p.yaw)*x+Math.cos(p.yaw)*z};}
  function solid(p:Place,x:number,z:number,w:number,d:number){const a=point(p,x,z),c=Math.abs(Math.cos(p.yaw)),s=Math.abs(Math.sin(p.yaw));solids.push({...a,w:w*c+d*s,d:w*s+d*c});}
- const lanes:{place:Place;actors:QueueActor[];decor:THREE.Group;market:Snack[];clock:number}[]=[];
+ const lanes:{place:Place;actors:QueueActor[];decor:THREE.Group;market:Snack[];clock:number;ticket:QueueTicket|null}[]=[];
  for(const p of places){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;g.name='live-plaza-'+p.number;scene.add(g);groups.push(g);
   // Static decorations are instanced by shape and material, once per plaza.
@@ -89,16 +90,21 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
   for(const b of batches.values()){const mesh=new THREE.InstancedMesh(b.geo,b.mat,b.matrices.length);b.matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();g.add(mesh);}
   const actors:QueueActor[]=[];
   for(let i=0;i<=QUEUE_COUNT;i++){const female=i%2===1,height=female?1.57+(i%3)*.045:1.67+(i%3)*.06;const root=humanActor(scene,0xf1e7d4,female,height,undefined,{palette:(p.number*3+i)%10,build:.91+(i%4)*.06,brightness:.95+(i%3)*.025,cull:true,registration:true});const label=tag(root,plazaName(p.number,i),height);actors.push({root,tag:label});}
-  lanes.push({place:p,actors,decor:g,market,clock:(p.number*.71)%QUEUE_PERIOD});
+  lanes.push({place:p,actors,decor:g,market,clock:(p.number*.71)%QUEUE_PERIOD,ticket:null});
  }
  let cycles=0;
  function update(hero:Point,dt:number){
-  for(const lane of lanes){const {place:p,actors}=lane;const distance=Math.hypot(hero.x-p.x,hero.z-p.z);const old=Math.floor(lane.clock/QUEUE_PERIOD);lane.clock+=Math.max(0,Math.min(dt,.08));const cycle=Math.floor(lane.clock/QUEUE_PERIOD),t=lane.clock%QUEUE_PERIOD;cycles+=cycle-old;
+  for(const lane of lanes){const {place:p,actors}=lane;const distance=Math.hypot(hero.x-p.x,hero.z-p.z);const old=Math.floor(lane.clock/QUEUE_PERIOD);if(lane.ticket?.ahead!==0)lane.clock+=Math.max(0,Math.min(dt,.08));const cycle=Math.floor(lane.clock/QUEUE_PERIOD),t=lane.clock%QUEUE_PERIOD;cycles+=cycle-old;if(lane.ticket&&cycle>old)lane.ticket=serveQueue(lane.ticket);
    // The building crown stays visible from afar. Only people and labels use distance culling.
-   for(let i=0;i<=QUEUE_COUNT;i++){const a=actors[(i+cycle)%actors.length]!,q=queuePose(i,t),pos=point(p,q.x,q.z);a.root.visible=q.visible&&distance<67;a.root.position.set(pos.x,.07,pos.z);a.root.rotation.y=p.yaw+q.yaw;a.tag.visible=a.root.visible&&Math.hypot(hero.x-pos.x,hero.z-pos.z)<20;}
+   for(let i=0;i<=QUEUE_COUNT;i++){const a=actors[(i+cycle)%actors.length]!,q=queuePose(i,t),offset=lane.ticket&&i>=lane.ticket.ahead ? .76 : 0,pos=point(p,q.x-offset,q.z);a.root.visible=q.visible&&distance<67;a.root.position.set(pos.x,.07,pos.z);a.root.rotation.y=p.yaw+q.yaw;a.tag.visible=a.root.visible&&Math.hypot(hero.x-pos.x,hero.z-pos.z)<20;}
    for(const a of lane.market){a.body.visible=distance<48;if(a.body.visible){const time=lane.clock+a.phase;a.arm.rotation.x=-.35-1.25*Math.pow(Math.max(0,Math.sin(time*1.7)),4);a.arm.rotation.z=-.13;}}
   }
  }
  update({x:0,z:0},0);
- return {solids,update,stats:()=>({buildings:lanes.length,queuePerBuilding:QUEUE_COUNT,queued:lanes.length*QUEUE_COUNT,parkedCars:lanes.length*2,parkedMotorcycles:lanes.length*8,foodStalls:lanes.length,cycles}),dispose:()=>{for(const l of lanes)for(const a of l.actors)scene.remove(a.root);groups.forEach(g=>scene.remove(g));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());}};
+ function join(number:number){const lane=lanes.find(l=>l.place.number===number);if(!lane||lane.ticket)return false;lane.ticket=joinQueue(QUEUE_COUNT);return true;}
+ function leave(number:number){const lane=lanes.find(l=>l.place.number===number);if(lane)lane.ticket=null;}
+ function playerSlot(number:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;return point(lane.place,-1.65-(lane.ticket?.ahead??QUEUE_COUNT)*.76,13);}
+ function queueApproach(number:number,stage:number){const lane=lanes.find(l=>l.place.number===number);if(!lane)return null;return stage===0?point(lane.place,-9.3,16.6):stage===1?point(lane.place,-9.3,13):playerSlot(number);}
+ function queueNear(hero:Point){return lanes.find(l=>{const tail=point(l.place,-9.3,13);return Math.hypot(hero.x-tail.x,hero.z-tail.z)<4.2;})?.place.number??null;}
+ return {solids,update,join,leave,playerSlot,queueApproach,queueNear,ahead:(number:number)=>lanes.find(l=>l.place.number===number)?.ticket?.ahead??null,stats:()=>({buildings:lanes.length,queuePerBuilding:QUEUE_COUNT,queued:lanes.length*QUEUE_COUNT,parkedCars:lanes.length*2,parkedMotorcycles:lanes.length*8,foodStalls:lanes.length,cycles}),dispose:()=>{for(const l of lanes)for(const a of l.actors)scene.remove(a.root);groups.forEach(g=>scene.remove(g));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>t.dispose());}};
 }

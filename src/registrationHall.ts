@@ -1,8 +1,9 @@
+import {joinQueue,serveQueue,type QueueTicket} from './queueTicket.ts';
 import * as THREE from 'three';
 import {humanActor} from './characters/HumanActors.ts';
 
 type LaneNPC={root:THREE.Group;label:THREE.Sprite;canvas:HTMLCanvasElement;nameIndex:number;target:THREE.Vector3};
-type Lane={side:number;female:boolean;queue:LaneNPC[];spare:LaneNPC|null;outgoing:LaneNPC|null;exitStep:number;service:number;pen:THREE.Group;clock:number;nextName:number;names:readonly string[]};
+type Lane={ticket:QueueTicket|null;side:number;female:boolean;queue:LaneNPC[];spare:LaneNPC|null;outgoing:LaneNPC|null;exitStep:number;service:number;pen:THREE.Group;clock:number;nextName:number;names:readonly string[]};
 const namesMale=['Asep','Dedi','Ujang','Agus','Bambang','Eko','Jajang','Yanto','Dadang','Sutrisno','Wawan','Tatang','Rudi','Dadan','Wahyu','Hendra','Rizky','Budi','Ari','Rohmat','Slamet','Bayu','Dimas','Joko'];
 const namesFemale=['Siti','Neneng','Nining','Yuni','Dewi','Sri','Titin','Enung','Rina','Wati','Euis','Nani','Yayah','Ratna','Wulan','Rini','Tuti','Sulastri','Fitri','Ayu','Nia','Rahayu','Linda','Dian'];
 const material=(color:number)=>new THREE.MeshStandardMaterial({color,roughness:.72});
@@ -45,7 +46,7 @@ function makeAdmin(scene:THREE.Scene,x:number,female:boolean){
  const pen=new THREE.Group();pen.position.set(.15,1.10,.22);admin.add(pen);box(pen,.12,.11,.34,0,0,.10,uniform);sphere(pen,.064,0,0,.28,skin);const pencil=box(pen,.025,.025,.20,0,.018,.36,gold);pencil.rotation.x=-.36;
  return pen;
 }
-const slot=(lane:Lane,i:number)=>new THREE.Vector3(lane.side*(4.15+(i%2?.075:0)),0,-2.77+i*.77);
+const slot=(lane:Lane,i:number)=>{const rank=i+(lane.ticket&&i>=lane.ticket.ahead?1:0);return new THREE.Vector3(lane.side*(4.15+(rank%2?.075:0)),0,-2.77+rank*.77);};
 const entrance=(side:number)=>new THREE.Vector3(side*5.65,0,5.85);
 function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  const x=side*4.15;
@@ -60,7 +61,7 @@ function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  const pen=makeAdmin(scene,x,female);
  sign(scene,'GERBANG','KEBERANGKATAN',side*6,2.77,-5.68,2.05,.53);
  const railX=side*4.83;for(let i=0;i<5;i++){const z=-2.30+i*1.55;post(scene,railX,z);if(i)rope(scene,railX,z-1.55,z);}
- const lane:Lane={side,female,queue:[],spare:null,outgoing:null,exitStep:0,service:side<0?1.3:4.1,pen,clock:0,nextName:0,names:female?namesFemale:namesMale};
+ const lane:Lane={ticket:null,side,female,queue:[],spare:null,outgoing:null,exitStep:0,service:side<0?1.3:4.1,pen,clock:0,nextName:0,names:female?namesFemale:namesMale};
  for(let i=0;i<11;i++){
   const height=(female?1.57:1.66)+(i%4)*.055;
   const root=humanActor(scene,0xffffff,female,height,undefined,{palette:i%10,build:.87+(i%5)*.067,brightness:.94+(i%3)*.045,registration:true,cull:true});
@@ -270,13 +271,17 @@ export function createRegistrationHall(scene:THREE.Scene){
     }
    }
    lane.service-=dt;
-   if(lane.service<=0&&lane.spare&&!lane.outgoing&&lane.queue[0]!.root.position.distanceTo(slot(lane,0))<.08){
-    const first=lane.queue.shift()!;lane.outgoing=first;lane.exitStep=0;first.target.set(lane.side*5.65,0,-2.77);
+   if(lane.service<=0&&lane.ticket?.ahead!==0&&lane.spare&&!lane.outgoing&&lane.queue[0]!.root.position.distanceTo(slot(lane,0))<.08){
+    const first=lane.queue.shift()!;if(lane.ticket)lane.ticket=serveQueue(lane.ticket);lane.outgoing=first;lane.exitStep=0;first.target.set(lane.side*5.65,0,-2.77);
     const incoming=lane.spare;lane.spare=null;rename(incoming,lane);incoming.root.position.copy(entrance(lane.side));incoming.root.rotation.y=Math.PI;incoming.root.visible=true;lane.queue.push(incoming);
     lane.queue.forEach((npc,i)=>npc.target.copy(slot(lane,i)));
     lane.service=7.5;
    }
   }
  }
- return {update,stats:()=>({male:lanes[0]!.queue.length,female:lanes[1]!.queue.length,completed})};
+ const get=(female:boolean)=>lanes[female?1:0]!;
+ function join(female:boolean){const lane=get(female);if(!lane.ticket)lane.ticket=joinQueue(lane.queue.length);lane.queue.forEach((npc,i)=>npc.target.copy(slot(lane,i)));}
+ function leave(female:boolean){const lane=get(female);lane.ticket=null;lane.queue.forEach((npc,i)=>npc.target.copy(slot(lane,i)));}
+ function playerSlot(female:boolean){const lane=get(female),rank=lane.ticket?.ahead??lane.queue.length;return new THREE.Vector3(lane.side*(4.15+(rank%2?.075:0)),0,-2.77+rank*.77);}
+ return {update,join,leave,playerSlot,ahead:(female:boolean)=>get(female).ticket?.ahead??null,stats:()=>({male:lanes[0]!.queue.length,female:lanes[1]!.queue.length,completed})};
 }
