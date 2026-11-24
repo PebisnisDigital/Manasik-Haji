@@ -103,3 +103,7 @@ describe('live plaza ambient queues',()=>{
 
 import {joinQueue,serveQueue,queueReady} from '../src/queueTicket.ts';
 describe('FIFO player tickets',()=>{it('requires all ten preceding participants to finish before service',()=>{let ticket=joinQueue(10);for(let i=0;i<10;i++){expect(queueReady(ticket)).toBe(false);ticket=serveQueue(ticket);}expect(queueReady(ticket)).toBe(true);expect(serveQueue(ticket).ahead).toBe(0);});it('leaving and joining again never preserves the old position',()=>{expect(serveQueue(joinQueue(10)).ahead).toBe(9);expect(joinQueue(10).ahead).toBe(10);expect(queueReady(null)).toBe(false);});});
+
+import {cityRoute,CITY_ROADS} from '../src/adventure/cityNavigation.ts';
+import {DISTRICT_ROADS,BUILDINGS} from '../src/adventure/districtModel.ts';
+describe('city map navigation',()=>{it('uses connected street layout to reach every mission entrance',()=>{for(const building of CITY_BUILDINGS){const path=cityRoute({x:-8,z:17.8},building.door,[...DISTRICT_ROADS,...CITY_ROADS],[...BUILDINGS,...CITY_BUILDINGS]);expect(path.length).toBeGreaterThan(2);expect(path.at(-1)).toEqual(building.door);}});it('does not route through a solid building',()=>{const wall={x:0,z:0,w:20,d:20},p=cityRoute({x:-20,z:0},{x:20,z:0},[],[wall]);expect(p.length).toBeGreaterThan(2);for(const q of p)expect(Math.abs(q.x)>=10||Math.abs(q.z)>=10).toBe(true);});});

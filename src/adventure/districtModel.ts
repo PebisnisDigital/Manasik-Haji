@@ -1,5 +1,6 @@
 export interface Point {x:number;z:number}
 export interface Rect extends Point {w:number;d:number}
+export const DISTRICT_ROADS:readonly Rect[]=[{x:0,z:54,w:140,d:8},...[-24,24].map(z=>({x:0,z,w:84,d:8})),...[-38,38].map(x=>({x,z:0,w:8,d:56}))];
 export const DISTRICT_BOUNDS = {minX:-68,maxX:68,minZ:-57,maxZ:57};
 export const BUILDINGS:readonly (Rect&{name:string;height:number;color:number})[]=[
   {name:'PENGINAPAN NUSANTARA',x:-22,z:0,w:20,d:18,height:16,color:0xd3c3aa},

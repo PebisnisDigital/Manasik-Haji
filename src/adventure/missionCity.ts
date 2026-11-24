@@ -5,7 +5,8 @@ import {DISTRICT_SOLIDS,type Point,type Rect,type Vehicle} from './districtModel
 import {NUSUK_LEVELS} from './nusukModel.ts';
 import {UMRAH_LEVELS} from '../frontModel.ts';
 export type CityKind='motor'|'mobil'|'bus';
-export const CITY_BOUNDS={minX:-150,maxX:150,minZ:-128,maxZ:128};
+import {CITY_BOUNDS,CITY_ROADS} from './cityNavigation.ts';
+export {CITY_BOUNDS} from './cityNavigation.ts';
 const layout=[[-35,100,Math.PI],[35,100,Math.PI],[105,100,Math.PI],[120,38,-Math.PI/2],[120,-38,-Math.PI/2],[105,-100,0],[35,-100,0],[-35,-100,0],[-105,-100,0],[-120,-38,Math.PI/2],[-120,38,Math.PI/2],[-105,100,Math.PI]] as const;
 const guardNames=['Asep','Dedi','Jajang','Bambang','Eko','Sutrisno','Wawan','Dadang','Agus','Yanto','Rudi','Slamet'] as const;
 export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height:18+(i%3)*3,number:i+1,guardName:'Pak '+guardNames[i],door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
@@ -39,10 +40,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   box(scene,w+2,.1,d+2,x,-.015,z,pave);box(scene,w,.1,d,x,.045,z,road);
   const long=w>d;for(let k=-(long?w:d)/2+4;k<(long?w:d)/2-2;k+=8)box(scene,long?3:.14,.015,long?.14:3,x+(long?k:0),.103,z+(long?0:k),white);
  }
- for(const z of [-82,82])street(0,z,264,11);
- for(const x of [-102,102])street(x,0,11,164);
- for(const x of [-38,38]){street(x,-57,9,66);street(x,57,9,66);}
- for(const z of [-24,24])for(const x of [-70,70])street(x,z,64,9);
+ for(const r of CITY_ROADS)street(r.x,r.z,r.w,r.d);
  const doors:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
  const signs:THREE.CanvasTexture[]=[];
  const guards:{root:THREE.Group;yaw:number;number:number}[]=[];
@@ -87,7 +85,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  motorWheels.push(wheel(motor,0,.31,.79,.31,.14),wheel(motor,0,.31,-.79,.31,.16));
  // A visible seated rider for the scooter; character remains visible on foot.
  const rider=new THREE.Group();motor.add(rider);box(rider,.45,.55,.25,0,1.27,-.3,green);const head=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),mat(0xe4d6be));head.position.set(0,1.69,-.25);rider.add(head);for(const x of [-.19,.19]){const arm=box(rider,.10,.46,.10,x,1.28,.12,green);arm.rotation.x=-1.1;const leg=box(rider,.13,.43,.14,x,.80,.13,dark);leg.rotation.x=-.5;}rider.visible=false;
- const marker=new THREE.Mesh(new THREE.RingGeometry(1.15,1.6,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xf4ce76,side:THREE.DoubleSide,transparent:true,opacity:.9}));scene.add(marker);marker.position.y=.13;
+ const marker=new THREE.Mesh(new THREE.RingGeometry(1.15,1.6,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x53df76,side:THREE.DoubleSide,transparent:true,opacity:.9}));scene.add(marker);marker.position.y=.13;
  const otherSolids=(kind?:CityKind)=>[...solids,...vehicles.filter(v=>v.kind!==kind).map(footprint)];
  const get=(kind:CityKind)=>vehicles.find(v=>v.kind===kind)!;
  const near=(p:Point)=>vehicles.filter(v=>distance(p,v)<profiles[v.kind].d+2.4).sort((a,b)=>distance(a,p)-distance(b,p))[0]??null;

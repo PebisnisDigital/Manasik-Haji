@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {BUILDINGS,STATIONS,type Vehicle,type Point} from './districtModel.ts';
+import {BUILDINGS,DISTRICT_ROADS,STATIONS,type Vehicle,type Point} from './districtModel.ts';
 import {surfaceDetail,staticShadows} from '../env/GraphicsDetail.ts';
 import {graphicsTier} from '../graphicsQuality.ts';
 import {BUS_WHEEL_RADIUS} from './districtPresentation.ts';
@@ -25,15 +25,13 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false){
     const sign=mesh(new THREE.PlaneGeometry(width,width/8),new THREE.MeshBasicMaterial({map:t}),x,y,z,parent,false);sign.rotation.y=rotation;return sign;
   }
   const ground=mesh(new THREE.PlaneGeometry(190,170),sand,0,-.04,0,scene,false);ground.rotation.x=-Math.PI/2;
-  box(140,.1,8,asphalt,0,0,54,scene,false);
+  for(const road of DISTRICT_ROADS)box(road.w,.12,road.d,asphalt,road.x,road.z===54?0:.025,road.z,scene,false);
   box(72,.16,44,pavement,0,.03,0,scene,false);
   for(const z of [-24,24]){
-    box(84,.12,8,asphalt,0,.025,z,scene,false);
     for(const edge of [-4.2,4.2])box(84,.16,.25,stone,0,.08,z+edge,scene,false);
     for(let x=-36;x<=36;x+=6)box(2.6,.02,.12,white,x,.096,z,scene,false);
   }
   for(const x of [-38,38]){
-    box(8,.12,56,asphalt,x,.025,0,scene,false);
     for(const edge of [-4.2,4.2])box(.25,.16,56,stone,x+edge,.08,0,scene,false);
     for(let z=-18;z<=18;z+=6)box(.12,.02,2.6,white,x,.096,z,scene,false);
   }

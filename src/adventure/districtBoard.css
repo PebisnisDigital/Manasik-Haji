@@ -9,3 +9,11 @@
 .districtHubMode .missionCard{width:min(285px,36vw);padding:11px 14px}.districtHubMode .missionCard h1{font-size:clamp(15px,2vw,21px)}.districtHubMode .missionCard p{font-size:10px}
 .boardReadDialog{border:0;background:#112b24b3;max-width:none;max-height:none;width:100%;height:100%;padding:15px;overflow:auto;place-items:center}.boardReadDialog[open]{display:grid}.boardReadDialog .districtJourneyBoard{max-width:860px;margin:auto}.boardReadDialog::backdrop{background:#0b201a66}
 @media(orientation:landscape) and (max-height:530px){.districtHubMode .missionCard{width:200px;padding:7px 9px}.districtHubMode .missionCard h1{font-size:14px}.districtHubMode .missionCard p{font-size:9px}.boardReadDialog{padding:7px}}
+
+/* City only: map replaces the old mission card, preserving the top-right menu. */
+.districtHubMode .districtHud .missionCard{display:none!important}
+.districtHubMode .districtHud .miniMap{width:clamp(155px,15vw,220px);max-width:32vw;padding:7px;background:#183a31f2;pointer-events:none}
+.districtHubMode .districtHud .miniMap span{font-size:10px;max-width:none;color:#b9f3c8}
+.districtHubMode .districtHud .miniMap strong{color:#8cf4a5;font-size:12px}
+.districtHubMode .districtHud .topRight{margin-left:auto}
+@media(max-height:550px){.districtHubMode .districtHud .miniMap{width:clamp(114px,18vw,150px);max-height:45dvh;padding:5px}.districtHubMode .districtHud .miniMap span{font-size:8px}.districtHubMode .districtHud .miniMap strong{font-size:10px}}
