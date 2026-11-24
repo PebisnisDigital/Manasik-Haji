@@ -59,6 +59,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   if(preview){toast('Pratinjau: level hanya bisa dimainkan melalui tiket terverifikasi.');return;}
   const level=levels(program).find(x=>x.number===number);
   if(!level?.available||!level.href){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}
+  if(program==='hajj'&&onSelect&&number>=4){const id=NUSUK_LEVELS[number-1]?.id;const arrival=id==='dam'||id==='hajj-tahallul'?'aqabah':id;if(arrival&&!saveStory({},'hajj:'+arrival)){toast('Kedatangan belum tersimpan. Coba lagi.');return;}}
   launching=true;try{sessionStorage.setItem('hajji-district-return',mode==='demo'?'demo':'magic');}catch{}location.assign(tenantUrl(level.href));
  }
  function select(number:number){const level=levels(program).find(l=>l.number===number);if(!level?.available){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}if(onSelect){closeMap();onSelect(number);}else launch(number);}
