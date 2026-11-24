@@ -1,3 +1,4 @@
+import {createLivePlazas} from './cityLivePlazas.ts';
 import {humanActor,updateHumanActors,disposeHumanActors} from '../characters/HumanActors.ts';
 import * as THREE from 'three';
 import {DISTRICT_SOLIDS,type Point,type Rect,type Vehicle} from './districtModel.ts';
@@ -7,7 +8,7 @@ export type CityKind='motor'|'mobil'|'bus';
 export const CITY_BOUNDS={minX:-150,maxX:150,minZ:-128,maxZ:128};
 const layout=[[-35,100,Math.PI],[35,100,Math.PI],[105,100,Math.PI],[120,38,-Math.PI/2],[120,-38,-Math.PI/2],[105,-100,0],[35,-100,0],[-35,-100,0],[-105,-100,0],[-120,-38,Math.PI/2],[-120,38,Math.PI/2],[-105,100,Math.PI]] as const;
 const guardNames=['Asep','Dedi','Jajang','Bambang','Eko','Sutrisno','Wawan','Dadang','Agus','Yanto','Rudi','Slamet'] as const;
-export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height:8+(i%3)*2,number:i+1,guardName:'Pak '+guardNames[i],door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
+export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height:18+(i%3)*3,number:i+1,guardName:'Pak '+guardNames[i],door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
 const profiles={motor:{label:'Motor',w:.48,d:1.05,wheelbase:1.35,max:14,acc:5},mobil:{label:'Mobil',w:1.0,d:2.25,wheelbase:2.7,max:16,acc:4.2},bus:{label:'Bus',w:1.45,d:4.8,wheelbase:5.1,max:11,acc:3.5}};
 export type CityVehicle=Vehicle&{kind:CityKind};
 const distance=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -28,6 +29,7 @@ export function cityDrive(v:CityVehicle,forward:number,right:number,brake:boolea
 export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',boardSolid:Rect){
  const places=CITY_BUILDINGS.slice(0,program==='hajj'?12:5);
  const solids:Rect[]=[...DISTRICT_SOLIDS,boardSolid,...places];
+ const plazas=createLivePlazas(scene,places);solids.push(...plazas.solids);
  const vehicles=initial();let selected:CityVehicle|null=null;
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
  const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xece6d5),gold=mat(0xc5a46b),green=mat(0x1c5040),glass=mat(0x355d68,.32),dark=mat(0x252e30),rubber=mat(0x252526);
@@ -99,7 +101,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   const p=places.find(p=>p.number===target);marker.visible=!!p;if(p){marker.position.x=p.door.x;marker.position.z=p.door.z;}
  }
  function entrance(p:Point){return places.find(b=>distance(p,b.door)<3.5||guards.some(g=>g.number===b.number&&distance(p,{x:g.root.position.x,z:g.root.position.z})<2.4))??null;}
- function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});}updateHumanActors(scene,dt,active,camera);}
+ function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){plazas.update(hero,dt);for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});}updateHumanActors(scene,dt,active,camera);}
  function reset(){const fresh=initial();for(const v of fresh)Object.assign(get(v.kind),v);selected=null;}
- return {places,solids,near,take,update,leave,render,entrance,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
+ return {places,solids,plazaStats:plazas.stats,near,take,update,leave,render,entrance,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
 }

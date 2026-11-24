@@ -94,3 +94,9 @@ describe('mission security checkpoint',()=>{
   expect(JSON.stringify(saved)).toBe(before);
  });
 });
+
+import {QUEUE_COUNT,QUEUE_PERIOD,queuePose,plazaName} from '../src/adventure/cityLivePlazas.ts';
+describe('live plaza ambient queues',()=>{
+ it('assigns unique Indonesian names to 132 queue actors',()=>{const names=new Set<string>();for(let b=1;b<=12;b++)for(let i=0;i<=QUEUE_COUNT;i++)names.add(plazaName(b,i));expect(names.size).toBe(132);});
+ it('has ten visible people at rest and recycles the front and rear slots',()=>{expect(Array.from({length:11},(_,i)=>queuePose(i,0)).filter(p=>p.visible).length).toBe(10);expect(queuePose(0,5).visible).toBe(false);expect(queuePose(10,5).visible).toBe(true);expect(queuePose(10,QUEUE_PERIOD-.001).x).toBeCloseTo(queuePose(9,0).x,1);expect(queuePose(1,QUEUE_PERIOD-.001).x).toBeCloseTo(queuePose(0,0).x,1);});
+});
