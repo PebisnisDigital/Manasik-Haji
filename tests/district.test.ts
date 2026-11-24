@@ -77,3 +77,20 @@ describe('mission city layout and transport',()=>{
   expect(v.z).toBeLessThan(CITY_BOUNDS.maxZ-2);expect(v.speed).toBe(0);
  });
 });
+
+import {checkGateProgress} from '../src/adventure/gateProgress.ts';
+describe('mission security checkpoint',()=>{
+ const levels=Array.from({length:12},(_,i)=>({number:i+1,done:false}));
+ it('allows the first building but rejects every later building with unfinished predecessor',()=>{
+  expect(checkGateProgress(levels,1).allowed).toBe(true);
+  for(let n=2;n<=12;n++)expect(checkGateProgress(levels,n).allowed).toBe(false);
+  expect(checkGateProgress(levels,13).allowed).toBe(false);
+ });
+ it('unlocks only after the actual previous checkpoint is complete and never mutates saves',()=>{
+  const saved=levels.map(l=>({...l,done:l.number<=5}));
+  const before=JSON.stringify(saved);
+  expect(checkGateProgress(saved,6).allowed).toBe(true);
+  expect(checkGateProgress(saved,7).allowed).toBe(false);
+  expect(JSON.stringify(saved)).toBe(before);
+ });
+});
