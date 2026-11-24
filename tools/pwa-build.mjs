@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import crypto from 'node:crypto';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import {PUBLIC_GAME_PAGES,pwaVersion} from './pwa-policy.mjs';
 const crcTable=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;return c>>>0;});
 function chunk(type,data){const t=Buffer.from(type),b=Buffer.alloc(12+data.length);b.writeUInt32BE(data.length,0);t.copy(b,4);data.copy(b,8);let c=0xffffffff;for(const x of Buffer.concat([t,data]))c=crcTable[(c^x)&255]^(c>>>8);b.writeUInt32BE((c^0xffffffff)>>>0,8+data.length);return b;}
 function polygon(x,y,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const a=pts[i],b=pts[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])inside=!inside;}return inside;}
@@ -14,8 +14,9 @@ if(process.argv[2]==='prepare'){fs.mkdirSync('public',{recursive:true});for(cons
 else if(process.argv[2]==='finish'){
  const dir='dist';const assets=fs.readdirSync(path.join(dir,'assets')).filter(x=>/^[A-Za-z0-9_.-]+\.(?:js|css|woff2?|png|webp|svg|jpg|jpeg|avif|wasm)$/.test(x)).map(x=>'assets/'+x).sort();
  const shell=['offline.html','manifest.webmanifest','pwa-icon-192.png','pwa-icon-512.png','pwa-maskable-512.png','pwa-apple-180.png','pwa-icon.svg'];
- const hash=crypto.createHash('sha256');for(const f of [...shell,...assets,'index.html','manasik.html','player.html','sai.html','account.html'])hash.update(fs.readFileSync(path.join(dir,f)));const version='umroh-static-'+hash.digest('hex').slice(0,16);
- const source=fs.readFileSync('tools/pwa-worker.js','utf8').replace('__CACHE_NAME__',JSON.stringify(version)).replace('__STATIC_ASSETS__',JSON.stringify(assets)).replace('__SHELL_FILES__',JSON.stringify(shell));
+ const pages=fs.readdirSync(dir).filter(f=>f.endsWith('.html'));
+ const version=pwaVersion(dir,[...shell,...assets,...pages]);
+ const source=fs.readFileSync('tools/pwa-worker.js','utf8').replace('__CACHE_NAME__',JSON.stringify(version)).replace('__STATIC_ASSETS__',JSON.stringify(assets)).replace('__SHELL_FILES__',JSON.stringify(shell)).replace('__PUBLIC_GAME_PAGES__',JSON.stringify(PUBLIC_GAME_PAGES));
  new vm.Script(source);fs.writeFileSync(path.join(dir,'sw.js'),source);
  const manifest=JSON.parse(fs.readFileSync(path.join(dir,'manifest.webmanifest'),'utf8'));assert.equal(manifest.display,'standalone');assert.equal(manifest.scope,'./');assert.equal(manifest.start_url,'./');for(const f of [...manifest.icons,{src:'pwa-apple-180.png',sizes:'180x180'}]){const b=fs.readFileSync(path.join(dir,f.src));assert.equal(b.subarray(1,4).toString(),'PNG');assert.equal(b.readUInt32BE(16),Number(f.sizes.split('x')[0]));assert.equal(b.readUInt32BE(20),Number(f.sizes.split('x')[1]));}
  // Run the actual worker routing with mocked browser primitives, verifying no API or authenticated navigation caching.
@@ -25,5 +26,13 @@ else if(process.argv[2]==='finish'){
  vm.runInNewContext(source,context);let installing;handlers.install({waitUntil:p=>installing=p});await installing;assert.ok(cacheWrites.some(x=>x.endsWith('/offline.html')));assert.ok(!cacheWrites.some(x=>/account\.html|admin\.html/.test(x)));
  async function request(url,opts={}){let result;handlers.fetch({request:{url,method:'GET',mode:'cors',headers:{has:()=>false},...opts},respondWith:p=>result=p,waitUntil:()=>{}});if(result)await result;return !!result;}
  assert.equal(await request('https://api.example/rest/v1/runs'),false);assert.equal(await request(scope+'account.html',{mode:'navigate'}),false);assert.equal(await request(scope+'admin.html',{mode:'navigate'}),false);assert.equal(await request(scope+'rest/v1/runs'),false);assert.equal(await request(scope+'index.html?mitra=travel',{mode:'navigate'}),true);assert.equal(await request(scope+assets[0]),true);assert.equal(await request(scope+assets[0]+'?secret=1'),false);assert.equal(await request(scope+assets[0],{method:'POST'}),false);assert.equal(await request(scope+assets[0],{headers:{has:()=>true}}),false);assert.ok(networkRequests.every(u=>u.startsWith(scope)));
- console.log('PWA QA: manifest, 4 icon sizes, worker syntax and 9 route/privacy checks passed. '+assets.length+' build assets eligible for lazy cache.');
+ const before=cacheWrites.length;
+ for(const page of PUBLIC_GAME_PAGES)assert.equal(await request(scope+page+'?mitra=travel',{mode:'navigate'}),true);
+ assert.equal(cacheWrites.length,before,'Navigation HTML must never enter the static cache');
+ // The same actual worker must recover game navigation when the network is gone.
+ context.fetch=async()=>{throw new Error('offline');};
+ for(const page of PUBLIC_GAME_PAGES)assert.equal(await request(scope+page,{mode:'navigate'}),true);
+ for(const page of ['oleh-oleh.html','account.html','admin.html','studio.html','peserta.html','certificate-admin.html','voice-admin.html','verify.html'])assert.equal(await request(scope+page,{mode:'navigate'}),false);
+ assert.equal(cacheWrites.length,before);
+ console.log('PWA QA: manifest, 4 icon sizes, worker syntax, '+PUBLIC_GAME_PAGES.length+' public game routes online/offline and private-route/cache isolation passed. '+assets.length+' build assets eligible for lazy cache.');
 }else throw new Error('Use prepare or finish');

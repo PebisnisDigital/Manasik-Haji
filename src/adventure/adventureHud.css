@@ -1,0 +1,4 @@
+[hidden]{display:none!important}
+.adventureTracker{position:fixed;left:50%;top:112px;transform:translateX(-50%);z-index:2;max-width:calc(100% - 28px);padding:8px 14px;border:1px solid #e8cf7e66;border-radius:12px;background:#102d26eb;color:#f9edc7;text-align:center;pointer-events:none;font:12px/1.45 system-ui,sans-serif}.adventureTracker strong,.adventureTracker span{display:block}.adventureTracker strong{color:#ffe19a}.checkpointState{font-size:10px;color:#bddac7}.checkpointState.saveFailed{color:#ffce9c}.hud,header.top{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+@media(max-height:500px){.adventureTracker{top:88px;font-size:11px;padding:4px 10px}.adventureTracker .checkpointState:not(.saveFailed){display:none}.joy{max-width:88px;max-height:88px}.lower,.bottom{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}}
+@media(orientation:portrait) and (pointer:coarse){.adventureTracker{display:none}}

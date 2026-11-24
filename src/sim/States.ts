@@ -93,15 +93,16 @@ export const Clip = {
   TASHAHHUD: 16,
   TASLIM: 17,
   SIT_TO_STAND: 18,
+  DUA: 19,
 } as const;
 
 export type Clip = (typeof Clip)[keyof typeof Clip];
 
-export const CLIP_COUNT = 19;
+export const CLIP_COUNT = 20;
 
 export const CLIP_NAMES: readonly string[] = [
   'idle', 'walk', 'shuffle', 'turn',
   'takbir', 'qiyam', 'to_ruku', 'ruku', 'from_ruku', 'itidal',
   'to_sujud', 'sujud', 'sujud_to_jalsa', 'jalsa', 'jalsa_to_sujud',
-  'sujud_to_stand', 'tashahhud', 'taslim', 'sit_to_stand',
+  'sujud_to_stand', 'tashahhud', 'taslim', 'sit_to_stand', 'dua',
 ];

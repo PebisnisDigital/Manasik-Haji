@@ -47,6 +47,13 @@ is measured, not estimated; see TEST-REPORT.md.
 | Contact shadow | `characters/CrowdRenderer.ts` | 8-segment disc with a radial alpha ramp |
 | Character mesh (3 LODs) | `characters/CharacterMesh.ts` | Ring-based procedural body, garment, head, limbs |
 | Character animation | `characters/AnimationBank.ts` | 19 clips, baked to a vertex-animation texture at start-up |
+| Kawasan Perjalanan architecture/props | `adventure/districtWorld.ts` | Original runtime primitives: five buildings, road markings, benches, palms, lamps, market stalls and fictional skyline; stone/sand detail reuses `GraphicsDetail.ts` |
+| Bus, luggage and mission marker | `adventure/districtWorld.ts` | Original procedural meshes, metre scale; bus pivot at ground centre, +Z forward, 2.55 × 9.1 m body; 1.45 × 4.8 m collision half-extents; luggage moves with the player after collection |
+| Animated bus wheels | `adventure/districtWorld.ts`, `districtPresentation.ts` | Original cylinder tyres/hubs and three box spokes per wheel; 0.57 m radius; separate steering/rolling pivots, two material batches per wheel; rotation follows resolved travel and uses no imported animation |
+| District signs and minimap | `adventure/districtWorld.ts`, `district.html` | Code-native canvas text (1024 × 128, sRGB) and SVG UI; no external fonts/images or generated raster files |
+| Optional-activity characters, parcel and routes | `adventure/district.ts`, `districtWorld.ts`, `districtActivities.ts` | Hasan/Rizal reuse the original VAT character renderer and palettes; parcel uses original box primitives with a paper band; route lines are code-native SVG |
+
+District art uses warm stone, dark green, muted blue glass and gold navigation accents to match the existing interface and character rigs. Native-scale desktop/mobile captures, the full keyboard bus journey, collision tests and production browser checks validate this initial stylized set. The district does not ship photographic textures, imported city/vehicle models, or artwork from another game. See `docs/DISTRICT.md` for visual/vehicle limits and `docs/GAMEDEV-AUDIT.md` for check results.
 
 ## Streamed Quran recordings
 
@@ -147,3 +154,22 @@ particularly for the Hijr and for the post-expansion mataf. Where they did,
 the value chosen is noted in `src/config/site.ts`. The model is a dimensional
 reconstruction assembled from published figures, **not** an architectural
 survey, and it should not be used as one.
+
+
+## Shared journey presentation — November 2026
+
+The existing bus district was selected by the user as the visual reference. PlaceDetails.ts supplies original procedural stone facades, window frames, service entrances, benches, planters, railings and signs for the arena families. Geometry is grouped by material; generated colour maps are sRGB. These buildings are illustrative game scenery, not surveyed representations of particular real facilities. No generated sacred lettering, downloaded photographs, external meshes or new third-party licences are introduced.
+
+CharacterMesh.ts adds original procedural facial landmarks and thumbs to the existing 19-bone character rig. Near LODs include the detail; distant LODs retain the light silhouette. HumanActors.ts reuses the shipped VAT walk/idle system for older adventures and field crowds. HumanFeatures.ts adds facial landmarks to the existing preparation cast while retaining its articulated animation. All code-authored assets remain covered by the project MIT licence.
+
+The companion conversations are original Indonesian text stored in companionModel.ts, one authored context per campaign chapter. They are radio conversations with the guide; they do not represent online chat, recorded speech or religious rulings.
+
+LifeWorld.ts adds original procedural green service flags, supply crates, a sanitation fixture, a lost supply bag, a crowd-zone ring and locally rendered sign textures. They are illustrative gameplay facilities; no external models or textures were added. Bathing is currently a timed facility interaction, without a dedicated character animation.
+
+The adventure front menu reuses the project's original inline Ka'bah intro illustration and two avatar illustrations. New title/menu layouts, map nodes and route curves are authored HTML/CSS/SVG. No external cover image, game franchise artwork or additional third-party asset licence is introduced.
+
+### Connected Tawaf atmosphere
+
+`src/tawafAtmosphere.ts` supplies original procedural skyline geometry, clock-face canvas artwork, a gradient sky and repeated courtyard fittings. The skyline is stylised rather than surveyed. Pilgrims reuse the existing VAT character assets with independent height, build, palette and speed variation; no external character models, photographs or audio recordings were added. The voice-only companion uses the device’s Indonesian speech synthesis and the existing synthetic ambience.
+
+`src/env/SaiLandmarks.ts` adds original merged rock clusters, railings, signs and gallery ornament to the adventure Sai hall. Geometry and material textures are procedural; no source photography is copied. The modern ground-floor rock-remnant presentation follows the descriptions in the official Nusuk Umrah journey (https://umrah.nusuk.sa/Journey); distances remain compressed for gameplay.

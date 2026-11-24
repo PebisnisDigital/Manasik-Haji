@@ -1,0 +1,34 @@
+import {playerKey} from '../playerCloud.ts';
+import {minaPrayer} from './minaCampModel.ts';
+import {Clip} from '../sim/States.ts';
+export const MUZDALIFAH_STONES:readonly (readonly [number,number])[]=[[-6,-2],[-4,-5],[0,-5],[3,-3],[5,0],[4,4],[1.8,6.3]];
+export const MUZDALIFAH_BEATS=[
+ {id:'group',title:'Malam · temukan rombongan',body:'Setelah turun dari bus, temui pembimbing dan kenali titik pertemuan. Tetap tenang di antara jemaah yang sedang beristirahat.',action:'Laporkan kedatangan di Muzdalifah',goal:[0,3.5],seconds:0},
+ {id:'prayer-place',title:'Temukan tempat salat',body:'Datangi area salat yang lapang, pastikan bersuci dan ikuti arahan pembimbing. Salat didahulukan setelah tiba; mencari kerikil bukan prioritas sebelum salat.',action:'Tempat salat siap',goal:[-4,1.8],seconds:0},
+ {id:'maghrib',title:'Salat Magrib · tiga rakaat',body:'Dalam alur ini, Magrib tiga rakaat lalu Isya dua rakaat dijamak setelah tiba di Muzdalifah. Gerakan game dipadatkan untuk pembelajaran.',action:'Ikuti salat Magrib tiga rakaat',goal:[0,0],rakaat:3,seconds:0},
+ {id:'isha',title:'Salat Isya · dua rakaat',body:'Lanjutkan Isya dua rakaat secara qasar dalam jamak bersama Magrib. Setelah salat, siapkan tempat bermalam dan bekal.',action:'Ikuti salat Isya dua rakaat',goal:[0,0],rakaat:2,seconds:0},
+ {id:'water',title:'Isi air dan periksa bekal',body:'Datangi pos air untuk mengisi persediaan dan minum. Jaga tenaga serta beri ruang kepada jemaah lain.',action:'Isi air & minum',goal:[4.5,5.5],seconds:0},
+ {id:'help',title:'Jemaah mencari tempat istirahat',body:'Seorang jemaah terpisah dari kelompoknya. Temui dan bantu menemukan alas istirahat dekat rombongan.',action:'Tawarkan bantuan tempat istirahat',goal:[-6,-4],seconds:0},
+ {id:'escort',title:'Dampingi ke alas istirahat',body:'Jemaah mengikuti di belakang. Berjalanlah pelan menuju alas hijau dan pastikan ia sudah tiba.',action:'Pastikan jemaah sampai di alas',goal:[-3.4,6.8],seconds:0},
+ {id:'pebble-guide',title:'Kenali kerikil untuk Aqabah',body:'Pelajari ukuran kerikil kecil. Tidak perlu mencuci kerikil atau memakai batu besar. Kerikil juga boleh disiapkan di Mina; tempat pencarian ini merupakan kegiatan game.',action:'Pelajari pilihan kerikil',goal:[2,3],seconds:0},
+ {id:'collect',title:'Temukan tujuh kerikil kecil',body:'Jelajahi titik pencarian yang ditandai. Dekati kerikil dan ambil satu per satu. Kerikil yang sudah tersimpan tidak diulang saat reload.',action:'Ambil kerikil',goal:[0,0],seconds:1.5},
+ {id:'rest',title:'Mabit · beristirahat bersama rombongan',body:'Kembali ke alas dan beristirahat untuk memulihkan tenaga. Alur utama game bermalam hingga Subuh; rukhsah bagi yang lemah mengikuti arahan pembimbing, bukan ditentukan oleh pilihan avatar.',action:'Beristirahat hingga Subuh',goal:[-3.4,6.8],seconds:8},
+ {id:'fajr',title:'Subuh · fajar 10 Zulhijah',body:'Kembali ke area salat dan ikuti Subuh dua rakaat. Setelahnya, lanjutkan dzikir dan doa hingga fajar semakin terang.',action:'Ikuti salat Subuh dua rakaat',goal:[0,0],rakaat:2,seconds:0},
+ {id:'dhikr',title:'Dzikir dan doa menjelang keberangkatan',body:'Berdoa dan berdzikir dengan tenang di Muzdalifah. Tidak harus mendaki atau mendekati bangunan tertentu. Bersiap menuju Mina ketika pagi terang, sebelum matahari terbit.',action:'Lanjut dzikir & doa fajar',goal:[0,3.5],seconds:8},
+ {id:'departure',title:'Fajar terang · bersiap menuju Mina',body:'Periksa tujuh kerikil untuk Aqabah dan berkumpul dengan pembimbing. Dalam alur ini rombongan menuju Mina sebelum matahari terbit, tetap dengan pakaian ihram.',action:'Rombongan siap · menuju Aqabah',goal:[0,10.6],seconds:0},
+] as const;
+export interface MuzdalifahSave{version:1;id:string;beat:number;elapsed:number;stones:number}
+export const muzdalifahKey=(id:string)=>playerKey('manasik-muzdalifah-activities-v1:'+id);
+export function muzdalifahDuration(beat:number){const b=MUZDALIFAH_BEATS[beat];return b&&'rakaat' in b?minaPrayer(b.rakaat).reduce((sum,s)=>sum+s.duration,0):b?.seconds??0;}
+export function muzdalifahGoal(beat:number,stones:number):readonly [number,number]{return beat===8&&stones<7?MUZDALIFAH_STONES[stones]:MUZDALIFAH_BEATS[beat]?.goal??[0,10.6];}
+export function muzdalifahPose(beat:number,elapsed:number){const b=MUZDALIFAH_BEATS[beat];if(!b)return null;if('rakaat'in b){for(const s of minaPrayer(b.rakaat)){if(elapsed<s.duration)return {clip:s.clip,phase:elapsed/s.duration};elapsed-=s.duration;}return {clip:Clip.IDLE,phase:0};}if(beat===8){const t=elapsed/1.5;return {clip:t<.3?Clip.TO_RUKU:t>.75?Clip.FROM_RUKU:Clip.RUKU,phase:t<.3?t/.3:t>.75?(t-.75)/.25:.5};}return {clip:beat===11?Clip.DUA:Clip.TASHAHHUD,phase:beat===11?elapsed*.15%1:.5};}
+export function muzdalifahDawn(beat:number,elapsed:number){return beat<9?0:beat===9?.25*Math.min(1,elapsed/8):beat===10?.35:beat===11?.35+.5*Math.min(1,elapsed/8):.9;}
+export function decodeMuzdalifah(raw:string|null,id:string):MuzdalifahSave|null{try{const s=JSON.parse(raw??'null');return s?.version===1&&s.id===id&&Number.isInteger(s.beat)&&s.beat>=0&&s.beat<=MUZDALIFAH_BEATS.length&&Number.isInteger(s.stones)&&s.stones>=0&&s.stones<=7&&(s.beat<=8||s.stones===7)&&Number.isFinite(s.elapsed)&&s.elapsed>=0&&s.elapsed<=muzdalifahDuration(s.beat)+.001?{version:1,id,beat:s.beat,elapsed:s.elapsed,stones:s.stones}:null;}catch{return null;}}
+export function initialMuzdalifah(id:string,legacyStones=0):MuzdalifahSave{return {version:1,id,beat:0,elapsed:0,stones:Math.max(0,Math.min(7,Math.floor(legacyStones)))};}
+export function readMuzdalifah(id:string,legacyStones=0):MuzdalifahSave{try{const k=muzdalifahKey(id);return decodeMuzdalifah(localStorage.getItem(k),id)??decodeMuzdalifah(localStorage.getItem(k+'.backup'),id)??initialMuzdalifah(id,legacyStones);}catch{return initialMuzdalifah(id,legacyStones);}}
+export function storeMuzdalifah(next:MuzdalifahSave,legacyStones=0){try{const k=muzdalifahKey(next.id),raw=localStorage.getItem(k),bak=localStorage.getItem(k+'.backup');if(!decodeMuzdalifah(JSON.stringify(next),next.id))return false;for(const r of [raw,bak])try{if(JSON.parse(r??'null')?.version>1)return false;}catch{}
+ const saved=decodeMuzdalifah(raw,next.id)??decodeMuzdalifah(bak,next.id);if(!saved&&(raw!==null||bak!==null))return false;const old=saved??initialMuzdalifah(next.id,legacyStones),pickup=old.beat===8&&next.beat===8&&next.stones===old.stones+1&&old.elapsed+.001>=muzdalifahDuration(8)&&next.elapsed===0;
+ if(next.beat<old.beat||next.beat>old.beat+1||!pickup&&next.stones!==old.stones||next.beat===old.beat&&!pickup&&next.elapsed<old.elapsed)return false;
+ if(next.beat===old.beat+1&&(old.beat===8?old.stones!==7:old.elapsed+.001<muzdalifahDuration(old.beat)))return false;
+ if(decodeMuzdalifah(raw,next.id))try{localStorage.setItem(k+'.backup',raw!);}catch{}localStorage.setItem(k,JSON.stringify(next));return true;
+ }catch{return false;}}

@@ -1,3 +1,4 @@
+import {placeDetails} from './PlaceDetails.ts';
 import * as THREE from 'three';
 import {surfaceDetail} from './GraphicsDetail.ts';
 export const END=42;
@@ -62,5 +63,6 @@ export function buildSaiHall():THREE.Group {
  sign('MARWAH ↑   •   SAFA ↓',0,6.8,.025);
  group.add(new THREE.HemisphereLight(0xffffff,0xd0c5ac,2.2));
  const sun=new THREE.DirectionalLight(0xfff5df,1.9);sun.position.set(3,8,6);group.add(sun);
+ group.add(placeDetails('sai'));
  return group;
 }

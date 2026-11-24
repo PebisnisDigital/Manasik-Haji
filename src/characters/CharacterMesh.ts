@@ -29,7 +29,7 @@ export interface MeshData {
   /**
    * Per-vertex material zone, used by the shader to tint garment / skin /
    * head-covering separately: 0 = garment, 1 = skin, 2 = head covering,
-   * 3 = sash / trim.
+   * 3 = sash / trim, 4 = brows / iris, 5 = eye white, 6 = lips, 7 = casual trousers/shoes.
    */
   zone: Uint8Array;
   index: Uint32Array;
@@ -360,7 +360,7 @@ function buildLimb(
   capRing(b, rings[0], startCentre, true);
 }
 
-function buildHead(b: Builder, spec: LodSpec, coverTop: boolean, hijab = false): void {
+function buildHead(b: Builder, spec: LodSpec, coverTop: boolean, hijab = false, hair:'natural'|'trimmed'|'shaved'='shaved'): void {
   const cy = 0.928;
   const rx = 0.048;
   const ry = 0.062;
@@ -377,30 +377,57 @@ function buildHead(b: Builder, spec: LodSpec, coverTop: boolean, hijab = false):
     const ring: number[] = [];
     // The upper part of the head reads as a covering (taqiyah / ihram towel
     // / scarf) and gets its own material zone.
-    const zone = coverTop && cp > -0.15 ? Z_HEADCOVER : Z_SKIN;
-    const scale = coverTop && cp > -0.15 ? 1.09 : 1;
+    const zone = coverTop && cp > 0.6 ? Z_HEADCOVER : Z_SKIN;
+    const scale = coverTop && cp > 0.6 ? 1.09 : 1;
     for (let i = 0; i < segs; i++) {
       const a = (i / segs) * Math.PI * 2;
-      const cloth = hijab && (cp > 0.43 || Math.sin(a) < 0.72 || cp < -0.65);
-      const s = cloth ? 1.15 : scale;
-      const x = Math.cos(a) * sp * rx * s;
+      const cloth = hijab && (cp > 0.6 || Math.sin(a) < 0.72 || cp < -0.65);
+      const hasHair=!hijab&&!coverTop&&hair!=='shaved'&&cp>(Math.sin(a)>.35?(hair==='trimmed'?.62:.48):-.08);
+      const s = cloth ? 1.15 : hasHair?(hair==='trimmed'?1.015:1.05):scale;
+      const jaw = cp < -.25 ? 1 + (cp + .25) * .22 : 1;
+      const x = Math.cos(a) * sp * rx * s * jaw;
       const z = Math.sin(a) * sp * rz * s;
       ring.push(
-        pushVertex(b, x, y, z, x, (y - cy) * 1.2, z, BoneIndex.head, BoneIndex.head, 1, cloth ? Z_HEADCOVER : hijab ? Z_SKIN : zone),
+        pushVertex(b, x, y, z, x, (y - cy) * 1.2, z, BoneIndex.head, BoneIndex.head, 1, cloth ? Z_HEADCOVER : hasHair?4:hijab ? Z_SKIN : zone),
       );
     }
     rings.push(ring);
   }
   for (let r = 0; r < rings.length - 1; r++) bridgeRings(b, rings[r], rings[r + 1]);
 
-  const topZone = coverTop ? Z_HEADCOVER : Z_SKIN;
+  const topZone = coverTop ? Z_HEADCOVER : hair!=='shaved'?4:Z_SKIN;
   const top = pushVertex(b, 0, cy + ry, 0, 0, 1, 0, BoneIndex.head, BoneIndex.head, 1, topZone);
   capRing(b, rings[0], top, true);
   const bot = pushVertex(b, 0, cy - ry, 0, 0, -1, 0, BoneIndex.neck, BoneIndex.head, 0.4, Z_SKIN);
   capRing(b, rings[rings.length - 1], bot, false);
 }
 
-function buildFoot(b: Builder, spec: LodSpec, bone: number, offsetX: number): void {
+/** Small ellipsoids, bound to one joint; face features disappear in distant LODs. */
+function feature(b:Builder,x:number,y:number,z:number,rx:number,ry:number,rz:number,zone:number,bone=BoneIndex.head):void {
+  const rings:number[][]=[];const bands=4,segs=8;
+  for(let j=0;j<=bands;j++){
+    const phi=Math.PI*(.001+(j/bands)*.998),sp=Math.sin(phi),cp=Math.cos(phi),ring:number[]=[];
+    for(let i=0;i<segs;i++){const a=i/segs*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
+      ring.push(pushVertex(b,x+ca*sp*rx,y+cp*ry,z+sa*sp*rz,ca*sp/rx,cp/ry,sa*sp/rz,bone,bone,1,zone));}
+    rings.push(ring);
+  }
+  for(let j=0;j<bands;j++)bridgeRings(b,rings[j],rings[j+1]);
+}
+
+function buildFace(b:Builder,detailed:boolean,hijab:boolean):void {
+  feature(b,0,.925,.049,.009,.016,.014,Z_SKIN);
+  if(!detailed)return;
+  for(const side of [-1,1]){
+    feature(b,side*.020,.942,.044,.010,.0042,.004,5);
+    feature(b,side*.020,.942,.047,.0034,.0036,.002,4);
+    feature(b,side*.020,.952,.042,.012,.0023,.003,4);
+    if(!hijab)feature(b,side*.047,.926,0,.008,.015,.009,Z_SKIN);
+  }
+  feature(b,0,.902,.046,.013,.0028,.003,6);
+  feature(b,0,.889,.033,.016,.008,.009,Z_SKIN);
+}
+
+function buildFoot(b: Builder, spec: LodSpec, bone: number, offsetX: number, zone=Z_SKIN): void {
   // A simple wedge; enough to read as a foot and to look planted.
   const segs = Math.max(4, spec.limbSegments);
   const y0 = 0.059;
@@ -419,7 +446,7 @@ function buildFoot(b: Builder, spec: LodSpec, bone: number, offsetX: number): vo
         bone,
         bone,
         1,
-        Z_SKIN,
+        zone,
       ),
     );
   }
@@ -438,7 +465,7 @@ function buildFoot(b: Builder, spec: LodSpec, bone: number, offsetX: number): vo
         bone,
         bone,
         1,
-        Z_SKIN,
+        zone,
       ),
     );
   }
@@ -459,6 +486,8 @@ export interface CharacterVariant {
   robeLength: number;
   coverHead: boolean;
   pilgrimStyle?: 'male' | 'female';
+  hair?:'natural'|'trimmed'|'shaved';
+  casual?:boolean;
 }
 
 /**
@@ -476,7 +505,8 @@ export function buildCharacterMesh(lod: number, variant: CharacterVariant = DEFA
 
   buildGarment(b, spec, variant.robeLength);
   buildNeck(b, spec);
-  buildHead(b, spec, variant.coverHead, variant.pilgrimStyle === 'female');
+  buildHead(b, spec, variant.coverHead, variant.pilgrimStyle === 'female',variant.hair);
+  if(lod<2)buildFace(b,lod===0,variant.pilgrimStyle==='female');
 
   // Arms: upper and lower, left and right. The sleeve is part of the garment
   // colour zone down to the forearm, then skin.
@@ -497,12 +527,15 @@ export function buildCharacterMesh(lod: number, variant: CharacterVariant = DEFA
     [-1, BoneIndex.upArmR, BoneIndex.loArmR, BoneIndex.handR],
   ] as const) {
     const x = armX * side;
-    buildLimb(b, spec, up, lo, shoulderY, elbowY, x, 0.036, 0.026, variant.pilgrimStyle === 'male' ? Z_SKIN : Z_GARMENT, false);
+    buildLimb(b, spec, up, lo, shoulderY, elbowY, x, 0.036, 0.026, variant.pilgrimStyle === 'male'&&!variant.casual ? Z_SKIN : Z_GARMENT, false);
     buildLimb(b, spec, lo, hand, elbowY, wristY, x, 0.026, 0.019, variant.pilgrimStyle === 'female' ? Z_GARMENT : Z_SKIN, false);
     buildLimb(b, spec, hand, hand, wristY, handY, x, 0.021, 0.013, Z_SKIN, true);
+    if(lod===0)feature(b,x-side*.019,.466,.009,.008,.017,.009,Z_SKIN,hand);
   }
 
-  if (!spec.simpleLegs) {
+  if(variant.casual&&variant.pilgrimStyle==='male'){
+    for(const [side,thigh,shin,foot]of [[1,BoneIndex.thighL,BoneIndex.shinL,BoneIndex.footL],[-1,BoneIndex.thighR,BoneIndex.shinR,BoneIndex.footR]] as const){buildLimb(b,spec,thigh,shin,.52,.265,side*.055,.048,.033,7,false);buildLimb(b,spec,shin,foot,.265,.062,side*.055,.033,.026,7,false);buildFoot(b,spec,foot,side*.055,7);}
+  }else if (!spec.simpleLegs) {
     // Only the part of the leg below the hem needs geometry.
     const hem = variant.robeLength;
     const ankleY = 0.062;
@@ -519,6 +552,18 @@ export function buildCharacterMesh(lod: number, variant: CharacterVariant = DEFA
   if (vertexCount === 0) throw new Error('character mesh generated no vertices');
   for (const bi of b.si) {
     if (bi < 0 || bi >= BONE_COUNT) throw new Error(`bad bone index ${bi}`);
+  }
+
+  // Garments grow upwards; heads and limbs grow downwards. Their ring order
+  // must not invert the visible surface. Match winding to the authored outward
+  // normals before baking, so the face opening shows skin instead of the back
+  // of a head covering, and arms/feet remain solid under back-face culling.
+  for(let i=0;i<b.idx.length;i+=3){
+    const a=b.idx[i]*3,c=b.idx[i+1]*3,d=b.idx[i+2]*3;
+    const ux=b.pos[c]-b.pos[a],uy=b.pos[c+1]-b.pos[a+1],uz=b.pos[c+2]-b.pos[a+2];
+    const vx=b.pos[d]-b.pos[a],vy=b.pos[d+1]-b.pos[a+1],vz=b.pos[d+2]-b.pos[a+2];
+    const nx=b.nrm[a]+b.nrm[c]+b.nrm[d],ny=b.nrm[a+1]+b.nrm[c+1]+b.nrm[d+1],nz=b.nrm[a+2]+b.nrm[c+2]+b.nrm[d+2];
+    if((uy*vz-uz*vy)*nx+(uz*vx-ux*vz)*ny+(ux*vy-uy*vx)*nz<0){const swap=b.idx[i+1];b.idx[i+1]=b.idx[i+2];b.idx[i+2]=swap;}
   }
 
   return {

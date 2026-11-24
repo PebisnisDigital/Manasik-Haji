@@ -1,7 +1,16 @@
+import {mountSimplePlayHud} from './simplePlayHud.ts';
+import {simpleMenuOpen,simpleSprinting} from './simpleInput.ts';
+import {nusukNumber} from './adventure/nusukModel.ts';
+import {PlayerRenderer} from './characters/PlayerRenderer.ts';
+import {readSetup} from './frontSettings.ts';
+import {installLife,lifeOpen,lifeChapter} from './adventure/lifeWorld.ts';
+import {mountCompanion,companionOpen} from './adventure/companionView.ts';
+import {campaignContext} from './adventure/hajjCampaign.ts';
 import * as THREE from 'three';
 import {createLaneAgents,updateLanes,pathPoint} from './sim/TrainingCrowd.ts';
 import {staticShadows} from './env/GraphicsDetail.ts';
 import {coreGameFor,completeCoreGame,coreUrl,readCheckpoint,saveCheckpoint,watchCore,type CoreGameStep} from './coreProgress.ts';
+import {umrahDeparture} from './travelStory.ts';
 import {graphicsTier,graphicsProfile,createRenderBudget,mountGraphics} from './graphicsQuality.ts';
 import {mountReading} from './ritualReadings.ts';
 import {saiReading} from './readingModel.ts';
@@ -39,17 +48,20 @@ const pace = document.querySelector<HTMLButtonElement>('#pace')!;
 const nextLink = document.querySelector<HTMLAnchorElement>('#next')!;
 const avatarPref=new URLSearchParams(location.search).get('avatar');
 if(avatarPref==='male'||avatarPref==='female')avatar.value=avatarPref;
-const core=coreGameFor('sai');let coreFinished=false;let mapOpen=false;let portraitOnly=()=>false;let isPortrait=()=>portraitOnly()||mapOpen;if(core)watchCore(core);
+const core=coreGameFor('sai');let coreFinished=false;let mapOpen=false;let portraitOnly=()=>false;let isPortrait=()=>portraitOnly()||mapOpen||companionOpen()||lifeOpen();if(core)watchCore(core);
 const guided=core?null:guidedStage(3);
 const hajj=core?null:hajjGame('sai');if(hajj){avatar.value=hajj.avatar;avatar.disabled=true;const title=document.querySelector('h1');if(title)title.textContent='Latihan Sa’i Haji';nextLink.textContent='Kembali ke perjalanan haji →';nextLink.href='./hajj.html';}
 if(guided){avatar.value=guided.avatar;avatar.disabled=true;nextLink.textContent='Lanjut ke tahallul →';nextLink.href='./umrah.html';}
-if(core){if(slug){const label=document.querySelector('.hud .eyebrow');if(label)label.setAttribute('data-tenant-brand','');bootTenant();}document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextLink.href=coreUrl(core);nextLink.textContent=core.step===11?'Lanjut Mina':'Lanjut tahallul';const heading=document.querySelector('h1');if(heading)heading.textContent=core.step===11?'Level 09 · Sa’i Haji':'Level 03 · Sa’i';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./index.html');back.textContent='Lobby';back.classList.add('coreExit');}portraitOnly=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
-nextLink.addEventListener('click',e=>{if(core&&(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh lintasan dahulu.';return;}if((guided&&!completeStage(3,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
+if(core){if(slug){const label=document.querySelector('.hud .eyebrow');if(label)label.setAttribute('data-tenant-brand','');bootTenant();}document.documentElement.classList.add('corePlay');avatar.value=core.avatar;avatar.disabled=true;nextLink.href=coreUrl(core);nextLink.textContent=core.step===11?'Lanjut Mina':'Lanjut tahallul';const heading=document.querySelector('h1');if(heading)heading.textContent=core.step===11?'Level 09 · Sa’i Haji':'Level 03 · Sa’i';const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl(readSetup()?'./adventure-map.html?journey='+core.program:'./index.html');back.textContent=readSetup()?'Peta petualangan':'Lobby';back.classList.add('coreExit');}portraitOnly=installLandscape(()=>window.dispatchEvent(new Event('blur')));}
+const campaignChapter=campaignContext();if(core&&campaignChapter){const heading=document.querySelector('h1');if(heading)heading.textContent='Level '+nusukNumber(campaignChapter.id)+' · '+campaignChapter.title;const back=document.querySelector<HTMLAnchorElement>('.hud > .panel:first-child > a');if(back){back.href=tenantUrl('./adventure-map.html');back.textContent='Peta 12 level';}nextLink.textContent='Selesaikan level '+nusukNumber(campaignChapter.id);}
+nextLink.addEventListener('click',e=>{if(core&&(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep))){e.preventDefault();status.textContent=coreFinished?'Progress belum tersimpan.':'Selesaikan tujuh lintasan dahulu.';return;}if(core?.program==='umrah')nextLink.href=umrahDeparture(core.step+1,coreUrl(core));if((guided&&!completeStage(3,guided.id))||(hajj&&!completeHajj(hajj))){e.preventDefault();status.textContent='Progress belum tersimpan. Periksa penyimpanan browser.';}});
 
 const intro='Sekarang kita berada di Safa. Berjalan menuju Marwah sebagai lintasan pertama. Lanjutkan bolak-balik hingga tujuh lintasan dan berakhir di Marwah.';
 const guide=new VoiceGuide(intro);
 const sound=core?new ImmersiveSound('sai',document.querySelector('.voice-controls')):null;
-if(core)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));tutorial?.paint();}});
+const companion=mountCompanion(document.querySelector<HTMLElement>('.hud > .panel:first-child')!,{chapter:()=>campaignChapter?.id??'sai',objective:()=>document.querySelector<HTMLElement>('.hud > .panel:first-child')?.innerText.replace('Radio rombongan','')??'',blocked:isPortrait,onPause:()=>guide.stop()});
+window.addEventListener('pagehide',()=>companion.dispose(),{once:true});
+if(core&&!campaignChapter)installMissionMap({host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,get:()=>({program:core.program,save:core}),blocked:portraitOnly,onChange:open=>{mapOpen=open;guide.stop();window.dispatchEvent(new Event('blur'));tutorial?.paint();}});
 if(core){const host=document.querySelector<HTMLElement>('.voice-controls')!;mountComfort(host,{more:true});mountGraphics(host);}
 const reading=core?mountReading(document.querySelector<HTMLElement>('.voice-controls')!,guide,isPortrait):null;
 const tutorial=core?installSmartTutorial({kind:'sai',host:document.querySelector<HTMLElement>('.hud > .panel:first-child')!,blocked:isPortrait,ready:()=>loading.hidden&&!coreFinished}):null;
@@ -67,12 +79,12 @@ function boot(): void {
   const crowdSize=core?profile.sai:160;const crowd = new CrowdRenderer(crowdSize, { lod0Budget: core&&tier==='low'?4:12, lod1Budget: crowdSize, lod0Distance: 18, lod1Distance: 60, blobShadows: !core||tier!=='low' });
   scene.add(crowd.group);
   const playerQuality = {lod0Budget:1,lod1Budget:1,lod0Distance:100,lod1Distance:100,blobShadows:true};
-  const male = new CrowdRenderer(1, playerQuality, {robeLength:0.19,coverHead:false,pilgrimStyle:'male'});
+  const male = new PlayerRenderer(1,playerQuality,'male');
   scene.add(male.group);
-  let female: CrowdRenderer | undefined;
-  function hero(): CrowdRenderer {
+  let female: PlayerRenderer | undefined;
+  function hero(): PlayerRenderer {
     if(avatar.value !== 'female') return male;
-    if(!female){female = new CrowdRenderer(1, playerQuality, {robeLength:0.065,coverHead:true,pilgrimStyle:'female'});scene.add(female.group);}
+    if(!female){female = new PlayerRenderer(1,playerQuality,'female');scene.add(female.group);}
     return female;
   }
   const marker = new THREE.Mesh(new THREE.RingGeometry(0.44,0.54,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x216d55,side:THREE.DoubleSide,depthWrite:false}));
@@ -84,6 +96,8 @@ function boot(): void {
   const input = new Set<string>();
   let joyId:number|null=null, joyX=0, joyY=0, paused=false;
   let initializedCamera=false, animationTime=0;
+  const life=installLife(scene,{chapter:lifeChapter('sai'),station:{x:6,z:35},bag:{x:-6,z:0},active:()=>!paused&&!isPortrait()&&!document.hidden&&!budget.lost()});
+  window.addEventListener('pagehide',()=>life.tick(0,{x,z},false));
   const desiredCamera = new THREE.Vector3();
   const desiredLook = new THREE.Vector3();
   const smoothLook = new THREE.Vector3();
@@ -130,12 +144,12 @@ function boot(): void {
   let lastSaved=core?readCheckpoint(core):0;
   if(core&&lastSaved>0){track.completed=lastSaved;x=lastSaved%2===0?3:-3;z=lastSaved%2===0?END:-END;finished=track.finished;coreFinished=finished;count.textContent=lastSaved+' / 7';progress.value=lastSaved;targetLabel.textContent=finished?'Selesai di Marwah':'Menuju '+track.destination;nextLink.hidden=!finished;status.textContent=finished?'Tujuh lintasan tersimpan. Lanjutkan.':lastSaved+' lintasan tersimpan. Lanjut dari tujuan terakhir.';}
   const npc=createLaneAgents('sai',core?crowdSize:78,END);
-  function submit(target:CrowdRenderer,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
+  function submit(target:Pick<CrowdRenderer,'submit'>,lod:number,px:number,pz:number,heading:number,h:number,palette:number,clip:number,phase:number):void{
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   function frame(now:number):void {
-    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
+    const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=simpleMenuOpen()||paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
     if(!finished&&inGreen!==wasGreen&&!paused){wasGreen=inGreen;if(inGreen)guide.announce(avatar.value==='male'?'Masuk area lampu hijau. Bagi laki-laki, dianjurkan berlari kecil bila mampu.':'Masuk area lampu hijau. Jamaah perempuan tetap berjalan biasa.','green-in-'+track.completed,5000,true);else guide.announce('Keluar area lampu hijau. Lanjutkan berjalan biasa menuju '+track.destination+'.','green-out-'+track.completed,5000);}
     pace.hidden=avatar.value!=='male'||!inGreen||finished||(!!core&&comfortablePace(2.4,3.5,true)===2.4);
@@ -154,7 +168,8 @@ function boot(): void {
       dx=(-Math.sin(orbit)*f+Math.cos(orbit)*lateral)*speed/len;
       dz=(-Math.cos(orbit)*f-Math.sin(orbit)*lateral)*speed/len;
     }
-    if(core){const factor=walkFactor(auto);dx*=factor;dz*=factor;}
+    {const factor=(core?walkFactor(auto):1)*(simpleSprinting()?1.65:1);dx*=factor;dz*=factor;}
+    const factor=life.factor({x,z});dx*=factor;dz*=factor;
     const oldX=x,oldZ=z;
     if(!finished){
       x=THREE.MathUtils.clamp(x+dx*dt,-WALK_WIDTH,WALK_WIDTH);z=THREE.MathUtils.clamp(z+dz*dt,-END,END);
@@ -166,6 +181,7 @@ function boot(): void {
       else if(arrived){wrongSince=0;wrongAnnounced=false;guide.announce('Lintasan ke '+track.completed+' selesai di '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.','arrival-'+track.completed,0,true);targetLabel.textContent='Menuju '+track.destination;status.textContent='Sampai '+(track.completed%2===1?'Marwah':'Safa')+'. Berbalik menuju '+track.destination+'.';if(cameraMode.value!=='free'){orbit=track.direction===-1?0:Math.PI;initializedCamera=false;}}
       else if(Math.abs(z-oldZ)>.001){if((z-oldZ)*track.direction<0){wrongSince+=dt;if(wrongSince>1.2&&!wrongAnnounced){wrongAnnounced=true;guide.announce('Arah berlawanan. Tujuan berikutnya adalah '+track.destination+'.','wrong',10000,true);}}else{if(wrongAnnounced)guide.announce('Arah perjalanan sudah benar.','correct',10000);wrongSince=0;wrongAnnounced=false;}status.textContent=(z-oldZ)*track.direction<0?'Arah berlawanan. Tujuan berikutnya: '+track.destination+'.':'Lintasan '+(track.completed+1)+': menuju '+track.destination+'.';}
     }
+    life.tick(dt,{x,z},!stopped&&!finished);
     const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);if(dt>0)tutorial?.event({type:'walk',amount:dist});tutorial?.paint();
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}
     marker.position.x=x;marker.position.z=z;
@@ -200,6 +216,6 @@ function boot(): void {
     crowd.endFrame();budget.draw(now,scene,camera,stopped);requestAnimationFrame(frame);
   }
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();loading.hidden=false;loading.textContent='Konteks grafis terputus. Muat ulang halaman.';});
-  loading.hidden=true;reading?.set('sai',false);tutorial?.paint();requestAnimationFrame(frame);
+  mountSimplePlayHud('sai');loading.hidden=true;reading?.set('sai',false);tutorial?.paint();requestAnimationFrame(frame);
 }
 if(core||!new URLSearchParams(location.search).has('core'))requestAnimationFrame(()=>{try{boot();}catch(e){console.error(e);loading.hidden=false;loading.textContent='Simulasi gagal dimulai. Gunakan browser dengan WebGL 2 lalu muat ulang.';}});

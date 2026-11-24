@@ -1,4 +1,20 @@
 # Adventure V4.0
+
+## Kampanye Haji lengkap — 22 November 2026
+
+Peta utama kini menghubungkan **12 bab playable** dari Miqat hingga Wada’. Sembilan bab baru memakai arena dan kendali manasik yang sudah ada melalui sesi per bab, checkpoint dan lencana; tiga petualangan Tawaf/Sa’i/Tahallul mempertahankan save asli. Kedua pilihan nafar tersedia. Rincian cakupan, hasil QA dan syarat rilis yang tersisa ada di [arah pengembangan](ARAH-PENGEMBANGAN.md) dan [audit teknis terbaru](GAMEDEV-AUDIT.md). Catatan V4/V5 di bawah adalah riwayat mode persiapan klasik yang terpisah.
+
+## Kawasan Perjalanan — exploration, vehicle and visual chapter
+
+`district.html` adds a fictional neighborhood with five ordered preparation objectives, NPC dialogue, luggage collection, a driveable bus, terminal parking, rewards and checkpoint recovery. The terminal links to the existing playable chapters according to their original unlocks. The lobby and chapter map both link to this district; the classic adventure and all previous chapter saves remain available. See [district controls, architecture and limitations](DISTRICT.md).
+
+## Browser quest technical upgrade — 21 November 2026
+
+The current default entry is the chapter map; Tawaf (03), Sa’i (04) and Tahallul (05) remain the playable browser quests. The classic preparation adventure below remains accessible with `adventure.html?classic=1` and retains its own progress.
+
+The quest chapters now share camera-relative desktop/touch controls, a collision-aware third-person camera with vertical orbit, landscape/menu input blocking, compatible sub-checkpoint saves with backup recovery, a mission/reward tracker, and the existing adaptive graphics settings. Dense NPC groups reuse their original meshes through instancing; NPCs yield near the player. No new ritual requirements or planned chapters were added. See [the audit, implementation and validation report](GAMEDEV-AUDIT.md) for source mapping, save compatibility, measured draw calls and device-test limits.
+
+Historical implementation notes follow.
 Level 1 has three ordered objectives, procedural low-poly house, manually controlled character and guided walking, family dialogue, cinematic camera, generated ambience and browser speech. Level 2–35 are roadmap only. Progress is a local, tenant-scoped checkpoint. Existing practice modes and Supabase are unchanged. No real registration, document collection or cloud adventure reporting.
 
 ## V4.2

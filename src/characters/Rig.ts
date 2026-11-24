@@ -4,7 +4,7 @@
  * The whole character pipeline is generated in code: there is no external
  * rigged model to download, so there is nothing to license and nothing that
  * can fail to load. The rig is deliberately tiny (19 bones) because the
- * cameras never get close enough for finger or face detail to matter, and
+ * facial landmarks and thumbs can bind to existing joints, and
  * because every bone costs bake time and vertex-animation texture space.
  *
  * CONVENTIONS

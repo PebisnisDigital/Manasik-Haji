@@ -1,3 +1,4 @@
+import {placeDetails,disposePlaceDetails} from './PlaceDetails.ts';
 /**
  * Environment.ts — assembles the whole static scene and its lighting.
  *
@@ -58,6 +59,7 @@ export class Environment {
   };
 
   private readonly materials: EnvMaterials;
+  private readonly place=placeDetails('haram',56);
   /** Meshes that were built as shadow casters, recorded once. */
   private readonly casters = new Set<THREE.Mesh>();
   private readonly sky: THREE.Mesh;
@@ -71,6 +73,7 @@ export class Environment {
     const t0 = performance.now();
     const q = ENVIRONMENT_QUALITY[quality];
     this.group.name = 'environment';
+    this.group.add(this.place);
 
     this.materials = createMaterials(renderer, q.textureSize);
 
@@ -198,6 +201,7 @@ export class Environment {
   }
 
   dispose(): void {
+    disposePlaceDetails(this.place);
     this.group.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.isMesh) m.geometry?.dispose();

@@ -1,3 +1,4 @@
+import {journeyVolume} from '../frontSettings.ts';
 /** All effects are original filtered noise, not recordings, music, prayer or simulated sacred recitation. */
 export type SoundScene='lobby'|'prep'|'post'|'trim'|'tawaf'|'sai'|'arafah'|'muzdalifah'|'mina'|'jamarat'|'complete';
 type Profile={air:number;airHz:number;crowd:number;crowdHz:number;floor:'hard'|'sand'};
@@ -43,7 +44,7 @@ export class ImmersiveSound{
   if(this.disposed||ticket!==this.generation)return;if(!this.preferred)return;this.active=c.state==='running';if(!this.active)this.button.title='Ketuk lagi untuk menyalakan audio';
  }catch{if(ticket===this.generation){this.active=false;this.preferred=false;this.save();}}finally{if(ticket===this.generation&&!this.disposed){this.pending=false;this.mix();this.render();}}}
  private mix(){const c=this.ctx;if(!c||!this.master)return;const t=c.currentTime,p=profiles[this.scene],audible=this.active&&!this.paused&&!document.hidden&&!this.disposed;
-  this.master.gain.setTargetAtTime(audible?(this.ducked?.15:.40):0,t,.05);
+  this.master.gain.setTargetAtTime(audible?(this.ducked?.15:.40)*journeyVolume():0,t,.05);
   this.air?.gain.setTargetAtTime(p.air,t,.2);this.crowd?.gain.setTargetAtTime(p.crowd,t,.2);this.airFilter?.frequency.setTargetAtTime(p.airHz,t,.2);this.crowdFilter?.frequency.setTargetAtTime(p.crowdHz,t,.2);
  }
  private suspend(){this.generation++;this.pending=false;this.active=false;this.mix();this.render();if(this.ctx)void this.ctx.suspend().catch(()=>{});}

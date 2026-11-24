@@ -1,0 +1,32 @@
+import {playerKey} from '../playerCloud.ts';
+import {minaPrayer} from './minaCampModel.ts';
+import {Clip} from '../sim/States.ts';
+import type {FieldActivity} from './hajjFieldModel.ts';
+export const ARAFAH_BEATS=[
+ {id:'group',title:'Temukan rombongan Arafah',body:'Dari titik turun bus, cari pembimbing di area rombongan. Ingat penanda tenda agar dapat kembali.',action:'Laporkan kedatangan ke pembimbing',goal:[0,-3],time:.05,seconds:0},
+ {id:'boundary',title:'Kenali batas tempat wukuf',body:'Dekati papan batas dan tetap di wilayah Arafah. Tidak perlu mendaki Jabal Rahmah. Tempat dalam game adalah ilustrasi, bukan peta navigasi lapangan.',action:'Batas Arafah sudah dikenali',goal:[-4,-5.5],time:.08,seconds:0},
+ {id:'water',title:'Isi air sebelum wukuf',body:'Datangi pos air. Isi bekal dan minum agar siap mengikuti kegiatan bersama rombongan.',action:'Isi bekal air & minum',goal:[4.4,-1],time:.12,seconds:0},
+ {id:'shade',title:'Temukan tempat berteduh',body:'Kenali tempat teduh dekat rombongan. Beristirahat sejenak dan siapkan diri; meneduh tidak mengharuskan keluar dari area wukuf.',action:'Istirahat sejenak di tempat teduh',goal:[-2,1],time:.16,seconds:4},
+ {id:'khutbah',title:'Zuhur · arahan sebelum salat',body:'Pelajari ringkasan arahan pembimbing: jaga ketenangan, perbanyak taubat, doa dan dzikir, serta tetap berada di wilayah Arafah hingga matahari terbenam.',action:'Simak ringkasan arahan khutbah',goal:[0,-3],time:.24,seconds:6},
+ {id:'zuhr',title:'Zuhur · jamak takdim dan qasar',body:'Bergabung dalam saf. Dalam contoh alur ini, Zuhur dua rakaat lalu Asar dua rakaat pada waktu Zuhur. Gerakan dan waktu game dipadatkan untuk pembelajaran.',action:'Ikuti salat Zuhur dua rakaat',goal:[0,0],time:.28,rakaat:2,seconds:0},
+ {id:'asr',title:'Asar · dilanjutkan pada waktu Zuhur',body:'Lanjutkan Asar dua rakaat secara qasar dalam jamak takdim. Sesudah salat, gunakan waktu untuk doa dan dzikir.',action:'Ikuti salat Asar dua rakaat',goal:[0,0],time:.28,rakaat:2,seconds:0},
+ {id:'dua',title:'Wukuf · doa dengan bahasa yang dipahami',body:'Pilih pengingat doa, lalu berdoa dengan tenang. Pilihan ini membantu belajar; tidak menilai diterima atau tidaknya ibadah.',action:'Mulai doa wukuf',goal:[0,-3],time:.32,seconds:12},
+ {id:'help',title:'Jemaah membutuhkan tempat teduh',body:'Temui jemaah yang kelelahan di tepi jalur. Tawarkan bantuan agar ia dapat beristirahat bersama rombongan.',action:'Tawarkan bantuan kepada jemaah',goal:[4.4,-4],time:.5,seconds:0},
+ {id:'escort',title:'Dampingi jemaah menuju tempat teduh',body:'Jemaah berjalan mengikuti di belakangmu. Antarkan dengan tenang hingga tempat teduh dalam area Arafah.',action:'Pastikan jemaah tiba di tempat teduh',goal:[-2,1],time:.52,seconds:0},
+ {id:'dhikr',title:'Sore · dzikir dan istigfar',body:'Kembali ke area rombongan. Perbanyak dzikir dan istigfar, sambil menjaga ketenangan dan memberi ruang kepada jemaah lain.',action:'Lanjut dzikir & istigfar',goal:[0,-3],time:.56,seconds:12},
+ {id:'sunset',title:'Senja · tetap wukuf sampai terbenam',body:'Lanjutkan doa hingga matahari benar-benar terbenam. Perjalanan menuju Muzdalifah baru dibuka setelah sesi senja selesai.',action:'Berdoa hingga matahari terbenam',goal:[0,-3],time:.78,seconds:12},
+ {id:'departure',title:'Matahari terbenam · kumpul rombongan',body:'Wukuf dalam perjalanan ini telah mencapai matahari terbenam. Datangi titik kumpul; Magrib dan Isya dalam alur ini dilaksanakan setelah tiba di Muzdalifah.',action:'Rombongan lengkap · siap Muzdalifah',goal:[0,10.6],time:1,seconds:0},
+] as const;
+export interface ArafahActivity{version:1;id:string;beat:number;elapsed:number;intention?:'self'|'family'|'all'}
+export function arafahDuration(beat:number){const b=ARAFAH_BEATS[beat];return b&&'rakaat' in b?minaPrayer(b.rakaat).reduce((n,s)=>n+s.duration,0):b?.seconds??0;}
+export function arafahPose(beat:number,elapsed:number){const b=ARAFAH_BEATS[beat];if(!b)return null;if('rakaat' in b){for(const s of minaPrayer(b.rakaat)){if(elapsed<s.duration)return {clip:s.clip,phase:Math.max(0,elapsed/s.duration)};elapsed-=s.duration;}return {clip:Clip.IDLE,phase:0};}return {clip:['dua','dhikr','sunset'].includes(b.id)?Clip.DUA:Clip.TASHAHHUD,phase:['dua','dhikr','sunset'].includes(b.id)?elapsed*.15%1:.5};}
+export function arafahDay(beat:number,elapsed:number){const b=ARAFAH_BEATS[beat];if(!b)return 1;const end=beat===7?.48:beat===10?.77:beat===11?1:b.time;return b.time+(end-b.time)*Math.min(1,elapsed/Math.max(1,arafahDuration(beat)));}
+export const arafahActivityKey=(id:string)=>playerKey('manasik-arafah-activities-v1:'+id);
+export function legacyArafahActivity(id:string,legacy:FieldActivity):ArafahActivity{return {version:1,id,beat:[0,7,10,11,12][legacy.phase]??0,elapsed:legacy.phase>0&&legacy.phase<4?legacy.elapsed:0};}
+export function decodeArafahActivity(raw:string|null,id:string):ArafahActivity|null{try{const s=JSON.parse(raw??'null');return s?.version===1&&s.id===id&&Number.isInteger(s.beat)&&s.beat>=0&&s.beat<=ARAFAH_BEATS.length&&Number.isFinite(s.elapsed)&&s.elapsed>=0&&s.elapsed<=arafahDuration(s.beat)+.001&&(s.intention===undefined||['self','family','all'].includes(s.intention))?{version:1,id,beat:s.beat,elapsed:s.elapsed,...(s.intention?{intention:s.intention}:{})}:null;}catch{return null;}}
+export function readArafahActivity(id:string,legacy:FieldActivity):ArafahActivity{try{const k=arafahActivityKey(id);return decodeArafahActivity(localStorage.getItem(k),id)??decodeArafahActivity(localStorage.getItem(k+'.backup'),id)??legacyArafahActivity(id,legacy);}catch{return legacyArafahActivity(id,legacy);}}
+export function storeArafahActivity(next:ArafahActivity,legacy:FieldActivity){try{const k=arafahActivityKey(next.id),raw=localStorage.getItem(k),bak=localStorage.getItem(k+'.backup');if(!decodeArafahActivity(JSON.stringify(next),next.id))return false;for(const r of [raw,bak])try{if(JSON.parse(r??'null')?.version>1)return false;}catch{}
+ const saved=decodeArafahActivity(raw,next.id)??decodeArafahActivity(bak,next.id);if(!saved&&(raw!==null||bak!==null))return false;const old=saved??legacyArafahActivity(next.id,legacy);
+ if(next.beat<old.beat||next.beat>old.beat+1||next.beat===old.beat&&next.elapsed<old.elapsed||next.beat===old.beat+1&&old.elapsed+.001<arafahDuration(old.beat))return false;
+ if(decodeArafahActivity(raw,next.id))try{localStorage.setItem(k+'.backup',raw!);}catch{}localStorage.setItem(k,JSON.stringify(next));return true;
+ }catch{return false;}}

@@ -1,3 +1,4 @@
+import {journeyAvatar,readSetup} from '../frontSettings.ts';
 import {VoiceGuide} from '../audio/VoiceGuide.ts';
 import {bootTenant,scopedKey} from '../tenant.ts';
 import {Ambience} from './ambience.ts';
@@ -13,6 +14,7 @@ const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(
 const btn=(id:string)=>$<HTMLButtonElement>(id);
 const KEY=scopedKey('manasik-adventure-v46');let save:AdventureSave=makeSave('male','umrah');
 try{const previous=decodeSave(localStorage.getItem(scopedKey('manasik-adventure-v4')));save=decodeSave(localStorage.getItem(KEY))??(previous?makeSave(previous.avatar,previous.campaign):save);}catch{}
+save={...save,avatar:journeyAvatar(save.avatar)};
 const guide=new VoiceGuide('Selamat datang! Ikuti penanda emas untuk menyelesaikan misi.');
 const ambience=new Ambience();let world:HomeWorld|null=null,fallback=false,settings=false,audioStarted=false,sound=false,transition=false,rewardTimer=0,dialogTimer=0,dialogEpoch=0,lineIndex=0,currentLesson:Lesson|null=null,taskBusy=false,taskLesson:Lesson|null=null,taskLine=0,taskTimer=0,chatNpc:Npc|null=null,chatLines:Line[]=[],chatVisible=false,chatSpeaker='';
 let packed:number[]=[];let departureChecked:number[]=[],busConfirmed=false;let airportIndex=0,airportLocked=false;let miqatIndex=0;let flightIndex=0,flightLocked=false,flightRoute:FlightRoute|null=null;let practiceFrame=0,practiceRunning=false,practiceDone:PracticeMode[]=[];
@@ -57,7 +59,7 @@ function showLesson(){if(!currentLesson)return;closeDialogue();$('lessonTitle').
 function collect(){if(!taskBusy||settings||transition||save.quest===3||document.hidden)return;taskBusy=false;taskLesson=null;clearTimeout(taskTimer);$('game').classList.remove('taskChat');const prior=save.quest;currentLesson=lessonFor(save.level,prior,save.campaign,save.flightRoute)??null;if(!currentLesson)return;transition=true;guide.stop();closeDialogue();world?.setActive(false);save=finishQuest(save,prior);persist();refresh();ambience.reward();clearTimeout(rewardTimer);$('reward').hidden=false;rewardTimer=window.setTimeout(()=>{$('reward').hidden=true;showLesson();},650);}
 btn('lessonNext').onclick=()=>{if(!transition||!currentLesson)return;$('lesson').hidden=true;currentLesson=null;transition=false;world?.target(save.quest);refresh();if(save.quest===3)showMap();else{world?.setActive(true);instruct();}};
 async function setSound(on:boolean){sound=on;if(on){if(!await ambience.start())sound=false;}else ambience.stop();btn('ambient').textContent=sound?'Suasana aktif':'Suasana mati';btn('ambient').setAttribute('aria-pressed',String(sound));}
-function enableAudio(){if(audioStarted)return;audioStarted=true;$('enableAudio').hidden=true;if(!btn('voiceToggle').disabled&&btn('voiceToggle').getAttribute('aria-pressed')!=='true')btn('voiceToggle').click();void setSound(true);}
+function enableAudio(){if(audioStarted)return;audioStarted=true;$('enableAudio').hidden=true;if((readSetup()?.voice??true)&&!btn('voiceToggle').disabled&&btn('voiceToggle').getAttribute('aria-pressed')!=='true')btn('voiceToggle').click();void setSound(readSetup()?.ambience??true);}
 btn('enableAudio').onclick=enableAudio;
 document.addEventListener('pointerdown',e=>{if(audioStarted||!(e.target instanceof Element)||e.target.closest('#settingsPanel,#settings,#voiceToggle,#voiceReplay,#enableAudio,#lesson,#map,#packingPanel,#practicePanel,#departurePanel,#airportPanel,#flightPanel,#miqatPanel'))return;enableAudio();},{capture:true});
 window.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'].includes(e.code))enableAudio();});

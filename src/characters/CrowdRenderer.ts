@@ -170,7 +170,7 @@ export class CrowdRenderer {
 
     for (const c of PALETTES) {
       for (let k = 0; k < 3; k++) {
-        this.paletteUniform.push(new THREE.Color(c[k]).convertSRGBToLinear());
+        this.paletteUniform.push(new THREE.Color(this.variant?.casual&&k===0?0x527987:this.variant?.casual&&k===1&&this.variant.pilgrimStyle==='female'?0x527987:c[k]));
       }
     }
 
@@ -257,7 +257,11 @@ export class CrowdRenderer {
   vec3 accent = uPalette[pal * 3 + 1];
   vec3 skin = uPalette[pal * 3 + 2];
   vec3 base = garment;
-  if (aZone > 2.5) base = garment * 0.66;
+  if (aZone > 6.5) base = vec3(0.055, 0.085, 0.095);
+  else if (aZone > 5.5) base = skin * vec3(0.72, 0.46, 0.43);
+  else if (aZone > 4.5) base = vec3(0.78, 0.76, 0.71);
+  else if (aZone > 3.5) base = vec3(0.032, 0.022, 0.017);
+  else if (aZone > 2.5) base = garment * 0.66;
   else if (aZone > 1.5) base = accent;
   else if (aZone > 0.5) base = skin;
   // Gentle folded-cloth shading in rest coordinates follows the animation.\n  float fold = 1.0;\n  if (aZone < 0.5) {\n    float a = atan(position.z, position.x);\n    fold = 0.955 + 0.045 * sin(a * 7.0 + position.y * 18.0);\n  }\n  vBaseColor = base * iMisc.y * fold;

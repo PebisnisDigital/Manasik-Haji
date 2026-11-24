@@ -1,7 +1,7 @@
 /* Generated into dist/sw.js; only versioned public static files are cacheable. */
 const CACHE=__CACHE_NAME__,STATIC=new Set(__STATIC_ASSETS__),SHELL=__SHELL_FILES__;
 const base=new URL(self.registration.scope),urlFor=p=>new URL(p,base).href;
-const corePages=new Set(['','index.html','manasik.html','player.html','sai.html']);
+const corePages=new Set(__PUBLIC_GAME_PAGES__);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL.map(urlFor))));});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith('umroh-static-')&&key!==CACHE)await caches.delete(key);await self.clients.claim();})());});
 self.addEventListener('fetch',event=>{

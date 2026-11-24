@@ -1,0 +1,22 @@
+import * as THREE from 'three';
+import type {attachWalker} from './coreWalk.ts';
+import type {Avatar} from './coreProgress.ts';
+import {tenantUrl} from './tenant.ts';
+import {readSaiTransfer,storeSaiTransfer,SAI_TRANSFER_STOPS,SAI_TRANSFER_BOUNDS} from './saiTransferModel.ts';
+type Action={label:string;fn:()=>void;id?:string;primary?:boolean};
+interface Options {scene:THREE.Scene;walker:ReturnType<typeof attachWalker>;avatar:Avatar;bounds:[number,number,number,number];show:(title:string,body:string,actions:Action[])=>void;close:()=>void;notice:(text?:string)=>void;changed:()=>void;announce:(key:string,text:string)=>void}
+export function mountSaiTransfer(o:Options){
+ let save=readSaiTransfer(o.avatar);const root=new THREE.Group();root.name='sai-entrance-forecourt';o.scene.add(root);for(let i=0;i<4;i++)o.bounds[i]=SAI_TRANSFER_BOUNDS[i];
+ const stone=new THREE.MeshStandardMaterial({color:0xe4dcca,roughness:.7}),gold=new THREE.MeshStandardMaterial({color:0xb69a56,roughness:.5,metalness:.2}),green=new THREE.MeshStandardMaterial({color:0x285b4b,roughness:.8});
+ function box(w:number,h:number,d:number,x:number,y:number,z:number,mat:THREE.Material){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);root.add(m);}
+ box(14,.08,19,54,.015,36,stone);for(const x of [48.5,59.5]){box(.75,6,.75,x,3,36,stone);box(1.1,.25,1.1,x,5.9,36,gold);box(1.1,.25,1.1,x,.14,36,gold);}box(12.3,.5,1.1,54,6.3,36,stone);box(9,1.3,.18,54,5,36.5,green);
+ const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=160;const ctx=canvas.getContext('2d')!;ctx.fillStyle='#22533f';ctx.fillRect(0,0,1024,160);ctx.fillStyle='#fff0bf';ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 48px sans-serif';ctx.fillText('MAS’A · SAFA–MARWAH',512,58);ctx.font='30px sans-serif';ctx.fillText('PINTU MASUK SAFA  →',512,115);const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;const signMaterial=new THREE.MeshBasicMaterial({map}),sign=new THREE.Mesh(new THREE.PlaneGeometry(8.6,1.34),signMaterial);sign.position.set(54,5,36.61);root.add(sign);
+ for(const p of SAI_TRANSFER_STOPS){const m=new THREE.Mesh(new THREE.RingGeometry(.65,.83,32).rotateX(-Math.PI/2),gold);m.position.set(p.x,.05,p.z);root.add(m);}
+ function stop(){return SAI_TRANSFER_STOPS[Math.max(0,Math.min(2,save.step-1))];}
+ function plan(){const p=stop();o.walker.setGoal(p.x,p.z);o.walker.setGoalVisible(true);o.announce('sai-route:'+save.step,save.step===0?'Tawaf sudah tuntas. Perjalanan berikutnya menuju galeri Safa–Marwah.':p.hint);o.changed();}
+ function move(step:number){if(!storeSaiTransfer(o.avatar,{version:1,active:true,step})){o.notice('Checkpoint perjalanan Sa’i belum dapat disimpan. Progres tawaf dan Sa’i lama tetap aman.');return false;}save=readSaiTransfer(o.avatar);o.notice('');o.close();plan();return true;}
+ function headline(){o.show('LANJUT KE LEVEL 3 · SA’I','Tawaf Qudum sudah selesai. Kini tinggalkan kawasan Ka’bah, berjalan melalui pelataran menuju pintu Mas’a, lalu mulai Sa’i dari Safa. Satu perjalanan ke Marwah dihitung satu lintasan.',[{label:'MULAI PERJALANAN KE SAFA →',id:'saiDepart',fn:()=>move(1)}]);}
+ function near(){const p=stop();return save.step>0&&Math.hypot(o.walker.position.x-p.x,o.walker.position.z-p.z)<1.15;}
+ function enter(){if(!near())return;if(save.step===1){move(2);return;}if(save.step===2){move(3);return;}o.show('Pintu Safa · Galeri Sa’i','Kamu sudah tiba di pintu masuk Mas’a. Di dalam, cari garis awal Safa di depan bebatuan yang dilindungi pembatas, lalu mulai lintasan menuju Marwah. Checkpoint Sa’i sebelumnya akan dilanjutkan bila sudah ada.',[{label:'MASUK GALERI · MULAI DARI SAFA',id:'saiEnter',fn:()=>{if(move(4))location.assign(tenantUrl('./sai-adventure.html?approach=complete'));}}]);}
+ plan();if(save.step===0)headline();return {tick(){},interact(){if(save.step===0)headline();else enter();},approach(){if(save.step===0)headline();else o.walker.approach();},focus(){o.walker.lookAt(54,5,36);},view(){const p=stop();return {step:save.step,near:near(),title:save.step===0?'Berikutnya · Sa’i Safa–Marwah':p.title,body:save.step===0?'Buka judul perjalanan, lalu berjalan dari Ka’bah menuju pintu Safa.':p.hint,action:save.step===0?'Lihat perjalanan berikutnya':save.step<3?'Lanjut ke pelataran':'Masuk galeri Sa’i',progress:save.step/4};},dispose(){root.traverse(p=>{if(p instanceof THREE.Mesh)p.geometry.dispose();});for(const m of [stone,gold,green,signMaterial])m.dispose();map.dispose();root.removeFromParent();}};
+}

@@ -29,6 +29,8 @@ import { BONE_COUNT, BoneIndex, type Pose, createPose, lerpPose, makePose } from
 import { CLIP_COUNT, Clip } from '../sim/States.ts';
 
 const P = Math.PI;
+/** Quiet personal supplication, with palms raised in front of the chest. */
+export const POSE_DUA=makePose({spine:[-.025,0,0],head:[.16,0,0],upArmL:[-.55,0,.18],upArmR:[-.55,0,-.18],loArmL:[-1.65,0,-.12],loArmR:[-1.65,0,.12],handL:[-.15,0,.1],handR:[-.15,0,-.1]});
 
 // ---------------------------------------------------------------------------
 // Key postures
@@ -372,6 +374,7 @@ export const CLIPS: ClipDef[] = (() => {
     sample: transition(POSE_TASHAHHUD, POSE_STAND, POSE_RISE_MID),
   };
 
+  c[Clip.DUA] = { frames:24, loop:true, sample:hold(POSE_DUA,.45) };
   for (let i = 0; i < CLIP_COUNT; i++) {
     if (!c[i]) throw new Error(`clip ${i} is undefined`);
   }

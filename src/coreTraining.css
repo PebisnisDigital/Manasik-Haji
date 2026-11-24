@@ -13,3 +13,7 @@
 .guideArrival{position:fixed;left:max(15px,env(safe-area-inset-left));top:84px;max-width:min(300px,43vw);background:#fff8e6ed;color:#234438;padding:10px 13px;border-radius:10px;font-size:12px;line-height:1.4;pointer-events:none;box-shadow:0 3px 8px #0003;z-index:3}.coreBlocked .guideArrival{visibility:hidden}@media(max-height:480px){.guideArrival{top:68px;font-size:11px;max-width:36vw;padding:8px}}
 
 .cert{overflow:auto;align-items:start;padding:12px}.certificateWrap{width:min(1040px,100%);margin:auto;color:#fffaf0}.certificateCanvas{display:block;width:100%;height:auto;box-shadow:0 8px 30px #0003}.certActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:8px}.certActions button,.certActions a{width:auto;min-height:40px;margin:0;padding:9px 13px;font-size:12px;text-decoration:none;text-align:center}.certCode,.certNote{display:block;text-align:center;color:#dce8df;font-size:11px;overflow-wrap:anywhere;margin:7px 0}.coreBlocked .cert{visibility:hidden}@media(max-height:480px) and (orientation:landscape){.certificateWrap{width:min(92vw,620px)}}
+
+.fieldClock{position:fixed;left:max(16px,env(safe-area-inset-left));top:94px;max-width:min(340px,44vw);padding:9px 12px;background:#183b2fe8;border:1px solid #edce8588;border-radius:10px;font-size:12px;font-weight:800;color:#ffe3a0;pointer-events:none}.coreBlocked .fieldClock{visibility:hidden}@media(max-height:480px){.fieldClock{top:75px;font-size:10px;max-width:39vw;padding:7px}}
+
+.hasHajjField #guideArrival{display:none}

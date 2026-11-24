@@ -1,0 +1,30 @@
+{
+  "reference": "Existing bus district, selected by the user",
+  "engine": "Three.js 0.185.1, existing browser game",
+  "assets": [
+    {
+      "id": "journey-place-details",
+      "source": "src/env/PlaceDetails.ts",
+      "provenance": "Original procedural geometry and Canvas colour maps",
+      "licence": "Project MIT",
+      "families": ["haram", "sai", "tahallul", "prep", "post", "trim", "arafah", "muzdalifah", "mina", "jamarat"],
+      "budget": "Merged by material, <=8 meshes per family; no solids inside walking bounds",
+      "style": "Warm limestone, ivory frames, muted green glass, modest gold trim, service amenities; illustrative scenery"
+    },
+    {
+      "id": "shared-human-cast",
+      "source": "src/characters/CharacterMesh.ts",
+      "provenance": "Original extensions to existing procedural humanoid and 19-bone VAT pipeline",
+      "licence": "Project MIT",
+      "lod": "Facial landmarks and thumbs at near LOD, nose at medium LOD, silhouette at far LOD",
+      "compatibility": "Existing +Y-up, +Z-forward convention, height fractions, two bone weights, original animation bank"
+    },
+    {
+      "id": "preparation-cast-faces",
+      "source": "src/characters/HumanFeatures.ts",
+      "provenance": "Original procedural facial landmarks attached to existing articulated actors",
+      "licence": "Project MIT",
+      "coverage": "All 11 existing playable preparation levels"
+    }
+  ]
+}

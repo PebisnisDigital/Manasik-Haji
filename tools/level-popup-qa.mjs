@@ -1,0 +1,54 @@
+import assert from 'node:assert/strict';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {chromium} from 'playwright';
+import {fieldAction} from './simple-qa-actions.mjs';
+const base='http://127.0.0.1:4173',report=[],errors=[];
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+let page;
+const core=(id,step)=>({version:1,id:'Popup'+id,program:'hajj',avatar:'male',name:'QA',step});
+const initial={
+ 'manasik-hajj-miqat-v1':core('miqat',1),
+ 'manasik-hajj-arrival-v1':core('arrival',1),
+ 'manasik-miqat-room-hajj-male-v1':{version:1,stage:6,book:true},
+};
+const complete={...initial};
+for(const[id,step]of [['ihram',6],['arafah',7],['muzdalifah',8],['aqabah',10],['ifadah',12],['mina',17],['wada',18]])complete['manasik-hajj-'+id+'-v1']=core(id,step);
+complete['manasik-tawaf-quest-v1']={version:1,stage:3,laps:7};
+complete['manasik-sai-quest-v1']={version:1,stage:3,legs:7};
+async function make(seed={},program='hajj',mobile=true){
+ const context=await browser.newContext({viewport:mobile?{width:844,height:390}:{width:1280,height:720},isMobile:mobile,hasTouch:mobile,deviceScaleFactor:.5});
+ await context.addInitScript(({seed,program})=>{if(sessionStorage.getItem('popupQA'))return;sessionStorage.setItem('popupQA','1');const set=(k,v)=>localStorage.setItem(k,JSON.stringify(v));localStorage.setItem('umroh-graphics-v1','low');for(const k of ['field','tawaf','sai'])localStorage.setItem('umroh-tutorial-v1:'+k,'done');set('manasik-journey-setup-v1',{version:1,program,avatar:'male',voice:false,ambience:false,volume:0,graphics:'low'});set('manasik-travel-story-v1',{version:1,name:'QA',briefed:true,arrivals:['hajj:miqat','hajj:ihram','hajj:arafah','hajj:muzdalifah','hajj:aqabah']});for(const[k,v]of Object.entries(seed))set(k,v);},{seed,program});
+ page=await context.newPage();page.setDefaultTimeout(90000);page.on('pageerror',e=>errors.push(e.message));return context;
+}
+const done=s=>{report.push(s);console.log('PASS '+s);};
+async function popup(selector,number){const p=page.locator(selector);await p.waitFor({state:'visible'});if(number!=='')assert.match(await p.innerText(),new RegExp('Level '+number+'\\b','i'));assert(await p.evaluate(el=>el.scrollWidth<=el.clientWidth+2));await page.waitForFunction(selector=>document.querySelector(selector)?.contains(document.activeElement),selector);return p;}
+try{
+ await mkdir('qa-output',{recursive:true});
+ let context=await make(initial);await page.goto(base+'/index.html?play=miqat&program=hajj&campaign=hajj&chapter=miqat');await page.locator('.miqatRoom[data-ready=true]').waitFor();await page.locator('#simpleAction').click();let p=await popup('.miqatDialog[open]',1);assert.match(await p.innerText(),/PERFECT/);assert.match(await page.locator('#miqatNext').innerText(),/Level 2.*Tawaf Qudum/);await page.locator('#miqatNext').click();await page.waitForFunction(()=>document.querySelector('.miqatRoom')?.dataset.phase==='arrival');await context.close();done('Level 1 result: correct Tawaf Qudum destination and real transition into arrival.');
+
+ context=await make({...initial,'manasik-arrival-walk-hajj-male-v1':{version:1,active:true,stage:5}});await page.goto(base+'/index.html?play=miqat&program=hajj&arrival=1');await page.locator('.miqatRoom[data-ready=true]').waitFor();await page.locator('#simpleAction').click();p=await popup('.miqatDialog[open]',2);assert.doesNotMatch(await p.innerText(),/PERFECT|Selesaikan Level 2/);assert.match(await p.innerText(),/checkpoint kedatangan/i);await page.locator('#arrivalTawaf').click();await page.waitForFunction(()=>document.querySelector('.miqatRoom')?.dataset.phase==='tawaf');await context.close();done('Level 2 arrival is a checkpoint, not a completed Tawaf.');
+
+ context=await make({...initial,'manasik-arrival-walk-hajj-male-v1':{version:1,active:true,stage:5},'manasik-continuous-tawaf-male-v1':{version:1,active:true,poi:4,started:true},'manasik-tawaf-quest-v1':{version:1,stage:3,laps:7}});await page.goto(base+'/index.html?play=miqat&program=hajj&tawaf=1');await page.locator('.miqatRoom[data-ready=true]').waitFor();await page.locator('#simpleAction').click();p=await popup('.miqatDialog[open]',2);assert.match(await p.innerText(),/PERFECT/);await page.locator('#tawafPrayer').click();await popup('.miqatDialog[open]',2);await page.getByRole('button',{name:'Sudah dipelajari · lanjut',exact:true}).click();await page.locator('#tawafNext').click();await popup('.miqatDialog[open]',3);await page.locator('#saiDepart').click();await context.close();done('Level 2 completion, optional prayer and Level 3 departure retain the correct dialog context.');
+
+ for(const program of ['hajj','umrah']){
+  context=await make({'manasik-tawaf-quest-v1':{version:1,stage:3,laps:7},'manasik-sai-quest-v1':{version:1,stage:3,legs:7}},program);
+  await page.goto(base+'/sai-adventure.html?program='+program);p=await popup('#end',program==='hajj'?3:4);assert.match(await page.locator('#departTahallul').innerText(),program==='hajj'?/Level 4.*Mina/:/Level 5.*Tahallul/);await page.keyboard.press('Shift+Tab');assert(await page.locator('#end').evaluate(el=>el.contains(document.activeElement)));await page.screenshot({path:'qa-output/popup-sai-'+program+'.png'});
+  if(program==='hajj'){await page.locator('#departTahallul').click();await page.waitForURL(/hajj-adventure.*chapter=ihram/);}await context.close();done('Sa’i '+program+': correct result, next button and keyboard focus.');
+ }
+
+ for(const[id,end,number,next]of [['ihram',6,4,5],['arafah',7,5,6],['muzdalifah',8,6,7],['aqabah',10,9,10],['ifadah',12,10,11],['mina',17,11,12],['wada',18,12,null]]){
+  // Full save deliberately catches a replay incorrectly announcing the whole game complete.
+  context=await make(complete,'hajj',number!==11);await page.goto(base+'/manasik.html?program=hajj&core=Popup'+id+'&avatar=male&campaign=hajj&chapter='+id);await page.locator('#simpleAction').waitFor();await page.locator('#simpleAction').click();p=await popup('#simpleSettings[open]',number);const title=await page.locator('#simpleSettingsTitle').innerText();assert.match(title,number===12?/Petualangan haji selesai/:new RegExp('Level '+number+' selesai'));if(number!==12)assert.doesNotMatch(title,/Petualangan haji selesai/);if(next)assert.match(await p.innerText(),new RegExp('Level '+next+'\\b'));assert.equal(await page.evaluate(k=>localStorage.getItem(k),'manasik-hajj-'+id+'-v1'),JSON.stringify(core(id,end)));if(number===9)await page.screenshot({path:'qa-output/popup-level-9.png'});await page.locator('#simpleClose').click();await page.locator('#simpleAction').waitFor({state:'visible'});await context.close();done('Level '+number+': contextual result and next action; old save unchanged.');
+ }
+
+ context=await make({'manasik-hajj-aqabah-v1':core('aqabah',9),'manasik-aqabah-activities-v1:Popupaqabah':{version:1,id:'Popupaqabah',beat:7,elapsed:0,throws:7,cuts:0}});await page.goto(base+'/manasik.html?program=hajj&core=Popupaqabah&avatar=male&campaign=hajj&chapter=aqabah');await page.locator('#simpleAction').waitFor();await fieldAction(page,'Pelajari pelaksanaan dam');await page.locator('#simpleAction').click();p=await popup('#simpleSettings[open]',8);assert.match(await p.innerText(),/dam/i);await p.getByRole('button',{name:'Cukup abaikan dam qiran',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#simpleGuide')?.textContent.includes('Dam qiran'));await page.locator('#simpleAction').click();await page.locator('#simpleSettings').getByRole('button',{name:'Pelajari dam melalui pihak berwenang',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#simpleLevel')?.textContent.includes('Level 9'));assert.match(await page.locator('#simpleGuide').innerText(),/Level 8 selesai/);await context.close();done('Levels 8 → 9: wrong answer stays in context, correct answer saves dam and announces its own completion.');
+
+ // Aqabah selection opens a Level 7 action dialog without borrowing the later dam/tahallul title.
+ context=await make({'manasik-hajj-aqabah-v1':core('aqabah',8),'manasik-aqabah-activities-v1:Popupaqabah':{version:1,id:'Popupaqabah',beat:4,elapsed:0,throws:0,cuts:0}});await page.goto(base+'/manasik.html?program=hajj&core=Popupaqabah&avatar=male&campaign=hajj&chapter=aqabah');await page.locator('#simpleAction').waitFor();await fieldAction(page,'Tentukan jumrah untuk hari ini');await page.locator('#simpleAction').click();await popup('#simpleSettings[open]',7);await page.locator('#simpleSettings').getByRole('button',{name:'Pilih Aqabah',exact:true}).click();await context.close();done('Level 7 Aqabah choice has its own objective and level label.');
+
+ context=await make({'manasik-hajj-wada-v1':core('wada',18)});await page.goto(base+'/manasik.html?program=hajj&core=Popupwada&campaign=hajj&chapter=wada');await page.locator('#simpleAction').click();p=await popup('#simpleSettings[open]',12);assert.doesNotMatch(await page.locator('#simpleSettingsTitle').innerText(),/Petualangan haji selesai/);assert.match(await p.innerText(),/Lengkapi level 1/);await context.close();done('Partial save: finishing Wada does not falsely claim all 12 levels complete.');
+
+ context=await make({'manasik-sai-quest-v1':{version:1,stage:3,legs:7},'manasik-tahallul-quest-v1':{version:1,stage:4,avatar:'male',method:'trim',cuts:3}},'umrah');await page.goto(base+'/tahallul-adventure.html?program=umrah');p=await popup('#finish',5);assert.doesNotMatch(await p.innerText(),/Level [34]|Ihram Haji|Mina/);await context.close();done('Standalone Umrah Tahallul ends at Level 5 with no Hajj departure.');
+ for(const returning of [false,true]){context=await make(returning?complete:{});await page.goto(base+'/index.html?demo=magic&program=hajj');p=await popup('.magicGameWelcome[open]',returning?'':1);if(returning){assert.doesNotMatch(await p.innerText(),/LEVEL 1\b/i);assert.match(await p.innerText(),/PROGRES TERSIMPAN/);}await page.locator('#startMagicGame').click();await page.waitForURL(returning?/adventure-map/:/play=miqat/);await context.close();done('Magic welcome '+(returning?'resumes saved journey through the map':'starts a fresh player at Miqat')+'.');}
+ assert.deepEqual(errors,[]);await writeFile('qa-output/level-popup-qa.json',JSON.stringify({passed:true,report,errors,scope:'Isolated saved-checkpoint fixtures; actual visible dialogs/buttons, landscape touch and desktop. No repeat of all seven-circle gameplay. User saves untouched.'},null,2));
+}catch(e){console.error(e.stack);if(page&&!page.isClosed())await page.screenshot({path:'qa-output/popup-failure.png'}).catch(()=>{});await writeFile('qa-output/level-popup-qa.json',JSON.stringify({passed:false,report,errors,error:String(e)},null,2));process.exitCode=1;}finally{await browser.close();}

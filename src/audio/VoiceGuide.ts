@@ -1,3 +1,4 @@
+import {journeyVolume} from '../frontSettings.ts';
 /** Local browser speech synthesis; text is always available without audio. */
 const PREF='manasik-voice-v1';
 export class VoiceGuide {
@@ -49,7 +50,7 @@ export class VoiceGuide {
       this.enabled=false;this.render();this.state.textContent='Suara Indonesia belum tersedia di perangkat. Panduan teks tetap aktif.';return;
     }
     const u=new SpeechSynthesisUtterance(this.current);
-    u.lang='id-ID';u.rate=.9;u.pitch=1;u.volume=1;if(idVoice)u.voice=idVoice;
+    u.lang='id-ID';u.rate=.9;u.pitch=1;u.volume=journeyVolume();if(idVoice)u.voice=idVoice;
     this.active=u;
     u.onstart=()=>{if(this.active===u){this.state.textContent='Pemandu sedang berbicara…';document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:true}));}};
     u.onend=()=>{if(this.active===u){this.active=null;document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:false}));this.render();}};

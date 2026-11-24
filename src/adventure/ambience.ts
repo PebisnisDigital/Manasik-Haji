@@ -1,3 +1,4 @@
+import {journeyVolume} from '../frontSettings.ts';
 /** Generated environmental sound; no external recordings or musical track. */
 export class Ambience{
  private ctx:AudioContext|null=null;
@@ -13,11 +14,11 @@ export class Ambience{
   try{
    this.ctx??=new AudioContext();
    const c=this.ctx;await c.resume();this.enabled=true;
-   if(!this.gain){this.gain=c.createGain();this.gain.gain.value=.35;this.gain.connect(c.destination);
+   if(!this.gain){this.gain=c.createGain();this.gain.gain.value=.35*journeyVolume();this.gain.connect(c.destination);
     this.noise=c.createBuffer(1,c.sampleRate*2,c.sampleRate);const a=this.noise.getChannelData(0);let p=0;for(let i=0;i<a.length;i++){p=(p+.035*(Math.random()*2-1))*.97;a[i]=p*2;}
     this.room=c.createBufferSource();this.room.buffer=this.noise;this.room.loop=true;const low=c.createBiquadFilter();low.type='lowpass';low.frequency.value=410;const g=c.createGain();g.gain.value=.18;this.room.connect(low).connect(g).connect(this.gain);this.room.start();const hum=c.createOscillator();hum.type='sine';hum.frequency.value=54;const fg=c.createGain();fg.gain.value=.035;hum.connect(fg).connect(this.gain);hum.start();this.fan=hum;
    }
-   this.gain.gain.value=.35;if(!this.timer)this.timer=window.setInterval(()=>this.bird(),6200);if(!this.neighbourhood)this.neighbourhood=window.setInterval(()=>this.motor(),13700);
+   this.gain.gain.value=.35*journeyVolume();if(!this.timer)this.timer=window.setInterval(()=>this.bird(),6200);if(!this.neighbourhood)this.neighbourhood=window.setInterval(()=>this.motor(),13700);
    return true;
   }catch{return false;}
  }

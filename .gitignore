@@ -2,6 +2,8 @@ node_modules
 dist
 .DS_Store
 qa-output
+private-data/
+.vercel/
 
 # Local Git metadata and secrets
 .git-codex/
