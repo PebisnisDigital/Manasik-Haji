@@ -48,3 +48,32 @@ describe('bus controls and safety',()=>{
   });
   it('keeps foot movement out of buildings and planters',()=>{expect(canStand(-22,0)).toBe(false);expect(canStand(0,6)).toBe(false);expect(canStand(75,0)).toBe(false);expect(canStand(-20,15)).toBe(true);});
 });
+
+import {CITY_BUILDINGS,CITY_BOUNDS,cityCanStand,cityDrive,type CityVehicle,type CityKind} from '../src/adventure/missionCity.ts';
+describe('mission city layout and transport',()=>{
+ it('keeps all 12 buildings separated, reachable and numbered',()=>{
+  expect(CITY_BUILDINGS.map(b=>b.number)).toEqual(Array.from({length:12},(_,i)=>i+1));
+  for(const b of CITY_BUILDINGS){
+   expect(cityCanStand(b.door,CITY_BUILDINGS)).toBe(true);
+   expect(cityCanStand(b,CITY_BUILDINGS)).toBe(false);
+   for(const other of CITY_BUILDINGS)if(b!==other)expect(Math.hypot(b.x-other.x,b.z-other.z)).toBeGreaterThan(50);
+  }
+ });
+ it.each(['motor','mobil','bus'] as CityKind[])('allows %s to accelerate, steer, reverse and brake',kind=>{
+  let v:CityVehicle={kind,x:0,z:0,yaw:0,speed:0,steer:0};
+  for(let i=0;i<180;i++)v=cityDrive(v,1,.15,false,1/60,[]);
+  expect(v.z).toBeGreaterThan(5);expect(Math.abs(v.yaw)).toBeGreaterThan(.05);
+  for(let i=0;i<180;i++)v=cityDrive(v,0,0,true,1/60,[]);
+  expect(v.speed).toBe(0);
+  for(let i=0;i<60;i++)v=cityDrive(v,-1,0,false,1/60,[]);
+  expect(v.speed).toBeLessThan(0);
+ });
+ it('blocks vehicles from buildings and city edges',()=>{
+  let v:CityVehicle={kind:'mobil',x:0,z:0,yaw:0,speed:10,steer:0};
+  for(let i=0;i<180;i++)v=cityDrive(v,1,0,false,1/60,[{x:0,z:10,w:20,d:2}]);
+  expect(v.z).toBeLessThan(7);expect(v.speed).toBe(0);
+  v={...v,x:0,z:CITY_BOUNDS.maxZ-5,yaw:0,speed:10};
+  for(let i=0;i<120;i++)v=cityDrive(v,1,0,false,1/60,[]);
+  expect(v.z).toBeLessThan(CITY_BOUNDS.maxZ-2);expect(v.speed).toBe(0);
+ });
+});
