@@ -75,7 +75,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   const npcs=Array.from({length:graphicsTier()==='low'?6:12},(_,i)=>{const route=routes[i%routes.length],index=i%4;return {x:route[index*2],z:route[index*2+1],route,index:(index+1)%4,yaw:0,motion:new DistrictLocomotion(i*.13),palette:i%8,waiting:false};});
   let toastTimer=0;
   const city=hub?createMissionCity(world.scene,hub.access.program,hub.module.BOARD_SOLID):null;
-  let cityVehicle:CityVehicle|null=null,targetLevel=1,doorCooldown=0;
+  let cityVehicle:CityVehicle|null=null,targetLevel=1,doorContact=0;
   const journeyBoard=hub?.module.createWorldJourneyBoard(world.scene,hub.access,toast,n=>{targetLevel=n;toast('Tujuan: Gedung '+n+' · ikuti penanda pada peta.');});
   if(journeyBoard)targetLevel=journeyBoard.next();
   const boardPoint=hub?.module.BOARD_POINT;
@@ -127,7 +127,14 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   function frameCamera(cut=false){cameraPresentation.transition(driving,cut||reducedMotion.matches);if(cut||reducedMotion.matches)rig.reset();playerMotion.reset();lastLook=performance.now();}
   function exitBus(){const p=transfer?transferExit(bus):exitPoint(bus);if(!p){toast('Berhenti dahulu dan pastikan sisi bus bebas.');return;}clearSimpleInput();hero.set(p.x,0,p.z);heading=bus.yaw;cameraYaw=heading;driving=false;bus.speed=0;frameCamera();controls.clear();}
   function boardBus(){clearSimpleInput();driving=true;bus.speed=0;cameraYaw=bus.yaw;frameCamera();controls.clear();advance('board');toast('Joystick untuk gas dan kemudi · Rem untuk berhenti · Aksi untuk turun');}
-  function cityEnter(){if(!city||!journeyBoard)return;const building=city.entrance(hero);if(!building)return;doorCooldown=2;journeyBoard.launch(building.number);}
+  function cityEnter(){if(!city||!journeyBoard||cityVehicle)return;const building=city.entrance(hero);if(!building)return;doorContact=building.number;
+    const number=building.number,initial=journeyBoard.check(number),title=building.guardName+' · Gedung '+number;
+    const check=()=>{const result=journeyBoard.check(number);const eyebrow='PEMERIKSAAN PROGRES · LEVEL '+number;
+      if(!result.allowed){showDialog(title,'Maaf, checkpoint Level '+(number-1)+' · '+result.previousTitle+' belum selesai. Silakan tuntaskan level tersebut dahulu.',[{text:'Kembali ke perjalanan',id:'guardDenied'},{text:'Lihat peta level',secondary:true,run:()=>journeyBoard.open()}],eyebrow);return;}
+      showDialog(title,(number===1?'Tiket kawasan sudah diperiksa saat masuk.':'Checkpoint Level '+(number-1)+' telah selesai.')+' '+(result.preview?'Ini simulasi pemeriksaan pada pratinjau.':'Alhamdulillah, silakan masuk dan mulai misi.'),[{text:result.preview?'Lihat simulasi izin masuk':'Silakan masuk · Level '+number,id:'guardEnter',run:()=>{if(!city.entrance(hero)||city.entrance(hero)?.number!==number){toast('Dekati pintu gedung kembali.');return;}journeyBoard.launch(number);}},{text:'Nanti dulu',secondary:true}],eyebrow);
+    };
+    showDialog(title,number===1?'Assalamualaikum! Selamat datang di Gedung 1 · '+initial.title+'. Boleh saya periksa akses perjalanan Anda?':'Assalamualaikum! Apakah Anda sudah menyelesaikan Level '+(number-1)+' · '+initial.previousTitle+'? Izinkan saya memeriksa progres Anda.',[{text:'Periksa progres saya',id:'guardCheck',run:check},{text:'Kembali',secondary:true}], 'POS KEAMANAN · GEDUNG '+number);
+  }
   function interact(){
     if(!controls.playable())return;
     if(city){if(cityVehicle){const p=city.leave(cityVehicle);if(!p){toast('Rem sampai berhenti, lalu cari sisi yang kosong.');return;}hero.set(p.x,0,p.z);heading=cityVehicle.yaw;cameraYaw=heading;cityVehicle=null;driving=false;bus={...city.bus()};frameCamera(true);controls.clear();return;}
@@ -153,7 +160,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   function pause(){if(!started)return;showDialog('Jeda perjalanan','Checkpoint misi tersimpan setiap tujuan selesai. Kamu dapat kembali ke checkpoint kawasan atau melanjutkan berjalan.',[
     {text:'Lanjutkan'},
     {text:'Buku misi',secondary:true,run:hub?()=>journeyBoard?.open():missionBook},
-    {text:'Kembali ke checkpoint',secondary:true,run:()=>{const p=journeySpawn();hero.set(p.x,0,p.z);hasan=companionSpawn(errands);hasanMotion.reset();driving=false;cityVehicle=null;city?.reset();bus=journeyBus();wheelAngle=0;frameCamera(true);}},
+    {text:'Kembali ke checkpoint',secondary:true,run:()=>{const p=journeySpawn();hero.set(p.x,0,p.z);hasan=companionSpawn(errands);hasanMotion.reset();driving=false;cityVehicle=null;doorContact=0;city?.reset();bus=journeyBus();wheelAngle=0;frameCamera(true);}},
     {text:'Suara lingkungan: '+(sound?'aktif':'mati'),secondary:true,run:()=>{sound=!sound;if(sound)void audio.start();else audio.stop();}},
     hub?{text:'Peta perjalanan',secondary:true,run:()=>journeyBoard?.open()}:{text:'Peta level',href:'./adventure-map.html',secondary:true},
   ],'MENU KAWASAN');el('graphicsOptions').append(graphicsControl);}
@@ -208,7 +215,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
       if(walkAllowed(hero.x,nextZ)&&(city||!insideBus({x:hero.x,z:nextZ},bus)))hero.z=nextZ;
       if(Math.hypot(hero.x-beforeX,hero.z-beforeZ)>.001){const desired=Math.atan2(m.x,m.z);heading+=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading))*followAlpha(14,step);audio.step();}
     }
-    if(city&&journeyBoard&&active&&!cityVehicle){doorCooldown=Math.max(0,doorCooldown-step);const entry=city.entrance(hero);if(entry&&doorCooldown<=0&&Math.hypot(hero.x-beforeX,hero.z-beforeZ)>.002){doorCooldown=3;journeyBoard.launch(entry.number);}}
+    if(city&&journeyBoard&&active&&!cityVehicle){const entry=city.entrance(hero);if(!entry)doorContact=0;else if(doorContact!==entry.number&&Math.hypot(hero.x-beforeX,hero.z-beforeZ)>.002)cityEnter();}
     if(!hub)life.tick(step,hero,active,simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'),driving);
     playerMotion.update(driving?0:Math.hypot(hero.x-beforeX,hero.z-beforeZ),step,active&&!driving);
     let companionTravel=0;
@@ -263,9 +270,9 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     if(!transfer&&!driving&&save.stage===5&&Math.hypot(hero.x-hasan.x,hero.z-hasan.z)<2.8)prompt='Bicara dengan Pak Hasan';
     else if(!transfer&&!driving&&save.stage===5&&Math.hypot(hero.x-ERRAND_STATIONS.rizal.x,hero.z-ERRAND_STATIONS.rizal.z)<2.8)prompt='Bicara dengan Pak Rizal';
     else if(!prompt&&npcs.some(n=>Math.hypot(hero.x-n.x,hero.z-n.z)<2))prompt='Sapa jemaah';
-    if(city){const entry=city.entrance(hero),v=city.near(hero);prompt=cityVehicle?(Math.abs(cityVehicle.speed)<=.5?'Turun dari '+city.label(cityVehicle.kind):'Rem dahulu'):entry?'Masuk Gedung '+entry.number:v?'Naik '+city.label(v.kind):boardPoint&&Math.hypot(hero.x-boardPoint.x,hero.z-boardPoint.z)<12?'Baca peta perjalanan':'';}
+    if(city){const entry=city.entrance(hero),v=city.near(hero);prompt=cityVehicle?(Math.abs(cityVehicle.speed)<=.5?'Turun dari '+city.label(cityVehicle.kind):'Rem dahulu'):entry?'Temui '+entry.guardName:v?'Naik '+city.label(v.kind):boardPoint&&Math.hypot(hero.x-boardPoint.x,hero.z-boardPoint.z)<12?'Baca peta perjalanan':'';}
     el('interactButton').hidden=!prompt;el<HTMLButtonElement>('interactButton').disabled=driving&&Math.abs(bus.speed)>.5;text('interactButton',prompt+' · E');
-    label('npcFarid',STATIONS.briefing);label('npcSalma',guidePoint);if(magicBoarding&&driving&&save.stage<4)el('npcSalma').hidden=true;label('npcHasan',hasan);label('npcRizal',ERRAND_STATIONS.rizal);if(save.stage!==5){el('npcHasan').hidden=true;el('npcRizal').hidden=true;}if(hub){for(const id of ['npcFarid','npcSalma','npcHasan','npcRizal'])el(id).hidden=true;}budget.draw(now,world.scene,camera,!active);
+    label('npcFarid',STATIONS.briefing);label('npcSalma',guidePoint);if(magicBoarding&&driving&&save.stage<4)el('npcSalma').hidden=true;label('npcHasan',hasan);label('npcRizal',ERRAND_STATIONS.rizal);if(save.stage!==5){el('npcHasan').hidden=true;el('npcRizal').hidden=true;}city?.updateGuards(hero,step,camera,active);if(hub){for(const id of ['npcFarid','npcSalma','npcHasan','npcRizal'])el(id).hidden=true;}budget.draw(now,world.scene,camera,!active);
   }
   if(!hub)mountSimplePlayHud('district');
   if(import.meta.env.DEV){
