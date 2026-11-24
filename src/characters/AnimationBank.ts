@@ -338,6 +338,22 @@ function taslimClip(u: number, out: Pose): void {
   out.rot[BoneIndex.chest * 3 + 1] += yaw * 0.1;
 }
 
+/** Friendly right-hand wave, with eased entry/exit and relaxed left arm. */
+const POSE_GUIDE_WAVE=makePose({
+ spine:[.045,0,-.035],chest:[-.025,-.045,0],neck:[.03,0,0],
+ upArmL:[.08,0,.055],loArmL:[-.52,0,.035],
+ upArmR:[-.48,0,-1.43],loArmR:[-1.37,0,-.78],handR:[-.10,0,.03],
+ thighL:[0,0,.012],thighR:[0,0,-.012],shinL:[.03,0,0],shinR:[.03,0,0]
+});
+function guideWave(u:number,out:Pose){
+ const strength=ease(Math.min(1,u/.18,(1-u)/.20));
+ lerpPose(POSE_STAND,POSE_GUIDE_WAVE,strength,out);
+ const t=u*P*2*3;
+ out.rot[BoneIndex.loArmR*3+2]+=Math.sin(t)*.24*strength;
+ out.rot[BoneIndex.handR*3+2]+=Math.sin(t+.4)*.33*strength;
+ out.rot[BoneIndex.head*3]+=Math.sin(u*P*2)*.035*strength;
+}
+
 export const CLIPS: ClipDef[] = (() => {
   const c: ClipDef[] = new Array(CLIP_COUNT);
 
@@ -375,6 +391,7 @@ export const CLIPS: ClipDef[] = (() => {
   };
 
   c[Clip.DUA] = { frames:24, loop:true, sample:hold(POSE_DUA,.45) };
+  c[Clip.GUIDE_WAVE] = { frames:48, loop:true, sample:guideWave };
   for (let i = 0; i < CLIP_COUNT; i++) {
     if (!c[i]) throw new Error(`clip ${i} is undefined`);
   }
