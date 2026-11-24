@@ -138,11 +138,127 @@ function createParking(scene:THREE.Scene){
  }
 }
 
+
+/** Upper floors are built over the original arcade; both departure tunnels stay open. */
+function createGrandOffice(scene:THREE.Scene){
+ const stone=material(0xe9dfc8),trim=material(0xf4e9cc),emerald=material(0x145a43),deep=material(0x143d35),windowMat=material(0x355b60);
+ gold.metalness=.35;
+ function cylinder(parent:THREE.Object3D,rt:number,rb:number,h:number,x:number,y:number,z:number,m:THREE.Material,segments=24){
+  const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;
+ }
+ function dome(x:number,y:number,z:number,r:number,h:number){
+  const pts=[new THREE.Vector2(0,0),new THREE.Vector2(r*.88,0),new THREE.Vector2(r,.16*h),new THREE.Vector2(r*.96,.37*h),new THREE.Vector2(r*.78,.61*h),new THREE.Vector2(r*.48,.83*h),new THREE.Vector2(r*.15,.96*h),new THREE.Vector2(0,h)];
+  const o=new THREE.Mesh(new THREE.LatheGeometry(pts,40),emerald);o.position.set(x,y,z);o.castShadow=true;scene.add(o);
+  cylinder(scene,r*.90,r*.90,.14,x,y-.06,z,gold,40);
+  for(let i=0;i<8;i++){
+   const angle=i*Math.PI/4,points=pts.slice(1,-1).map(p=>new THREE.Vector3(x+Math.cos(angle)*(p.x+.014),y+p.y,z+Math.sin(angle)*(p.x+.014)));
+   const rib=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),12,.025,5,false),gold);scene.add(rib);
+  }
+  cylinder(scene,.025,.055,.30,x,y+h+.13,z,gold,12);sphere(scene,.085,x,y+h+.31,z,gold);
+  const moon=new THREE.Shape();moon.absarc(0,0,.20,.65,5.63,false);moon.quadraticCurveTo(-.07,-.12,-.07,0);moon.quadraticCurveTo(-.07,.12,.159,.121);
+  const c=new THREE.Mesh(new THREE.ExtrudeGeometry(moon,{depth:.035,bevelEnabled:false,curveSegments:16}),gold);c.position.set(x,y+h+.53,z);scene.add(c);
+ }
+ // Deep building body and roof above the existing 3.7 m ground-floor facade.
+ box(scene,18,3.0,4.5,0,5.40,-8.7,stone);
+ box(scene,18.5,.18,4.85,0,3.94,-8.7,trim);
+ box(scene,18.6,.17,4.95,0,6.96,-8.7,trim);
+ box(scene,18.6,.12,4.95,0,6.77,-8.7,gold);
+ for(const x of [-6.9,-4.6,4.6,6.9]){
+  box(scene,1.45,1.52,.07,x,5.21,-6.42,deep);
+  const arch=new THREE.Mesh(new THREE.CircleGeometry(.72,24,0,Math.PI),deep);arch.position.set(x,5.96,-6.36);scene.add(arch);
+  const frame=new THREE.Mesh(new THREE.TorusGeometry(.72,.057,7,24,Math.PI),gold);frame.position.set(x,5.96,-6.29);scene.add(frame);
+  for(const dx of [-.65,.65])box(scene,.10,1.57,.12,x+dx,5.21,-6.30,trim);
+  box(scene,1.26,1.29,.065,x,5.24,-6.29,windowMat);
+  box(scene,.055,1.45,.09,x,5.24,-6.22,gold);box(scene,1.28,.055,.09,x,5.25,-6.22,gold);
+ }
+ sign(scene,'HAJJI.DIGITAL','LATIHAN MENUJU HAJI MABRUR',0,5.52,-6.23,6.9,1.97);
+ cylinder(scene,2.4,2.4,.65,0,7.34,-8.25,stone,40);
+ dome(0,7.65,-8.25,2.65,2.65);
+ for(const side of [-1,1]){
+  const x=side*8.65,z=-7.65;
+  box(scene,1.48,.32,1.48,x,.16,z,trim);
+  cylinder(scene,.64,.78,6.55,x,3.51,z,stone,12);
+  for(const y of [3.8,6.75]){cylinder(scene,.88,.88,.20,x,y,z,gold,20);cylinder(scene,.93,.93,.15,x,y+.15,z,trim,20);}
+  cylinder(scene,.48,.48,1.55,x,7.66,z,emerald,16);
+  for(let i=0;i<8;i++){const angle=i*Math.PI/4;box(scene,.10,.82,.10,x+Math.cos(angle)*.50,7.70,z+Math.sin(angle)*.50,trim);}
+  cylinder(scene,.66,.66,.15,x,8.51,z,gold,20);
+  dome(x,8.59,z,.65,1.42);
+ }
+}
+type SnackActor={arm:THREE.Group;head:THREE.Group;phase:number;vendor:boolean};
+function createFoodCourt(scene:THREE.Scene){
+ const actors:SnackActor[]=[];
+ const tile=material(0xd9c8a5),rubber=material(0x24292b),metal=material(0xaab1af),glass=material(0xb5d6d5);
+ glass.transparent=true;glass.opacity=.25;glass.depthWrite=false;metal.metalness=.35;
+ function tube(parent:THREE.Object3D,rt:number,rb:number,h:number,x:number,y:number,z:number,m:THREE.Material){
+  const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,12),m);o.position.set(x,y,z);parent.add(o);return o;
+ }
+ function person(parent:THREE.Group,x:number,z:number,h:number,color:number,skinColor:number,hijab:boolean,vendor:boolean,phase:number){
+  const body=new THREE.Group();body.position.set(x,0,z);body.scale.setScalar(h);parent.add(body);
+  const outfit=material(color),skin=material(skinColor),hair=material(0x29241e),pants=material(0x39484b);
+  for(const dx of [-.105,.105]){tube(body,.068,.053,.39,dx,.21,0,pants);box(body,.145,.075,.21,dx,.055,.04,rubber);}
+  tube(body,.19,.15,.35,0,.56,0,outfit);
+  const head=new THREE.Group();head.position.set(0,.88,0);body.add(head);
+  if(hijab){sphere(head,.154,0,0,-.025,outfit);tube(body,.15,.25,.19,0,.73,-.015,outfit);}
+  else sphere(head,.143,0,.035,-.025,hair);
+  const face=sphere(head,.131,0,0,.045,skin);face.scale.set(.91,1.04,.88);
+  for(const dx of [-.048,.048])sphere(head,.012,dx,.024,.145,rubber);
+  const mouth=box(head,.038,.009,.008,0,-.052,.157,rubber);mouth.castShadow=false;
+  for(const side of [-1,1]){
+   const arm=new THREE.Group();arm.position.set(side*.17,.69,0);body.add(arm);
+   tube(arm,.057,.048,.21,0,-.085,0,outfit);tube(arm,.045,.042,.16,0,-.24,0,skin);sphere(arm,.049,0,-.34,0,skin);
+   if(side===1){
+    if(vendor){const stick=box(arm,.017,.19,.017,0,-.36,.065,wood);stick.rotation.x=.75;}
+    else{const cup=tube(arm,.045,.029,.085,0,-.34,.055,paper);cup.rotation.x=.22;const straw=box(arm,.009,.085,.009,0,-.275,.057,gold);straw.rotation.x=.22;}
+    actors.push({arm,head,phase,vendor});
+   }else arm.rotation.z=side*.1;
+  }
+  return body;
+ }
+ function cart(side:number,z:number,title:string,color:number,food:number,index:number){
+  const g=new THREE.Group();g.name='umkm-'+title.toLowerCase().replaceAll(' ','-');g.position.set(side*13.1,0,z);g.rotation.y=side<0?Math.PI/2:-Math.PI/2;scene.add(g);
+  const paint=material(color),snack=material(food);
+  // Wooden Indonesian pushcart, glass display case and striped canopy.
+  box(g,1.58,.67,.66,0,.65,0,paint);box(g,1.69,.075,.77,0,1.02,0,wood);
+  for(const x of [-.76,.76]){
+   const wheel=tube(g,.25,.25,.09,x,.29,0,rubber);wheel.rotation.z=Math.PI/2;
+   const hub=tube(g,.105,.105,.105,x,.29,0,metal);hub.rotation.z=Math.PI/2;
+   for(const zz of [-.31,.31])box(g,.052,1.03,.052,x,1.51,zz,wood);
+  }
+  box(g,1.5,.40,.045,0,1.27,.32,glass);box(g,1.5,.055,.69,0,1.50,0,metal);
+  box(g,1.50,.04,.66,0,1.12,0,paper);
+  for(let i=0;i<8;i++)sphere(g,.058,-.49+(i%4)*.16,1.18,-.12+Math.floor(i/4)*.17,snack);
+  tube(g,.18,.16,.22,.53,1.15,-.04,metal);tube(g,.19,.19,.035,.53,1.28,-.04,metal);sphere(g,.037,.53,1.31,-.04,rubber);
+  for(let i=0;i<8;i++)box(g,.226,.085,.94,-.79+i*.226,2.04,0,i%2?cream:paint);
+  sign(g,title,'JAJANAN NUSANTARA',0,1.80,.46,1.65,.46);
+  // Seller faces the customers. Three children gather by each cart and snack.
+  person(g,0,-.68,1.56,color,0xb78a67,index%2===1,true,index*.9);
+  for(let i=0;i<3;i++){
+   const child=person(g,-.70+i*.70,.83+(i%2)*.38,.99+i*.09,[0x4a83a3,0xd6a24e,0xc06b85][(i+index)%3]!,[0xc99a73,0xe1b793,0x9e7357][i]!,i===1,false,index+i*.8);
+   child.rotation.y=Math.PI+(i-1)*.23;
+  }
+ }
+ for(const side of [-1,1]){
+  box(scene,4.1,.04,9.7,side*13.75,.022,-.65,tile);
+  sign(scene,'JAJANAN UMKM','KULINER INDONESIA',side*13.6,2.9,-5.15,2.8,.8);
+  for(let i=0;i<3;i++){const x=side*15.2,z=-3+i*2.6;box(scene,1.2,.10,.38,x,.45,z,wood);for(const dz of [-.12,.12])box(scene,.08,.43,.08,x,.21,z+dz,green);}
+ }
+ cart(-1,-3.15,'CILOK',0x368b52,0xe6cd91,0);
+ cart(-1,.45,'SIOMAY',0xb6813b,0xe8d6b2,1);
+ cart(1,-3.15,'BATAGOR',0xc66b3d,0xd7a45e,2);
+ cart(1,.45,'ES TEH',0x397c92,0x9a5b34,3);
+ return (time:number)=>{for(const a of actors){const t=time+a.phase;a.arm.rotation.x=a.vendor?-.72+Math.sin(t*3)*.25:-.40-Math.pow(Math.max(0,Math.sin(t*1.6)),4)*1.38;a.arm.rotation.z=a.vendor?-.16+Math.sin(t*2)*.12:-.12;a.head.rotation.y=Math.sin(t*.8)*.10;}};
+}
+
 export function createRegistrationHall(scene:THREE.Scene){
  createParking(scene);
+ createGrandOffice(scene);
+ const animateMarket=createFoodCourt(scene);
+ let marketTime=0;
  const lanes=[createLane(scene,-1,false),createLane(scene,1,true)];
  let completed=0;
  function update(dt:number){
+  marketTime+=dt;animateMarket(marketTime);
   for(const lane of lanes){
    lane.clock+=dt;lane.pen.rotation.y=Math.sin(lane.clock*7)*.16;lane.pen.position.x=.15+Math.sin(lane.clock*5)*.025;lane.pen.position.z=.22+Math.cos(lane.clock*5)*.015;
    for(const npc of lane.queue)advance(npc,dt,1.12);
