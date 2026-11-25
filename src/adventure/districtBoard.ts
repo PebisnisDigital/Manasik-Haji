@@ -35,7 +35,7 @@ export async function verifyDistrictBoard():Promise<{program:Program;name:string
  if(demo){const setup=readSetup()??defaultSetup();return {program:setup.program,name:readStory().name};}
  const res=await fetch(new URL('./api/registration',location.href),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(8000)});
  const data=await res.json(),r=data.registration;
- if(!res.ok||r?.status!=='approved'||!['hajj','umrah'].includes(r.program)||!['male','female'].includes(r.avatar))throw Error('Tiket belum aktif. Buka kembali magic link pribadi dari admin.');
+ if(!res.ok||r?.status!=='approved'||r.access_suspended||!['hajj','umrah'].includes(r.program)||!['male','female'].includes(r.avatar))throw Error('Tiket belum aktif. Buka kembali magic link pribadi dari admin.');
  if(!saveSetup({...readSetup()??defaultSetup(),program:r.program,avatar:r.avatar}))throw Error('Penyimpanan karakter tidak tersedia.');
  const name=typeof r.name==='string'&&r.name.trim().length>=2&&r.name.trim().length<=60?r.name.trim():readStory().name;
  if(!saveStory({name,briefed:true}))throw Error('Penyimpanan perjalanan belum tersedia.');
