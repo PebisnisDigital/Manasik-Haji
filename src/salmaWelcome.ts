@@ -9,7 +9,7 @@ export type GateDialogueAnchor={x:number;y:number;visible:boolean};
 type Side='guide'|'player';
 type Choice='check'|'register';
 type Progress={stage:'welcome'|'form';choice:Choice};
-export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialogueAnchor,playerName=''){
+export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialogueAnchor,playerName='',onDeparture?:(href:string)=>void){
  const avatar=readSetup()?.avatar??'male',guide=avatar==='female'?'Petugas loket perempuan':'Petugas loket laki-laki',sapaan=gateGreeting(avatar);
  const key='hajji-gate-chat-v2:'+String(slug??'')+':'+avatar;
  let progress:Progress={stage:'welcome',choice:'check'};
@@ -23,7 +23,7 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialo
  const closeBtn=document.createElement('button');closeBtn.type='button';closeBtn.className='gateWorldClose';closeBtn.textContent='×';closeBtn.setAttribute('aria-label','Tutup percakapan');
  const actions=document.createElement('div');actions.className='travelActions gateWorldActions';
  const check=document.createElement('button'),register=document.createElement('button');for(const b of [check,register])b.type='button';
- check.className='travelPrimary';check.textContent='Cek data saya';register.textContent='Isi data pendaftaran';actions.append(check,register);
+ check.className='travelPrimary';check.textContent='Sudah daftar';register.textContent='Belum daftar';actions.append(check,register);
  const content=document.createElement('div');content.className='gateConversation gateWorldForm';
  const notice=document.createElement('p');notice.className='gateWorldNotice';notice.setAttribute('role','status');
  panel.append(actions,content,notice);root.append(bubble,panel,closeBtn);document.body.append(root);
@@ -51,23 +51,23 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialo
   bubble.style.setProperty('--gate-tail',Math.round(clamp(a.x-x,16,bw-16))+'px');bubble.classList.toggle('detached',detached||a.x<x||a.x>x+bw);
   raf=requestAnimationFrame(layout);
  }
- function close(){if(closed)return;closed=true;clearTimeout(timer);cancelAnimationFrame(raf);save();disposeDemo?.();disposeRegistration?.();document.removeEventListener('keydown',escape);root.remove();document.documentElement.classList.remove('gateDialogueActive');onClose();}
+ function close(departure?:string){if(closed)return;closed=true;clearTimeout(timer);cancelAnimationFrame(raf);save();disposeDemo?.();disposeRegistration?.();document.removeEventListener('keydown',escape);root.remove();document.documentElement.classList.remove('gateDialogueActive');if(departure&&onDeparture)onDeparture(departure);else onClose();}
  function escape(e:KeyboardEvent){if(e.key==='Escape'&&!document.querySelector('dialog[open]')){e.preventDefault();close();}}
  function welcome(){
   clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'welcome',choice:'check'};save();
-  root.dataset.line='welcome';say('guide','Assalamualaikum, '+sapaan+'! Sudah punya tiket atau ingin mendaftar?');
+  root.dataset.line='welcome';say('guide','Assalamualaikum, '+sapaan+'! Selamat datang di HAJJI.DIGITAL. Sudah daftar atau belum ya, '+sapaan+'?');
   content.replaceChildren();content.hidden=true;notice.textContent='';actions.hidden=false;check.disabled=false;register.disabled=false;check.focus({preventScroll:true});
  }
  function form(choice:Choice,animate:boolean){
   clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'form',choice};save();
   root.dataset.line='reply';actions.hidden=true;content.hidden=true;notice.textContent='';
-  say('player',choice==='check'?'Saya ingin cek tiket saya.':'Saya ingin mendaftar.');
-  const reveal=()=>{if(closed)return;root.dataset.line='form';say('guide',choice==='check'?'Baik, '+sapaan+'. Isi data untuk cek tiket, ya.':'Silakan isi data dulu, '+sapaan+'. Saya cek agar tidak ada pendaftaran ganda.');content.hidden=false;disposeRegistration=mountGateRegistration(content,notice,welcome,playerName);};
+  say('player',choice==='check'?'Alhamdulillah, saya sudah daftar di sini sebelumnya.':'Saya belum daftar dan mau daftar sekarang. Mohon dibantu, ya.');
+  const reveal=()=>{if(closed)return;root.dataset.line='form';say('guide','Boleh saya minta datanya dulu, '+sapaan+'?');content.hidden=false;disposeRegistration=mountGateRegistration(content,notice,welcome,playerName,onDeparture?href=>{if(closed)return;clearTimeout(timer);content.hidden=true;actions.hidden=true;notice.textContent='';root.dataset.line='departure';say('guide','Wah, alhamdulillah, '+sapaan+'! Tiket sudah aktif. Silakan langsung masuk melalui pintu keberangkatan ini, ya.');timer=setTimeout(()=>{if(closed)return;say('player','Baik, terima kasih. Saya masuk dulu, ya.');timer=setTimeout(()=>close(href),1600);},3500);}:undefined,message=>say('guide',message));};
   if(animate)timer=setTimeout(reveal,1100);else reveal();
  }
- closeBtn.onclick=close;document.addEventListener('keydown',escape);check.onclick=()=>form('check',true);register.onclick=()=>form('register',true);
+ closeBtn.onclick=()=>close();document.addEventListener('keydown',escape);check.onclick=()=>form('check',true);register.onclick=()=>form('register',true);
  if(localPreview()){const demo=document.createElement('button');demo.type='button';demo.className='gateDemoAccess';demo.textContent='Coba akses setelah pembayaran · DEMO';demo.onclick=()=>{disposeDemo?.();disposeDemo=showMagicLinkPopup(demoMagicUrl(),guide,true);};panel.append(demo);}
- if(progress.stage==='form')form(progress.choice,false);else welcome();layout();return close;
+ if(progress.stage==='form')form(progress.choice,false);else welcome();layout();return ()=>close();
 }
 
 /** Standing guide conversation. No registration/payment is performed here. */
