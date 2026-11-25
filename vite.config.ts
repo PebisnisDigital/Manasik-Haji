@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
+import {hajjiBrand} from './hajjiBrand.ts';
 
 export default defineConfig({
+  plugins:[hajjiBrand()],
   // Relative asset URLs so the production build can be opened from any path,
   // including a plain file server or a subdirectory.
   base: './',
