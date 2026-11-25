@@ -101,3 +101,16 @@
 .gateClerkDialogue .gateAnswerConsent{font-size:12px;margin:0 0 8px;color:#e5e5d5}
 .gateClerkDialogue[data-line=bill] .gateWorldPanel{left:auto;right:max(14px,env(safe-area-inset-right));transform:none;width:min(390px,calc(100vw - 28px));max-height:calc(100dvh - 85px);padding:14px}
 @media(orientation:landscape) and (max-height:520px){.gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{width:min(760px,calc(100vw - 28px));max-height:46dvh;bottom:8px;padding:7px 10px}.gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(350px,48vw);max-height:calc(100dvh - 68px);right:12px}.gateAnswerChoices button{flex-basis:90px}}
+
+/* Close-up counter scene: keep both faces and the ledger in view. */
+.gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{box-sizing:border-box;width:min(560px,calc(100vw - 28px));max-height:min(36dvh,220px);padding:10px 12px;background:#173c32f5}
+.gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(350px,calc(100vw - 28px));max-height:calc(100dvh - 90px);padding:14px}
+.gateClerkDialogue .gateWorldPanel[data-anchor=desk]{border-color:#d0b47b}
+.gateClerkDialogue .gateWorldPanel .gateAnswerChoices button{min-height:44px}
+html[data-gate-camera=clerk] #lobby .gateCameraPad,html[data-gate-camera=clerk] #lobby #joystick{visibility:hidden!important}
+@media(orientation:landscape) and (max-height:520px){
+ .gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{width:min(480px,67vw);max-height:42dvh;padding:6px 9px}
+ .gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(320px,45vw);max-height:calc(100dvh - 76px);padding:9px}
+ .gateClerkDialogue .gateWorldBubble{max-width:min(250px,42vw)}
+ .gateClerkDialogue .gateAnswerInput input,.gateClerkDialogue .gateAnswerInput button{min-height:44px}
+}
