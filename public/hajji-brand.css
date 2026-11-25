@@ -1,0 +1,56 @@
+/* HAJJI.DIGITAL | Black • Ivory • Gold. Shared across all built pages. */
+:root{--hajji-bg:#0a0a0a;--hajji-panel:#151515;--hajji-raised:#202020;--hajji-gold:#d6b46b;--hajji-text:#f8f7f4;--hajji-muted:#bdb9af;--hajji-border:#504534;color-scheme:dark}
+html,body{background-color:var(--hajji-bg);color:var(--hajji-text)}
+body input:not([type=checkbox]):not([type=radio]):not([type=range]),body select,body textarea{background-color:#1d1d1d;color:#f8f7f4;border-color:#514634}
+body input::placeholder,body textarea::placeholder{color:#aaa49b;opacity:1}
+body option{background:#1d1d1d;color:#f8f7f4}
+body input[type=checkbox],body input[type=radio],body input[type=range],body progress{accent-color:#d6b46b}
+body a:focus-visible,body button:focus-visible,body input:focus-visible{outline-color:#e5c878}
+body .primary,body .frontStart,body .gateEnterDistrict,body .travelPrimary{background:#d6b46b;color:#0a0a0a;border-color:#d6b46b}
+body .primary:hover,body .frontStart:hover,body .gateEnterDistrict:hover{background:#efcf86;color:#0a0a0a}
+body .secondary{background:#222;color:#eed099;border-color:#504534}
+body .danger{background:#321b1b;color:#ffb7b7;border-color:#99504a}
+body .muted,body .caption{color:#bdb9af}
+body .brand,body .frontBrand{background-image:url('./pwa-icon.svg');background-repeat:no-repeat;background-position:left center;background-size:42px 42px;padding-left:51px;min-height:42px;color:#fff}
+body .brand span,body .frontBrand span{color:#d6b46b}
+body .gateWorldBubble,body .districtSpeech,body .simpleWorldPrompt{background:#161616;color:#fff;border-color:#b59858;text-shadow:none}
+body .gateWorldBubble:after,body .districtSpeech:after,body .simpleWorldPrompt.worldAnchored:after{background:#161616;border-color:#b59858}
+body .gateWorldBubble strong,body .districtSpeech strong,body .simpleWorldPrompt strong{color:#e7c77d}
+body .gateWorldBubble p,body .districtSpeech p{color:#fff}
+body .gateWorldPanel,body .gateClerkDialogue .gateWorldPanel,body .districtGuardAnswer{background:#161616f5;color:#fff;border-color:#a58a52}
+body .gateReceipt,body .gateReceiptBank,body .gateBank{background:#202020;color:#fff;border-color:#675632}
+body .gateWorldPanel input,body .districtGuardAnswer input{background:#232323;color:#fff;border-color:#8d7548}
+body .miqatDialog.miqatNpcTalk,body #giftDialog.giftGuideTalk{background:#171717;color:#fff;border-color:#b59858}
+body .gateAnswerChoices button,body .simpleWorldChoices button,body .simpleWorldPrompt #simpleAction{background:#e2c17b;color:#101010;border-color:#e2c17b}
+body .gateCameraPad,body .arenaLookPad,body .districtLookStick{background:#151515aa;border-color:#c7a76799}
+body .gateCameraPad span,body .arenaLookPad span,body .districtLookStick span{background:#d6b46bbb}
+html:has(body.hajjiAdmin){background:#080808}
+body.hajjiAdmin{background:#0d0d0d;color:#fff;box-shadow:0 0 40px #0005}
+body.hajjiAdmin .adminTop,body.hajjiAdmin .adminBottomNav{background:#151515;color:#fff;border-color:#37312a}
+body.hajjiAdmin .brand{color:#fff}
+body.hajjiAdmin .brand span,body.hajjiAdmin .headActions a{color:#d6b46b}
+body.hajjiAdmin .brand small,body.hajjiAdmin .notice{color:#bdb9af}
+body.hajjiAdmin .headActions button{background:#25211a;color:#e7c77d}
+body.hajjiAdmin .panel,body.hajjiAdmin .stats article,body.hajjiAdmin .ticketCard,body.hajjiAdmin tr{background:#171717;color:#fff;border-color:#37312a;box-shadow:none}
+body.hajjiAdmin .stats span,body.hajjiAdmin .stats small,body.hajjiAdmin .ticketCell small,body.hajjiAdmin .quick p,body.hajjiAdmin .program small{color:#bdb9af}
+body.hajjiAdmin .stats strong,body.hajjiAdmin .number{color:#fff}
+body.hajjiAdmin .ticketStats article:nth-child(2){background:#251e13;border-color:#66502a}
+body.hajjiAdmin .ticketStats article:nth-child(3){background:#242017;border-color:#6a572e}
+body.hajjiAdmin .revenue{background:linear-gradient(125deg,#272017,#141414);border:1px solid #a98b4c;color:#fff}
+body.hajjiAdmin .revenue strong{color:#edcd80}
+body.hajjiAdmin .revenue small{color:#d1c6b0}
+body.hajjiAdmin .adminBottomNav a{color:#bdb9af;background:transparent}
+body.hajjiAdmin .adminBottomNav a[aria-current=page]{background:#2a2418;color:#edcd80}
+body.hajjiAdmin .adminSegment{background:#202020}
+body.hajjiAdmin .adminSegment a{color:#c8c5bd}
+body.hajjiAdmin .adminSegment a[aria-current=page]{background:#33291a;color:#edcd80}
+body.hajjiAdmin .ticketState{background:#262626;color:#ddd}
+body.hajjiAdmin .ticketState.reported,body.hajjiAdmin .ticketState.approved{background:#33291a;color:#edcd80}
+body.hajjiAdmin .ticketState.suspended{background:#391d1d;color:#ffb7b7}
+body.hajjiAdmin .ticketActions a,body.hajjiAdmin .serviceSymbol{background:#2a2418;color:#e7c77d}
+body.hajjiAdmin .ticketTableRow .ticketCell:nth-child(2),body.hajjiAdmin .ticketTableRow .ticketActions,body.hajjiAdmin .adminServices a,body.hajjiAdmin td:first-child{border-color:#36302a}
+body.hajjiAdmin .ticketDialog{background:#181818;color:#fff;border-color:#a98b4c}
+body.hajjiAdmin .payment{background:#201c16;color:#fff;border-color:#504534}
+body.hajjiAdmin .adminSectionTitle{margin-top:8px}
+@media(max-width:420px){body.hajjiAdmin .brand{background-size:32px 32px;padding-left:39px;min-height:32px;font-size:17px}body.hajjiAdmin .headActions{gap:5px}}
+/* QR codes, certificates and video remain their actual colors; never filter a canvas or media element. */
