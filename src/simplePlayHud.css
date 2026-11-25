@@ -22,3 +22,20 @@
 
 /* A contextual verb needs more room than a one-word round button. */
 .simplePlay #simpleAction{width:auto;min-width:100px;max-width:min(210px,34vw);height:auto;min-height:60px;border-radius:18px;padding:10px 15px;line-height:1.18;font-size:13px;white-space:normal;overflow-wrap:anywhere;text-align:center}.simplePlay #simpleAction[hidden]{display:none!important}.simplePlay .simpleGuide{right:305px}.simplePlay .simpleButtons{max-width:46vw}.simplePlay #simpleRun{flex-shrink:0}@media(max-height:500px){.simplePlay #simpleAction{min-width:86px;max-width:28vw;min-height:54px;padding:8px 12px;font-size:12px}.simplePlay .simpleGuide{right:calc(28vw + 84px);font-size:13px}}@media(orientation:portrait){.simplePlay .simpleGuide{left:12px;right:12px;bottom:125px;max-height:65px}.simplePlay #simpleAction{max-width:44vw}}
+
+/* Shared proximity HUD across ritual arenas. The bottom corners are reserved for movement and camera. */
+.simplePlay .simpleButtons{display:none!important}
+.simplePlay .simpleGuide{top:100px;bottom:auto;left:var(--simple-edge);right:auto;margin:0;max-width:min(360px,60vw);padding:7px 10px;font-size:12px;text-align:left;pointer-events:none;box-shadow:none;text-shadow:none!important}
+.simplePlay .simpleWorldPrompt{position:absolute;pointer-events:auto;box-sizing:border-box;width:max-content;max-width:min(310px,calc(100vw - 24px));padding:9px 12px;border:1.5px solid #c8a65b;border-radius:12px;background:#fff9eb;color:#193b30;font:600 14px/1.35 system-ui,sans-serif;text-shadow:none!important}
+.simplePlay .simpleWorldPrompt[hidden],.simplePlay .simpleWorldChoices:empty{display:none!important}
+.simpleWorldPrompt strong{display:block;font-size:11px;text-transform:uppercase;color:#8b622b;margin-bottom:5px;overflow-wrap:anywhere}
+.simpleWorldPrompt.worldAnchored:after{content:"";position:absolute;bottom:-7px;left:calc(50% - 6px);width:12px;height:12px;background:#fff9eb;border-bottom:1.5px solid #c8a65b;border-right:1.5px solid #c8a65b;transform:rotate(45deg);pointer-events:none}
+.simplePlay .simpleWorldPrompt #simpleAction,.simpleWorldChoices button{position:relative;display:block;width:100%;max-width:none;min-height:44px;margin:0;padding:8px 12px;border:0;border-radius:8px;background:#efd08b;color:#173c32;font:800 13px/1.25 system-ui;box-shadow:none;white-space:normal;text-shadow:none!important;cursor:pointer}
+.simpleWorldChoices{display:grid;gap:6px}
+.simplePlay .simpleCovered .simpleWorldPrompt{visibility:hidden!important}
+.arenaLookPad{display:none;position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));width:104px;height:104px;z-index:21;border:1px solid #f5ead780;background:#193e3459;border-radius:50%;touch-action:none;user-select:none;box-sizing:border-box}
+.simplePlay .arenaLookPad:not([hidden]){display:block}
+.arenaLookPad span{position:absolute;left:50%;top:50%;width:38%;height:38%;transform:translate(-50%,-50%);background:#e6cf9cbb;border:1px solid #fff4;border-radius:50%;pointer-events:none}
+.simplePlay.simpleModalOpen .arenaLookPad{visibility:hidden!important}
+.arenaExitAction[hidden]{display:none!important}
+@media(max-height:520px){.simplePlay .simpleGuide{top:66px;max-width:min(280px,46vw);font-size:11px;padding:5px 8px}.simplePlay .simpleWorldPrompt{max-width:min(250px,48vw);padding:7px 9px}.simplePlay .simpleWorldPrompt #simpleAction,.simpleWorldChoices button{font-size:12px}.arenaLookPad{width:84px;height:84px}}
