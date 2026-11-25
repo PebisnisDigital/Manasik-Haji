@@ -39,8 +39,13 @@ begin
  elsif op='create' and r.id is null then
   if not cfg.enabled and not exists(select 1 from hajji_ticket_private.qris_config where id and enabled) then raise exception 'Pendaftaran belum dibuka.'; end if;
   if length(trim(coalesce(data->>'name',''))) not between 2 and 60 or coalesce(data->>'phone','') !~ '^(\+?62|0)8[0-9]{7,12}$' or coalesce(data->>'program','') not in ('hajj','umrah') or coalesce(data->>'avatar','') not in ('male','female') or data->'consent' is distinct from 'true'::jsonb then raise exception 'Lengkapi data pendaftaran.'; end if;
-  mail=lower(trim(coalesce(data->>'email','')));phone_norm=regexp_replace(regexp_replace(data->>'phone','^\\+',''),'^0','62');
-  if length(mail)>150 or mail !~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+upper(substr(replace(gen_random_uuid()::text,'-',''),1,12));newsecret=hajji_ticket_private.random_token();
+  mail=lower(trim(coalesce(data->>'email','')));phone_norm=regexp_replace(regexp_replace(data->>'phone','^\+',''),'^0','62');
+  if length(mail)>150 or mail !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then raise exception 'Email belum valid.';end if;
+  method=coalesce(data->>'method','');
+  if method not in ('qris','transfer') or (method='transfer' and not cfg.enabled) or (method='qris' and not exists(select 1 from hajji_ticket_private.qris_config where id and enabled)) then raise exception 'Pilih metode pembayaran yang tersedia.';end if;
+  coupon=hajji_ticket_private.quote_coupon(data->>'coupon');
+  if coalesce(coupon->>'code','')<>'' and exists(select 1 from hajji_ticket_private.registrations where id=coupon->>'code' and (lower(email)=mail or regexp_replace(regexp_replace(phone,'^\+',''),'^0','62')=phone_norm)) then raise exception 'Kupon sendiri tidak dapat digunakan.';end if;
+  rid='HJ-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,12));newsecret=hajji_ticket_private.random_token();
   insert into hajji_ticket_private.registrations(id,secret_hash,name,phone,email,program,avatar,payment_method,amount,discount,referrer_id,referral_commission) values(rid,hajji_ticket_private.hash(newsecret),trim(data->>'name'),data->>'phone',mail,data->>'program',data->>'avatar',method,(coupon->>'amount')::integer,(coupon->>'discount')::integer,nullif(coupon->>'code',''),(coupon->>'commission')::integer) returning * into r;
  elsif op='report' then
   if r.id is null or r.payment_method='qris' or length(trim(coalesce(data->>'reference',''))) not between 4 and 120 then raise exception 'Isi referensi transfer yang valid.'; end if;
@@ -60,34 +65,6 @@ begin
  if newsecret is not null then result=result||jsonb_build_object('secret',newsecret); end if;
  return result;
 end $$;
-
- then raise exception 'Email belum valid.';end if;
-  method=coalesce(data->>'method','');
-  if method not in ('qris','transfer') or (method='transfer' and not cfg.enabled) or (method='qris' and not exists(select 1 from hajji_ticket_private.qris_config where id and enabled)) then raise exception 'Pilih metode pembayaran yang tersedia.';end if;
-  coupon=hajji_ticket_private.quote_coupon(data->>'coupon');
-  if coalesce(coupon->>'code','')<>'' and exists(select 1 from hajji_ticket_private.registrations where id=coupon->>'code' and (lower(email)=mail or regexp_replace(regexp_replace(phone,'^\\+',''),'^0','62')=phone_norm)) then raise exception 'Kupon sendiri tidak dapat digunakan.';end if;
-  rid='HJ-'||upper(substr(replace(gen_random_uuid()::text,'-',''),1,12));newsecret=hajji_ticket_private.random_token();
-  insert into hajji_ticket_private.registrations(id,secret_hash,name,phone,program,avatar) values(rid,hajji_ticket_private.hash(newsecret),trim(data->>'name'),data->>'phone',data->>'program',data->>'avatar') returning * into r;
- elsif op='report' then
-  if r.id is null or length(trim(coalesce(data->>'reference',''))) not between 4 and 120 then raise exception 'Isi referensi transfer yang valid.'; end if;
-  update hajji_ticket_private.registrations set status='reported',reference=trim(data->>'reference'),claimed=now() where id=r.id and status in ('pending','reported') returning * into r;
-  if r.id is null then raise exception 'Tiket sudah aktif. Muat ulang.'; end if;
- elsif op='magic-link' then
-  t=hajji_ticket_private.issue_link(r.id);
- elsif op='redeem' then
-  if coalesce(data->>'token','') !~ '^[a-f0-9]{64}$' then raise exception 'Magic link tidak valid.'; end if;
-  select rr.* into r from hajji_ticket_private.registrations rr join hajji_ticket_private.links l on l.registration_id=rr.id where l.token_hash=hajji_ticket_private.hash(data->>'token') and not l.revoked and rr.status='approved';
-  if r.id is null then raise exception 'Magic link tidak aktif.'; end if;
-  newsecret=hajji_ticket_private.random_token();
-  insert into hajji_ticket_private.sessions(secret_hash,link_hash) values(hajji_ticket_private.hash(newsecret),hajji_ticket_private.hash(data->>'token'));
- end if;
- result=jsonb_build_object('ticket',jsonb_build_object('amount',100000,'bank',cfg.bank,'account',cfg.account,'holder',cfg.holder,'manual_enabled',cfg.enabled,'qris_enabled',(select enabled from hajji_ticket_private.qris_config where id),'qris_test',(select test_mode from hajji_ticket_private.qris_config where id),'enabled',cfg.enabled or (select enabled from hajji_ticket_private.qris_config where id)),'registration',hajji_ticket_private.public_row(r));
- if t is not null then result=result||jsonb_build_object('href',t); end if;
- if newsecret is not null then result=result||jsonb_build_object('secret',newsecret); end if;
- return result;
-end $$;
-
-
 create or replace function hajji_ticket_private.admin(op text, data jsonb) returns jsonb language plpgsql security definer set search_path='' as $$
 declare r hajji_ticket_private.registrations; cfg hajji_ticket_private.settings; uid uuid:=auth.uid(); rid text:=data->>'id'; result jsonb; search text:=left(coalesce(data->>'search',''),100); state text:=coalesce(data->>'status',''); offs integer:=greatest(0,least(100000,coalesce((data->>'offset')::integer,0))); n integer;
 begin
@@ -101,7 +78,7 @@ begin
   if data->'enabled'='true'::jsonb and (data->'confirmed' is distinct from 'true'::jsonb or length(trim(coalesce(data->>'bank',''))) not between 2 and 50 or coalesce(data->>'account','') !~ '^[0-9]{6,24}$' or length(trim(coalesce(data->>'holder',''))) not between 2 and 100) then raise exception 'Konfirmasi rekening yang benar sebelum membuka pendaftaran.'; end if;
   update hajji_ticket_private.settings set enabled=(data->>'enabled')::boolean,bank=left(trim(coalesce(data->>'bank','')),50),account=left(trim(coalesce(data->>'account','')),24),holder=left(trim(coalesce(data->>'holder','')),100) where id;
  elsif op='approve' then
-  if data->'confirmed' is distinct from 'true'::jsonb or coalesce(data->>'amount','') !~ '^[0-9]{1,6} or length(trim(coalesce(data->>'bank_reference',''))) not between 4 and 120 then raise exception 'Cocokkan mutasi dan nominal tagihan terlebih dahulu.'; end if;
+  if data->'confirmed' is distinct from 'true'::jsonb or coalesce(data->>'amount','') !~ '^[0-9]{1,6}$' or length(trim(coalesce(data->>'bank_reference',''))) not between 4 and 120 then raise exception 'Cocokkan mutasi dan nominal tagihan terlebih dahulu.'; end if;
   update hajji_ticket_private.registrations set status='approved',approved=now(),approved_by=uid,bank_reference=lower(trim(data->>'bank_reference')) where id=rid and status='reported' and amount=(data->>'amount')::integer and payment_method is distinct from 'qris' returning * into r;
   if r.id is null then raise exception 'Pendaftaran belum melapor atau sudah disetujui.'; end if;
  elsif op='issue' then
@@ -112,18 +89,6 @@ begin
  insert into hajji_ticket_private.audit(actor,action,registration_id) values(uid,op,rid);
  return coalesce(result,jsonb_build_object('ok',true));
 end $$;
- or length(trim(coalesce(data->>'bank_reference',''))) not between 4 and 120 then raise exception 'Cocokkan mutasi dan nominal Rp100.000 terlebih dahulu.'; end if;
-  update hajji_ticket_private.registrations set status='approved',approved=now(),approved_by=uid,bank_reference=lower(trim(data->>'bank_reference')) where id=rid and status='reported' returning * into r;
-  if r.id is null then raise exception 'Pendaftaran belum melapor atau sudah disetujui.'; end if;
- elsif op='issue' then
-  result=jsonb_build_object('href',hajji_ticket_private.issue_link(rid));
- elsif op='revoke' then
-  update hajji_ticket_private.links set revoked=true where registration_id=rid and not revoked; get diagnostics n=row_count;result=jsonb_build_object('revoked',n);
- else raise exception 'Perintah tidak tersedia.'; end if;
- insert into hajji_ticket_private.audit(actor,action,registration_id) values(uid,op,rid);
- return coalesce(result,jsonb_build_object('ok',true));
-end $$;
-
 create or replace function hajji_ticket_private.qris_gateway(k text,op text,secret text,data jsonb) returns jsonb language plpgsql security definer set search_path='' as $$
 declare c hajji_ticket_private.qris_config; r hajji_ticket_private.registrations; q hajji_ticket_private.qris_orders; rid text; cfg jsonb; st text; begin
  if k is null or length(k)<>64 or not exists(select 1 from hajji_ticket_private.settings where id and gateway_hash<>'' and gateway_hash=hajji_ticket_private.hash(k)) then raise exception 'Layanan tidak tersedia.' using errcode='42501';end if;
