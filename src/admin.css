@@ -8,3 +8,106 @@
 button.danger{border:1px solid #c75b5b;background:#fff1f0;color:#a72828;font-weight:800;border-radius:8px;padding:8px 12px;cursor:pointer}button.danger:hover{background:#fbdcda}button.danger:disabled{opacity:.6;cursor:wait}.ticketDialog button.danger{min-height:42px}
 
 .bankExtraList{grid-column:1/-1;display:grid;gap:10px}.bankExtraList h3,.bankExtraList p{margin:0}.bankExtra{min-width:0;border:1px solid #dbe3d9;border-radius:10px;padding:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.bankExtra legend{font-size:12px;font-weight:700;color:#486552}@media(max-width:720px){.bankExtra{grid-template-columns:1fr}}
+
+/* HAJJI admin: compact mobile application shell, scoped away from voice/admin tools. */
+html:has(body.hajjiAdmin){background:#e9eeea;scroll-behavior:auto}
+body.hajjiAdmin{width:100%;max-width:680px;min-height:100dvh;margin:auto;background:#f5f7f5;color:#182720;font-family:system-ui,sans-serif;box-shadow:0 0 40px #203b3410}
+.hajjiAdmin .adminTop{position:sticky;top:0;z-index:10;padding:14px 20px;background:white;color:#163c2a;border-bottom:1px solid #e5ebe6}
+.hajjiAdmin .brand{font-size:22px;line-height:1.1;color:#175c39}
+.hajjiAdmin .brand span{color:#0c8c46}
+.hajjiAdmin .brand small{display:block;font-size:11px;font-weight:600;color:#64726a;letter-spacing:0;margin-top:4px}
+.hajjiAdmin .headActions{gap:8px}
+.hajjiAdmin .headActions a{display:block;color:#28734a;font-weight:650;white-space:nowrap}
+.hajjiAdmin .headActions button{background:#eaf3eb;color:#20633b;border-radius:20px;min-height:38px;padding:8px 12px}
+.hajjiAdmin .notice{margin:8px 0;padding:0 18px;font-size:12px}
+.hajjiAdmin #console{display:block;width:100%;padding:8px 18px calc(90px + env(safe-area-inset-bottom));max-width:none}
+.hajjiAdmin .workspace{display:block}
+.hajjiAdmin .panel{border:1px solid #e2e8e3;border-radius:18px;box-shadow:0 2px 8px #183b2c06;padding:16px}
+.hajjiAdmin h1{font-size:25px;margin:5px 0;letter-spacing:-.04em}
+.hajjiAdmin h2{font-size:17px;line-height:1.3}
+.hajjiAdmin .overline{color:#217346;letter-spacing:.09em}
+.hajjiAdmin .sectionHead{margin-bottom:14px;align-items:center}
+.hajjiAdmin .sectionHead button{font-size:12px;white-space:nowrap}
+.hajjiAdmin .primary{background:#087e3a;color:white;border-radius:12px}
+.hajjiAdmin .secondary{background:#edf5ef;color:#17633a;border:1px solid #d4e7d9;border-radius:12px}
+.hajjiAdmin button,.hajjiAdmin input,.hajjiAdmin select{min-height:44px}
+.hajjiAdmin input,.hajjiAdmin select{font-size:16px;border-radius:11px;border-color:#d8e3db}
+.hajjiAdmin .check input{min-height:0;flex:none}
+.hajjiAdmin .adminBottomNav{position:fixed;z-index:20;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,680px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:#fff;border-top:1px solid #e2e8e3;box-shadow:0 -4px 20px #173c2b0a;padding:7px 8px calc(8px + env(safe-area-inset-bottom));gap:0}
+.hajjiAdmin .adminBottomNav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:57px;color:#63716a;text-decoration:none;font-size:11px;font-weight:650;border-radius:12px}
+.hajjiAdmin .adminBottomNav a svg{width:23px;height:23px;flex:none}
+.hajjiAdmin .adminBottomNav a[aria-current=page]{color:#087e3a;font-weight:800;background:#edf8ef}
+.hajjiAdmin .adminShortcuts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;background:#fff;border:1px solid #e2e8e3;border-radius:18px;padding:15px 8px;margin:14px 0 22px}
+.hajjiAdmin .adminShortcuts a{display:grid;justify-items:center;gap:7px;text-align:center;text-decoration:none;font-size:11px;color:#26392d}
+.hajjiAdmin .adminShortcuts a>span{display:grid;place-items:center;border-radius:17px;width:48px;height:48px;background:#e5f6e9;color:#087e3a}
+.hajjiAdmin .adminShortcuts a:nth-child(2)>span{background:#e9f2fb;color:#2869a5}
+.hajjiAdmin .adminShortcuts a:nth-child(3)>span{background:#fff3db;color:#966014}
+.hajjiAdmin .adminShortcuts a:nth-child(4)>span{background:#f0ecfc;color:#7655a8}
+.hajjiAdmin .adminSectionTitle{margin:16px 0 10px}
+.hajjiAdmin .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.hajjiAdmin .stats article{padding:15px;border-radius:16px;gap:7px;border:1px solid #e2e8e3;min-width:0}
+.hajjiAdmin .stats strong,.hajjiAdmin .number{font-size:29px;color:#18372a}
+.hajjiAdmin .ticketStats article:nth-child(2){background:#fff8e8;border-color:#f3e1b6}
+.hajjiAdmin .ticketStats article:nth-child(3){background:#edf8ee;border-color:#d4ecd7}
+.hajjiAdmin .revenue{background:#087a3b;color:white;border:0;padding:20px}
+.hajjiAdmin .revenue strong{color:white;font-size:clamp(25px,5vw,36px);overflow-wrap:anywhere}
+.hajjiAdmin .revenue small{color:#e1f3e6}
+.hajjiAdmin .programGrid,.hajjiAdmin .quickGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.hajjiAdmin .program h2,.hajjiAdmin .quick h2{font-size:15px}
+.hajjiAdmin .program .number{font-size:21px}
+.hajjiAdmin .quick{padding:13px}
+.hajjiAdmin .adminSegment{display:grid;grid-template-columns:1fr 1fr;background:#f0f4f0;border-radius:13px;padding:4px;margin:0 0 16px;gap:4px}
+.hajjiAdmin .adminSegment a{text-decoration:none;text-align:center;padding:11px 6px;font-weight:700;font-size:13px;color:#5b6d60;border-radius:10px}
+.hajjiAdmin .adminSegment a[aria-current=page]{background:white;color:#087e3a;box-shadow:0 1px 5px #153b2412}
+.hajjiAdmin .ticketTableHead{display:none}
+.hajjiAdmin .ticketTableRow{grid-template-columns:repeat(2,minmax(0,1fr));padding:14px;gap:10px;border-radius:16px}
+.hajjiAdmin .ticketTableRow .ticketCell:first-child{display:none}
+.hajjiAdmin .ticketTableRow .ticketCell:nth-child(2){grid-column:1/-1;padding-bottom:10px;border-bottom:1px solid #e7ede7}
+.hajjiAdmin .ticketTableRow .ticketCell:nth-child(2) strong{font-size:17px}
+.hajjiAdmin .ticketTableRow .ticketCell:nth-child(5){grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.hajjiAdmin .ticketTableRow .ticketCell:nth-child(5)>strong:empty{display:none}
+.hajjiAdmin .ticketTableRow .ticketActions{grid-column:1/-1;border-top:1px solid #e7ede7;padding-top:10px;gap:7px}
+.hajjiAdmin .ticketTableRow .ticketActions button,.hajjiAdmin .ticketActions a{min-height:44px;font-size:12px;padding:8px 10px}
+.hajjiAdmin .ticketActions a{display:inline-flex;align-items:center;text-decoration:none;background:#e8f6ea;color:#13713c;border-radius:10px;font-weight:700}
+.hajjiAdmin .filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.hajjiAdmin .filters label:first-child,.hajjiAdmin .filters button{grid-column:1/-1}
+.hajjiAdmin .ticketFilters label:nth-child(2){grid-column:1/-1}
+.hajjiAdmin .bankSettings{grid-template-columns:1fr 1fr}
+.hajjiAdmin .bankSettings>.check,.hajjiAdmin .bankSettings>button{grid-column:1/-1}
+.hajjiAdmin .bankExtra{grid-template-columns:1fr}
+.hajjiAdmin .tableWrap{overflow:visible;max-height:none}
+.hajjiAdmin table,.hajjiAdmin tbody{display:block;min-width:0;width:100%}
+.hajjiAdmin thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.hajjiAdmin tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px;border:1px solid #e2e8e3;border-radius:14px;padding:12px}
+.hajjiAdmin td{display:block;padding:0;border:0;overflow-wrap:anywhere}
+.hajjiAdmin td:first-child{grid-column:1/-1;max-width:none;font-weight:800;font-size:15px;border-bottom:1px solid #e8eee8;padding-bottom:8px}
+.hajjiAdmin td:not(:first-child):before{display:block;color:#68796e;font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.hajjiAdmin td:nth-child(2):before{content:'Program'}
+.hajjiAdmin td:nth-child(3):before{content:'Progress'}
+.hajjiAdmin td:nth-child(4):before{content:'Asal'}
+.hajjiAdmin td:nth-child(5):before{content:'Sinkron terakhir'}
+.hajjiAdmin td:nth-child(6):before{content:'Sertifikat'}
+.hajjiAdmin .settingsGrid{grid-template-columns:1fr}
+.hajjiAdmin .adminServices{display:grid;margin:16px 0 24px}
+.hajjiAdmin .adminServices a{display:flex;align-items:center;gap:12px;text-decoration:none;padding:12px 0;border-bottom:1px solid #e7ede7}
+.hajjiAdmin .serviceSymbol{width:43px;height:43px;background:#e8f5eb;color:#087e3a;border-radius:13px;display:grid;place-items:center;font-size:24px;flex:none}
+.hajjiAdmin .adminServices a>span:nth-child(2){flex:1;min-width:0}
+.hajjiAdmin .adminServices small{display:block;color:#64786b;font-size:12px;margin-top:4px}
+.hajjiAdmin .adminServices b{font-size:21px;color:#6e8274}
+.hajjiAdmin .payment{text-decoration:none;flex-wrap:wrap}
+.hajjiAdmin .ticketDialog{max-height:calc(100dvh - 30px);overflow:auto;width:min(520px,94vw);border-radius:20px;padding:20px}
+.hajjiAdmin .ticketDialog input,.hajjiAdmin .ticketDialog select{font-size:16px}
+.hajjiAdmin .login{margin:28px auto 10px;width:calc(100% - 36px);max-width:430px}
+.hajjiAdmin #qrisTestOutput img{max-width:100%;height:auto}
+@media(max-width:420px){
+ .hajjiAdmin .adminTop{padding:12px}
+ .hajjiAdmin .brand{font-size:19px}
+ .hajjiAdmin .headActions a{font-size:11px}
+ .hajjiAdmin #console{padding:6px 10px calc(90px + env(safe-area-inset-bottom))}
+ .hajjiAdmin .panel{padding:13px}
+ .hajjiAdmin .stats article{padding:12px}
+ .hajjiAdmin .bankSettings{grid-template-columns:1fr}
+ .hajjiAdmin .adminShortcuts a>span{width:43px;height:43px;border-radius:14px}
+ .hajjiAdmin .adminBottomNav a{font-size:10px}
+ .hajjiAdmin .quick{gap:4px;padding:10px}
+}
