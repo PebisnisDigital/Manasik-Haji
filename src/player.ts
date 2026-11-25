@@ -1,3 +1,4 @@
+import {mountArenaLookPad,publishWorldAction} from './worldInteraction.ts';
 import {cityArenaLevel,createArenaDoor,exitButton} from './adventure/arenaDoor.ts';
 import {districtReturnUrl} from './adventure/districtReturn.ts';
 import {mountSimplePlayHud} from './simplePlayHud.ts';
@@ -162,6 +163,9 @@ function boot(): void {
   function startExit(){if(!exitDoor)return;exiting=true;exitDoor.highlight();nextSai.hidden=true;exitControl??=exitButton(()=>{if(Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z)<1.5){const url=districtReturnUrl();if(url)location.assign(url);}});status.textContent='Kembali ke pintu masuk, lalu pilih KELUAR GEDUNG.';}
   if(exitOnly&&exitDoor){const a=START+.20;x=Math.cos(a)*38;z=Math.sin(a)*38;orbit=Math.atan2(x,z);startExit();}
   if(level===12&&exitDoor&&core){nextSai.textContent='Kembali ke pintu masuk';nextSai.addEventListener('click',e=>{e.preventDefault();if(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep)){status.textContent='Checkpoint belum tersimpan.';return;}startExit();});}
+  let userPitch=0;
+  const lookAbort=new AbortController();window.addEventListener('pagehide',()=>lookAbort.abort(),{once:true});
+  mountArenaLookPad(()=>!simpleMenuOpen()&&!paused&&!isPortrait()&&!document.hidden&&!budget.lost(),(dx,dy)=>{cameraMode.value='free';orbit-=dx*.008*(core?lookFactor():1);userPitch=THREE.MathUtils.clamp(userPitch+dy*.005,-.65,.65);},lookAbort.signal);
   function frame(now:number):void {
     const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=simpleMenuOpen()||paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
     const angle=Math.atan2(z,x);
@@ -210,9 +214,13 @@ function boot(): void {
       desiredCamera.set(x+viewX*(core?4:5.6),core?2.65:3.2,z+viewZ*(core?4:5.6));
       desiredLook.set(x-viewX*2,1.45,z-viewZ*2);
     }
+    if(cameraMode.value==='free'){desiredCamera.y=Math.max(1.1,desiredCamera.y+Math.sin(userPitch)*3.5);desiredLook.y-=Math.sin(userPitch)*1.3;}
     if(!initializedCamera){camera.position.copy(desiredCamera);smoothLook.copy(desiredLook);initializedCamera=true;}
     else {const a=1-Math.exp(-elapsed*9);camera.position.lerp(desiredCamera,a);smoothLook.lerp(desiredLook,a);}
     camera.lookAt(smoothLook);camera.updateMatrixWorld();
+    if(exiting&&exitDoor){const p=exitDoor.target,near=Math.hypot(x-p.x,z-p.z)<1.5;publishWorldAction(camera,p.x,2.3,p.z,near);if(exitControl){const v=new THREE.Vector3(p.x,2.3,p.z).project(camera);exitControl.hidden=!near||v.z< -1||v.z>1||Math.abs(v.x)>1||Math.abs(v.y)>1;exitControl.style.left=Math.max(70,Math.min(innerWidth-70,(v.x*.5+.5)*innerWidth))+'px';exitControl.style.top=Math.max(65,Math.min(innerHeight-60,(.5-v.y*.5)*innerHeight))+'px';exitControl.style.bottom='auto';}}
+    else publishWorldAction(camera,x,1.9,z,finished);
+
     const active=hero();
     male.group.visible=active===male&&cameraMode.value!=='first';
     if(female)female.group.visible=active===female&&cameraMode.value!=='first';
