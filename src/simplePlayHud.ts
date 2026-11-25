@@ -1,3 +1,4 @@
+import {worldActionAnchor,isNavigationAction} from './worldInteraction.ts';
 import {choiceActionLabel} from './contextualAction.ts';
 import {districtReturnUrl} from './adventure/districtReturn.ts';
 import {mountGraphics} from './graphicsQuality.ts';
@@ -18,7 +19,20 @@ export function mountSimplePlayHud(kind:Kind){
  const dialog=document.createElement('dialog');dialog.id='simpleSettings';dialog.setAttribute('aria-labelledby','simpleSettingsTitle');dialog.innerHTML='<section><header><h2 id="simpleSettingsTitle">Pengaturan</h2><button id="simpleClose" type="button" aria-label="Tutup menu">×</button></header><p id="simpleContext" hidden></p><div id="simpleOptions"></div><button id="simpleResume" type="button">Lanjut bermain</button></section>';document.body.append(dialog);
  const el=(id:string)=>document.getElementById(id)!;
  const action=el('simpleAction') as HTMLButtonElement,run=el('simpleRun') as HTMLButtonElement,options=el('simpleOptions');
- let raf=0,disposed=false,activePopup:HTMLElement|null=null,notification='',notificationTimer=0;
+ const prompt=document.createElement('section');prompt.className='simpleWorldPrompt';prompt.hidden=true;const promptTitle=document.createElement('strong'),choices=document.createElement('div');choices.className='simpleWorldChoices';prompt.append(promptTitle,choices,action);root.append(prompt);
+ let choiceSignature='';
+ function placeWorldPrompt(){
+  const a=worldActionAnchor(),w=innerWidth,h=innerHeight;
+  if(!prompt.hidden){const pw=prompt.offsetWidth,ph=prompt.offsetHeight;const anchored=!!a?.near&&a.visible;
+   const x=anchored?a.x:w*.5,y=anchored?a.y:h-38;
+   prompt.style.left=Math.round(Math.max(10,Math.min(w-pw-10,x-pw/2)))+'px';
+   prompt.style.top=Math.round(Math.max(65,Math.min(h-ph-12,y-ph-14)))+'px';
+   prompt.classList.toggle('worldAnchored',anchored);
+   prompt.style.visibility=a?.near&&!a.visible?'hidden':'visible';
+  }
+  if(!disposed)worldFrame=requestAnimationFrame(placeWorldPrompt);
+ }
+ let raf=0,worldFrame=0,disposed=false,activePopup:HTMLElement|null=null,notification='',notificationTimer=0;
  function popupFocus(){
   const popup=Array.from(document.querySelectorAll<HTMLElement>('.overlay,.layer')).filter(e=>!(e instanceof HTMLDialogElement)&&!e.hidden).at(-1)??null;
   if(popup===activePopup)return;const previous=activePopup;activePopup=popup;if(!popup){if(previous?.contains(document.activeElement)&&!overlay()&&!dialog.open)el('simpleGear').focus();return;}
@@ -29,11 +43,12 @@ export function mountSimplePlayHud(kind:Kind){
   target?.focus();
  }
  function overlay(){return !!document.querySelector('#certificate:not([hidden])')||Array.from(document.querySelectorAll<HTMLElement>('.overlay,.layer')).some(e=>!e.hidden&&(e instanceof HTMLDialogElement?e.open:true))||Array.from(document.querySelectorAll('dialog[open]')).some(e=>e!==dialog);}
- function candidates():HTMLElement[]{
+ function candidates(includeNavigation=false):HTMLElement[]{
   let selector=kind==='field'?'#actions button':kind==='miqat'?'#miqatInteract,#miqatWalk':kind==='district'?'#interactButton':kind==='tawaf'?'#nextSai,#auto':kind==='sai'?'#next,#auto':'#cutButton,#action';
   let nodes=selector.split(',').flatMap(s=>Array.from(document.querySelectorAll<HTMLElement>(s))).filter(e=>shown(e)&&!(e as HTMLButtonElement).disabled);
-  if(kind==='miqat')nodes=nodes.slice(0,1);
-  if(kind==='tawaf'||kind==='sai')nodes=nodes.slice(0,1);
+  if(!includeNavigation)nodes=nodes.filter(e=>!isNavigationAction(e.textContent??''));
+  if(kind==='miqat'&&!includeNavigation)nodes=nodes.slice(0,1);
+  if((kind==='tawaf'||kind==='sai')&&!includeNavigation)nodes=nodes.slice(0,1);
   return nodes;
  }
  function sourceLevel(){if(kind==='field')return text('#levelLabel').replace(/^PETUALANGAN HAJI\s*[•·]\s*/,'');if(kind==='miqat')return text('.miqatHeader small');if(kind==='district')return text('#objectiveNumber');if(kind==='tawaf'||kind==='sai')return text('h1');return text('.hud .kicker,.hud .eyebrow');}
@@ -45,7 +60,7 @@ export function mountSimplePlayHud(kind:Kind){
  }
  const assign=(node:HTMLElement,value:string)=>{if(node.textContent!==value)node.textContent=value;};
  function paint(){raf=0;if(disposed)return;popupFocus();assign(el('simpleLevel'),level());assign(el('simpleCount'),counter());assign(el('simpleGuide'),guidance());
-  const busy=overlay()||simpleMenuOpen();root.classList.toggle('simpleCovered',busy);if(document.body.classList.contains('simpleModalOpen')!==busy)document.body.classList.toggle('simpleModalOpen',busy);const available=candidates(),label=choiceActionLabel(available.map(e=>e.textContent??''));assign(action,label);action.setAttribute('aria-label',label);action.hidden=!label;action.disabled=busy||!available.length||!label;run.disabled=busy;run.setAttribute('aria-pressed',String(simpleSprinting()));assign(run,kind==='district'&&!!document.querySelector('#vehicleInfo:not([hidden])')?'Rem':'Lari');
+  const busy=overlay()||simpleMenuOpen();root.classList.toggle('simpleCovered',busy);if(document.body.classList.contains('simpleModalOpen')!==busy)document.body.classList.toggle('simpleModalOpen',busy);const available=candidates(),label=choiceActionLabel(available.map(e=>e.textContent??''));assign(action,label);action.setAttribute('aria-label',label);action.hidden=!label||available.length>1;action.disabled=busy||!available.length||!label;prompt.hidden=busy||!label;assign(promptTitle,kind==='miqat'?text('#miqatGoal'):kind==='field'?text('#title'):kind==='district'?text('#missionTitle'):text('#mission')||'CHECKPOINT');const sig=available.map(e=>e.textContent).join('|');if(sig!==choiceSignature){choiceSignature=sig;choices.replaceChildren();if(available.length>1)available.forEach((source,i)=>{const b=document.createElement('button');b.type='button';b.textContent=source.textContent??'';b.onclick=()=>{if(overlay()||simpleMenuOpen())return;const actual=candidates()[i];if(actual&&actual.textContent===b.textContent)actual.click();queue();};choices.append(b);});}run.disabled=busy;run.setAttribute('aria-pressed',String(simpleSprinting()));assign(run,kind==='district'&&!!document.querySelector('#vehicleInfo:not([hidden])')?'Rem':'Lari');
  }
  function queue(){if(!raf)raf=requestAnimationFrame(paint);}
  const onNotification=(event:Event)=>{const message=(event as CustomEvent<unknown>).detail;if(typeof message!=='string')return;notification=message.slice(0,180);clearTimeout(notificationTimer);notificationTimer=window.setTimeout(()=>{notification='';queue();},6000);queue();};document.addEventListener('simple-play-notice',onNotification);
@@ -57,7 +72,8 @@ export function mountSimplePlayHud(kind:Kind){
  el('simpleGear').onclick=()=>{
   if(overlay())return;options.replaceChildren();
   const links=[['Peta level','./adventure-map.html?journey='+(nusukHajjActive()?'hajj':'umrah')],['Menu utama','./index.html?lobby=1'],['Referral & komisi','./affiliate.html']];
-  const help=document.createElement('button');help.type='button';help.textContent='Cara main';help.onclick=()=>{assign(el('simpleSettingsTitle'),'Cara main');const p=document.createElement('p');p.textContent='Joystick untuk berjalan. Geser layar untuk melihat. Lari mempercepat gerakan. Tombol kuning menunjukkan kegiatan yang dapat dilakukan. Di bus, Lari berubah menjadi Rem. PC: WASD/panah, Shift; E adalah pintasan tombol kegiatan.';options.replaceChildren(p);};options.append(help);
+  for(const source of candidates(true).filter(e=>isNavigationAction(e.textContent??'')))proxy(source);
+  const help=document.createElement('button');help.type='button';help.textContent='Cara main';help.onclick=()=>{assign(el('simpleSettingsTitle'),'Cara main');const p=document.createElement('p');p.textContent='Joystick kiri untuk berjalan, joystick kanan untuk melihat. Dekati penanda atau objek untuk berinteraksi. Bantuan berjalan tersedia di menu jika ada. PC: WASD/panah, Shift; E untuk kegiatan.';options.replaceChildren(p);};options.append(help);
   const district=districtReturnUrl();if(district)links.unshift(['Kembali ke distrik',district]);
   for(const [label,href]of links){const a=document.createElement('a');a.textContent=label;a.href=tenantUrl(href);options.append(a);}
   const selectors=kind==='field'?'.coreVoice button,.coreVoice select':kind==='miqat'?'#miqatPause,#arrivalLook,.tawafRadio button':kind==='district'?'#pauseButton,#cameraButton':kind==='tawaf'||kind==='sai'?'.hud button:not(#auto):not(#pause):not(#brisk),.hud select:not(#avatar)':'#sound,#voice,#camera,#focus,#helpButton,#helpBtn,#guide';
@@ -68,11 +84,11 @@ export function mountSimplePlayHud(kind:Kind){
  action.onclick=()=>{if(action.disabled)return;const list=candidates();if(list.length>1){options.replaceChildren();list.forEach(proxy);open(kind==='field'?text('#title')||'Pilih kegiatan':'Pilih kegiatan',kind==='field'?[level(),text('#body')].filter(Boolean).join(' — '):'');}else list[0]?.click();queue();};
  run.onclick=()=>{toggleSimpleRun();paint();};
  const reset=()=>{clearSimpleInput();queue();};
- window.addEventListener('keydown',e=>{if(e.code.startsWith('Shift')&&!overlay()&&!simpleMenuOpen()){setSimpleShift(true);queue();}if(e.code==='KeyE'&&!e.repeat&&['field','tawaf','sai'].includes(kind)&&!simpleMenuOpen()&&!overlay()){e.preventDefault();action.click();}});
+ window.addEventListener('keydown',e=>{if(e.code.startsWith('Shift')&&!overlay()&&!simpleMenuOpen()){setSimpleShift(true);queue();}if(e.code==='KeyE'&&!e.repeat&&['field','tawaf','sai'].includes(kind)&&!simpleMenuOpen()&&!overlay()){e.preventDefault();if(candidates().length>1)choices.querySelector('button')?.focus();else if(!action.hidden)action.click();}});
  window.addEventListener('keyup',e=>{if(e.code.startsWith('Shift')){setSimpleShift(false);queue();}});window.addEventListener('blur',reset);window.addEventListener('orientationchange',reset);document.addEventListener('visibilitychange',reset);
  document.addEventListener('keydown',e=>{if(e.key!=='Tab'||!activePopup||activePopup.hidden)return;const items=Array.from(activePopup.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],select:not(:disabled),[tabindex="0"]')).filter(e=>e.getClientRects().length>0);if(!items.length)return;const first=items[0],last=items.at(-1)!;if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
  const observer=new MutationObserver(records=>{if(records.some(r=>!(r.target instanceof Element?r.target:r.target.parentElement)?.closest('#simplePlay,#simpleSettings')))queue();});observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden','disabled','class','open']});
  document.addEventListener('close',e=>{if(e.target!==dialog){queue();requestAnimationFrame(()=>{if(!disposed&&!overlay()&&!simpleMenuOpen())el('simpleGear').focus();});}},true);
  window.addEventListener('pageshow',event=>{if(event.persisted&&kind!=='field'&&kind!=='miqat')location.reload();});
- paint();window.addEventListener('pagehide',()=>{disposed=true;cancelAnimationFrame(raf);clearTimeout(notificationTimer);document.removeEventListener('simple-play-notice',onNotification);observer.disconnect();clearSimpleInput();setSimpleMenu(false);},{once:true});
+ paint();worldFrame=requestAnimationFrame(placeWorldPrompt);window.addEventListener('pagehide',()=>{disposed=true;cancelAnimationFrame(worldFrame);cancelAnimationFrame(raf);clearTimeout(notificationTimer);document.removeEventListener('simple-play-notice',onNotification);observer.disconnect();clearSimpleInput();setSimpleMenu(false);},{once:true});
 }
