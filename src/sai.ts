@@ -1,3 +1,4 @@
+import {mountArenaLookPad,publishWorldAction} from './worldInteraction.ts';
 import {mountSimplePlayHud} from './simplePlayHud.ts';
 import {simpleMenuOpen,simpleSprinting} from './simpleInput.ts';
 import {nusukNumber} from './adventure/nusukModel.ts';
@@ -148,6 +149,9 @@ function boot(): void {
     resolveFrames(clip,phase,frameState);
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
+  let userPitch=0;
+  const lookAbort=new AbortController();window.addEventListener('pagehide',()=>lookAbort.abort(),{once:true});
+  mountArenaLookPad(()=>!simpleMenuOpen()&&!paused&&!isPortrait()&&!document.hidden&&!budget.lost(),(dx,dy)=>{cameraMode.value='free';orbit-=dx*.008*(core?lookFactor():1);userPitch=THREE.MathUtils.clamp(userPitch+dy*.005,-.65,.65);},lookAbort.signal);
   function frame(now:number):void {
     const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=simpleMenuOpen()||paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
     const inGreen=z<=-GREEN_START&&z>=-GREEN_END;
@@ -197,9 +201,12 @@ function boot(): void {
       desiredLook.set(x-viewX*2,1.45,z-viewZ*2);
     }
     desiredCamera.x=THREE.MathUtils.clamp(desiredCamera.x,-9.4,9.4);desiredCamera.z=THREE.MathUtils.clamp(desiredCamera.z,-46.4,46.4);
+    if(cameraMode.value==='free'){desiredCamera.y=Math.max(1.1,desiredCamera.y+Math.sin(userPitch)*3.5);desiredLook.y-=Math.sin(userPitch)*1.3;}
     if(!initializedCamera){camera.position.copy(desiredCamera);smoothLook.copy(desiredLook);initializedCamera=true;}
     else {const a=1-Math.exp(-elapsed*9);camera.position.lerp(desiredCamera,a);smoothLook.lerp(desiredLook,a);}
     camera.lookAt(smoothLook);camera.updateMatrixWorld();
+    publishWorldAction(camera,x,1.9,z,finished);
+
     const active=hero();
     male.group.visible=active===male&&cameraMode.value!=='first';
     if(female)female.group.visible=active===female&&cameraMode.value!=='first';
