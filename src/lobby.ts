@@ -233,17 +233,21 @@ function frame(now:number){
  const look=pivot.clone().add(new THREE.Vector3(fx*.82+rx*.34,.13+plazaView,fz*.82+rz*.34));
  const clerk=gateEncounter==='clerk'?registrationHall?.clerk(avatar==='female'):undefined;
  if(clerk){
-  // Shoot from the open central aisle, not through the booth or the waiting line.
-  const center=clerk.position.clone().lerp(pos,.48);center.y=1.20;
-  const inner=avatar==='female'?-1:1;
-  const distance=cam.aspect<1.2?3.85:3.15;
-  cameraGoal.copy(center).add(new THREE.Vector3(inner*distance,.72,.80));
-  look.copy(center);look.y=1.24;
+  // First-person at the participant's eye line, facing the seated clerk across the ledger.
+  // The slight downward gaze keeps the paperwork on the counter in the same shot.
+  const eyeHeight=avatar==='female'?1.50:1.60;
+  cameraGoal.set(pos.x,eyeHeight,pos.z+.10);
+  look.copy(clerk.position).add(new THREE.Vector3(0,1.49,.08));
+  look.lerp(gateDeskPoint(),.27);
  }
+ const normalFov=guideMode?(touchMode?65:cam.aspect<.85?69:64):(touchMode?57:cam.aspect<.85?66:60);
+ const targetFov=clerk?(cam.aspect<1.2?62:58):normalFov;
+ if(Math.abs(cam.fov-targetFov)>.02){cam.fov=THREE.MathUtils.lerp(cam.fov,targetFov,1-Math.exp(-dt*6));cam.updateProjectionMatrix();}
+ else if(cam.fov!==targetFov){cam.fov=targetFov;cam.updateProjectionMatrix();}
  document.documentElement.dataset.gateCamera=clerk?'clerk':'free';
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
- hero.root.visible=cam.position.distanceTo(pivot)>.85;
+ hero.root.visible=!clerk&&cam.position.distanceTo(pivot)>.85;
  const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!guideIntroduced?gateGuide(avatar).slot:null;
  if(activeSlot){
   callClock+=dt;
