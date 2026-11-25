@@ -54,3 +54,15 @@ body.hajjiAdmin .payment{background:#201c16;color:#fff;border-color:#504534}
 body.hajjiAdmin .adminSectionTitle{margin-top:8px}
 @media(max-width:420px){body.hajjiAdmin .brand{background-size:32px 32px;padding-left:39px;min-height:32px;font-size:17px}body.hajjiAdmin .headActions{gap:5px}}
 /* QR codes, certificates and video remain their actual colors; never filter a canvas or media element. */
+
+/* NPC identity plates: intentionally light, distinct from dark conversation panels. */
+body .npcTag,body .npcName,body.guideMode .npcTag,html.guideMode body .npcTag{
+ background:linear-gradient(135deg,#fff 0%,#fff9ed 55%,#ead3a0 100%);
+ color:#25211b;border:1px solid #c3a15d;border-radius:8px;
+ padding:5px 10px;font:750 12px/1.3 system-ui,sans-serif;letter-spacing:0;text-shadow:none!important;box-shadow:none;white-space:nowrap
+}
+body .npcTag strong,body .npcName strong,html.guideMode body .npcTag strong{color:#25211b;font-size:12px;font-weight:750;letter-spacing:0}
+body .npcTag small,body .npcName small{color:#65502b;font-size:10px;font-weight:600}
+html.guideMode body .npcTag.guideIsCalling{background:linear-gradient(135deg,#fff,#eed9a7);border-color:#b38b42;color:#25211b;box-shadow:none}
+html.guideMode body .npcTag.guideIsPassive{opacity:.85}
+@media(max-height:520px){body .npcTag,body .npcName{padding:4px 7px;font-size:11px}body .npcTag strong,body .npcName strong{font-size:11px}}
