@@ -22,4 +22,4 @@ export function mountArenaLookPad(available:()=>boolean,look:(dx:number,dy:numbe
  frame=requestAnimationFrame(tick);signal.addEventListener('abort',()=>{reset();cancelAnimationFrame(frame);pad.remove();},{once:true});
 }
 /** Navigation aids stay optional; they must not masquerade as nearby object interactions. */
-export function isNavigationAction(label:string){return /^(jalan (ke|menuju)|dekati |ikuti (pembimbing|jalur|penanda)|kembali (berjalan )?ke pintu.*\d+\s*m)/i.test(label.trim());}
+export function isNavigationAction(label:string){return /^(jalan (ke|menuju)|dekati |menuju garis awal|ikuti (jalur|penanda)|kembali (berjalan )?ke pintu.*\d+\s*m)/i.test(label.trim());}
