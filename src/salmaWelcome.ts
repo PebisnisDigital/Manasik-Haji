@@ -39,14 +39,32 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side|'desk')=>Ga
   const desk=project('desk'),pw=panel.offsetWidth,ph=panel.offsetHeight,bill=root.dataset.line==='bill';
   if(pw&&ph){
    let left:number,top:number;
-   // First-person: the desk is the only UI anchor. Keep the clerk's face clear.
-   left=desk.x-pw/2;
-   top=bill?desk.y-ph*.42:desk.y+8;
-   if(!desk.visible){left=(w-pw)/2;top=h-ph-16;}
-   panel.style.left=Math.round(clamp(left,12,w-pw-12))+'px';
-   panel.style.top=Math.round(clamp(top,Math.max(64,h*.46),h-ph-12))+'px';
-   panel.style.right='auto';panel.style.bottom='auto';panel.style.transform='none';
-   panel.dataset.anchor=desk.visible?'desk':'fallback';
+   if(bill){
+    // A fixed-size card beside the clerk, with a full-card fit on unusually short viewports.
+    const head=project('guide'),closeRect=closeBtn.getBoundingClientRect();
+    const inset=12,topSafe=Math.max(52,closeRect.bottom+6),availableH=Math.max(1,h-topSafe-inset);
+    const scale=Math.min(1,availableH/ph,(w-2*inset)/pw);
+    const width=pw*scale,height=ph*scale;
+    const faceGap=Math.max(64,Math.min(140,h*.15));
+    const headX=head.visible?head.x:w*.5;
+    const roomRight=w-inset-headX-faceGap,roomLeft=headX-faceGap-inset;
+    if(roomRight>=width)left=headX+faceGap;
+    else if(roomLeft>=width)left=headX-faceGap-width;
+    else left=roomRight>=roomLeft?w-width-inset:inset;
+    top=clamp(head.visible?head.y-18:topSafe,topSafe,h-height-inset);
+    panel.style.left=Math.round(clamp(left,inset,w-width-inset))+'px';
+    panel.style.top=Math.round(top)+'px';
+    panel.style.transform=scale<1?'scale('+scale+')':'none';
+    panel.dataset.anchor='bill-side';
+   }else{
+    left=desk.x-pw/2;top=desk.y+8;
+    if(!desk.visible){left=(w-pw)/2;top=h-ph-16;}
+    panel.style.left=Math.round(clamp(left,12,w-pw-12))+'px';
+    panel.style.top=Math.round(clamp(top,Math.max(64,h*.46),h-ph-12))+'px';
+    panel.style.transform='none';
+    panel.dataset.anchor=desk.visible?'desk':'fallback';
+   }
+   panel.style.right='auto';panel.style.bottom='auto';
   }
   const p=panel.getBoundingClientRect();
   // Prefer the actual head anchor. If it intersects the data card, use the free side or above the card.
