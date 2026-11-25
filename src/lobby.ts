@@ -82,17 +82,22 @@ function dismissGuideCall(){
 let cameraYaw=Math.PI,cameraPitch=.19,cameraRadius=guideMode?9.65:3.75,heading=Math.PI,lookedAt=-1e8,encounterProgram:Program|null=null;
 const velocity=new THREE.Vector2(),cameraFocus=new THREE.Vector3();let cameraInitialized=false;
 const deltaAngle=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
-function resetCamera(){cameraYaw=heading;cameraPitch=.19;cameraRadius=guideMode?9.65:3.75;cameraInitialized=false;}
+function resetCamera(){if(gateEncounter==='clerk')return;cameraYaw=heading;cameraPitch=.19;cameraRadius=guideMode?9.65:3.75;cameraInitialized=false;}
 btn('recenter').onclick=()=>{resetCamera();document.querySelector<HTMLDetailsElement>('.menu')!.open=false;};
 function resetPosition(preserveOrbit=false){if(sceneReady){hero.root.position.copy(start);heading=Math.PI;hero.root.rotation.y=heading;velocity.set(0,0);if(preserveOrbit){cameraInitialized=false;}else resetCamera();}}
 function stopMotion(){keys.clear();joy.set(0,0);velocity.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}
 
 function applyProgramSetting(p:Program){const open=newSessionAllowed(settings,p);btn('startTraining').disabled=!open||starting;if(!open)$('payNotice').textContent='Sesi baru sedang dijeda. Latihan lama tetap bisa dilanjutkan.';}
 function openRegistration(p:Program){chosenProgram=p;clearTimeout(dialogueTimer);encounter=false;encounterProgram=null;modal=true;target=null;stopMotion();$('bubble').hidden=true;$('programTitle').textContent=programs[p].title;$('programDesc').textContent=programs[p].desc;$('levelList').replaceChildren(...programs[p].levels.map((v,i)=>{const el=document.createElement('span');el.textContent=String(i+1).padStart(2,'0')+' · '+v;return el;}));$<HTMLFormElement>('registerForm').reset();const previous=readCore(p);btn('resumeTraining').hidden=!previous;btn('resumeTraining').textContent=previous?(isComplete(previous)?'Lihat sertifikat':'Lanjut level '+levelNumber(previous.step)):'Lanjutkan progress';btn('startTraining').textContent=previous?'Mulai ulang':'Mulai manasik';if(previous)$<HTMLInputElement>('fullName').value=previous.name;$('payNotice').textContent=accountId()?'Akses gratis • progress disinkronkan ke akun.':'Akses tamu • progress hanya di perangkat.';$('registerModal').hidden=false;$('instruction').textContent='Mulai manasik';applyProgramSetting(p);void loadSettings().then(()=>{if(chosenProgram===p&&!$('registerModal').hidden)applyProgramSetting(p);});if(!portraitBlocked)btn('closeRegister').focus({preventScroll:true});}
-function gateProject(p:Program,clerk:boolean,side:'guide'|'player'){
- const actor=side==='player'?hero.root:clerk?(registrationHall?.clerk(avatar==='female')??guides[p].root):guides[p].root;
- const point=actor.position.clone();point.y+=side==='guide'&&clerk?1.88:2.12;const view=point.clone().applyMatrix4(cam.matrixWorldInverse);point.project(cam);
+function projectGatePoint(point:THREE.Vector3){
+ const view=point.clone().applyMatrix4(cam.matrixWorldInverse);point.project(cam);
  const rect=$<HTMLCanvasElement>('world').getBoundingClientRect();return {x:rect.left+(point.x*.5+.5)*rect.width,y:rect.top+(.5-point.y*.5)*rect.height,visible:view.z< -cam.near&&point.z>=-1&&point.z<=1&&Math.abs(point.x)<=1&&Math.abs(point.y)<=1};
+}
+function gateDeskPoint(){const clerk=registrationHall?.clerk(avatar==='female');return clerk?clerk.position.clone().add(new THREE.Vector3(.15,1.10,.54)):new THREE.Vector3(0,1.1,-3.52);}
+function gateProject(p:Program,clerk:boolean,side:'guide'|'player'|'desk'){
+ if(side==='desk')return projectGatePoint(gateDeskPoint());
+ const actor=side==='player'?hero.root:clerk?(registrationHall?.clerk(avatar==='female')??guides[p].root):guides[p].root;
+ const point=actor.position.clone();point.y+=side==='guide'&&clerk?1.74:2.12;return projectGatePoint(point);
 }
 function greet(p:Program){
  if(modal||encounter||!selected||portraitBlocked)return;
@@ -101,9 +106,9 @@ function greet(p:Program){
  if(guideMode){
   dismissGuideCall();
   if(queueAuthorized){
-   queueAuthorized=false;gateEncounter='clerk';registrationHall?.setRegistrationBusy(true);
+   queueAuthorized=false;gateEncounter='clerk';cameraPointer=null;resetCameraStick();registrationHall?.setRegistrationBusy(true);
    $('instruction').textContent='Sedang dilayani petugas pendaftaran';
-   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);guideIntroduced=true;$('instruction').textContent='Dekati papan MULAI ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName,href=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;queueAuthorized=false;target=null;stopMotion();departure={href,side:avatar==='female'?1:-1,stage:0,arrived:false};$('instruction').textContent='Tiket aktif · menuju pintu keberangkatan';});
+   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);cameraInitialized=true;guideIntroduced=true;$('instruction').textContent='Dekati papan MULAI ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName,href=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;queueAuthorized=false;target=null;stopMotion();departure={href,side:avatar==='female'?1:-1,stage:0,arrived:false};$('instruction').textContent='Tiket aktif · menuju pintu keberangkatan';});
   }else{
    gateEncounter='guide';$('instruction').textContent='Berbincang dengan '+gateGuide(avatar).name;
    closeGateDialogue=openGateGuide((name,join)=>{guidePlayerName=name;guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Dekati papan MULAI ANTREAN untuk mendaftar';if(join)registrationAction();},side=>gateProject(p,false,side),guidePlayerName);
@@ -144,11 +149,11 @@ async function landscapeFullscreen(){if(!touchMode)return;try{if(!document.fulls
 btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exitFullscreen().catch(()=>{});}else void landscapeFullscreen();};btn('rotateFullscreen').onclick=()=>void landscapeFullscreen();btn('cameraReset').onclick=()=>resetCamera();
 window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);document.addEventListener('fullscreenchange',()=>{btn('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Keluar layar penuh':'Layar penuh');syncOrientation();});
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();ray.layers.enable(1);const canvas=$<HTMLCanvasElement>('world');let cameraPointer:number|null=null,downX=0,downY=0,prevX=0,prevY=0,dragged=false;
-canvas.addEventListener('pointerdown',e=>{if(!sceneReady||modal||(encounter&&!guideMode)||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor(),.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
+canvas.addEventListener('pointerdown',e=>{if(!sceneReady||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor(),.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
 canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
 canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
-canvas.addEventListener('wheel',e=>{if(modal||(encounter&&!guideMode))return;e.preventDefault();cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
+canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter&&!portraitBlocked){e.preventDefault();currentGateAction()?.run?.();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',stopGuideVoice);
 let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
 j.addEventListener('pointerdown',e=>{if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
@@ -185,7 +190,7 @@ function resetCameraStick(){cameraStickPointer=null;cameraStick.set(0,0);const k
 function mountGateControls(){
  const pad=document.createElement('div');pad.className='gateCameraPad joy';pad.setAttribute('aria-label','Joystick kamera');pad.title='Geser untuk memutar kamera';pad.append(document.createElement('div'));document.querySelector('.bottom')!.append(pad);gateCameraPad=pad;
  function move(e:PointerEvent){const b=pad.getBoundingClientRect();cameraStick.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(cameraStick.length()>1)cameraStick.normalize();(pad.firstElementChild as HTMLElement).style.transform='translate(calc(-50% + '+cameraStick.x*b.width*.28+'px),calc(-50% + '+cameraStick.y*b.height*.28+'px))';}
- pad.addEventListener('pointerdown',e=>{if(!selected||modal||portraitBlocked||cameraStickPointer!==null||e.button!==0)return;e.preventDefault();cameraStickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);move(e);});
+ pad.addEventListener('pointerdown',e=>{if(!selected||modal||gateEncounter==='clerk'||portraitBlocked||cameraStickPointer!==null||e.button!==0)return;e.preventDefault();cameraStickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);move(e);});
  pad.addEventListener('pointermove',e=>{if(e.pointerId===cameraStickPointer)move(e);});
  const release=(e:PointerEvent)=>{if(e.pointerId===cameraStickPointer)resetCameraStick();};
  pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);pad.addEventListener('lostpointercapture',release);
@@ -200,7 +205,7 @@ function mountGateControls(){
 }
 function frame(now:number){
  requestAnimationFrame(frame);const dt=Math.min(.05,last?(now-last)/1000:0);last=now;if(paused||document.hidden||(portraitBlocked&&(!entranceMode||entranceFramePresented))||introPlaying||budget.lost()){videotron?.draw(cam,false);return;}tutorial.paint();
- if(guideMode&&gateCameraPad){gateCameraPad.hidden=!selected||modal||portraitBlocked;if(modal||portraitBlocked)resetCameraStick();if(cameraStick.lengthSq()>.006){cameraYaw-=cameraStick.x*dt*2.15*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+cameraStick.y*dt*1.35*lookFactor(),.045,.75);lookedAt=now;tutorial.event({type:'look',amount:cameraStick.length()*dt*90});}}
+ if(guideMode&&gateCameraPad){gateCameraPad.hidden=!selected||modal||portraitBlocked||gateEncounter==='clerk';if(modal||portraitBlocked||gateEncounter==='clerk')resetCameraStick();if(cameraStick.lengthSq()>.006){cameraYaw-=cameraStick.x*dt*2.15*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+cameraStick.y*dt*1.35*lookFactor(),.045,.75);lookedAt=now;tutorial.event({type:'look',amount:cameraStick.length()*dt*90});}}
  const pos=hero.root.position;let dx=0,dz=0;let automatic=false;
  if(selected&&!modal&&!encounter&&!queueAuthorized){
   if(departure){if(!departure.arrived){automatic=true;const points=[new THREE.Vector3(departure.side*5.65,0,-2.77),new THREE.Vector3(departure.side*5.9,0,-4.55),new THREE.Vector3(departure.side*6,0,-6.5)];const dest=points[departure.stage]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(departure.stage===0){registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);}if(departure.stage<2)departure.stage++;else{departure.arrived=true;stopMotion();$('instruction').textContent='Pilih MASUK di pintu keberangkatan';}dx=dz=0;}}}
@@ -218,7 +223,7 @@ function frame(now:number){
  if(encounter&&encounterProgram){const t=gateEncounter==='clerk'?(registrationHall?.clerk(avatar==='female').position??placements[encounterProgram]):placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
  hero.root.rotation.y=heading;
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
- // Registration camera is a manual orbit: auto-walk and conversations must not change its yaw.
+ // Free exploration orbit stays untouched; only the seated clerk has a temporary cinematic shot.
  if(!guideMode&&cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
  const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const radius=cameraRadius+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
@@ -226,7 +231,17 @@ function frame(now:number){
  if(cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
  const plazaView=guideMode?1.25:0;
  const look=pivot.clone().add(new THREE.Vector3(fx*.82+rx*.34,.13+plazaView,fz*.82+rz*.34));
- if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*11);cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
+ const clerk=gateEncounter==='clerk'?registrationHall?.clerk(avatar==='female'):undefined;
+ if(clerk){
+  // Shoot from the open central aisle, not through the booth or the waiting line.
+  const center=clerk.position.clone().lerp(pos,.48);center.y=1.20;
+  const inner=avatar==='female'?-1:1;
+  const distance=cam.aspect<1.2?3.85:3.15;
+  cameraGoal.copy(center).add(new THREE.Vector3(inner*distance,.72,.80));
+  look.copy(center);look.y=1.24;
+ }
+ document.documentElement.dataset.gateCamera=clerk?'clerk':'free';
+ if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
  hero.root.visible=cam.position.distanceTo(pivot)>.85;
  const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!guideIntroduced?gateGuide(avatar).slot:null;
