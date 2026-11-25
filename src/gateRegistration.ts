@@ -14,8 +14,8 @@ async function request(action='',body?:unknown):Promise<ResponseData>{
  if(data?.ticket?.amount!==100000||typeof data.ticket.account!=='string'||data.registration&&!['pending','reported','approved'].includes(data.registration.status))throw Error('Respons pendaftaran tidak valid.');return data;
 }
 /** Approval always comes from the server; browser storage cannot approve a transfer. */
-export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack:()=>void){
- let checked=false;let identity={name:'',email:'',phone:''};const sapaan=gateGreeting(readSetup()?.avatar??'male');let qrisPending=false;let disposed=false,busy=false,poll:ReturnType<typeof setTimeout>|undefined,lastState='',watch=false,disposePopup:(()=>void)|undefined;
+export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack:()=>void,playerName=''){
+ let checked=false;let identity={name:playerName.trim().slice(0,60),email:'',phone:''};const sapaan=gateGreeting(readSetup()?.avatar??'male');let qrisPending=false;let disposed=false,busy=false,poll:ReturnType<typeof setTimeout>|undefined,lastState='',watch=false,disposePopup:(()=>void)|undefined;
  const status=document.createElement('p');status.setAttribute('role','status');host.replaceChildren(status);
  function message(error:unknown){notice.textContent=error instanceof Error&&error.name!=='SyntaxError'?error.message:'Layanan pendaftaran belum tersambung. Data belum dikirim. Coba lagi atau kembali ke gerbang.';}
  function button(text:string,run:()=>void,primary=false){const b=document.createElement('button');b.type='button';b.textContent=text;if(primary)b.className='travelPrimary';b.onclick=run;return b;}
