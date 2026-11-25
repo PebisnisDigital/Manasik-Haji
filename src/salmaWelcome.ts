@@ -1,5 +1,5 @@
 import {readSetup} from './frontSettings.ts';
-import {gateGuide,gateGreeting} from './gateGuide.ts';
+import {gateGreeting} from './gateGuide.ts';
 import {mountGateRegistration} from './gateRegistration.ts';
 import {slug} from './tenant.ts';
 import {localPreview,demoMagicUrl,showMagicLinkPopup} from './magicAccess.ts';
@@ -9,8 +9,8 @@ export type GateDialogueAnchor={x:number;y:number;visible:boolean};
 type Side='guide'|'player';
 type Choice='check'|'register';
 type Progress={stage:'welcome'|'form';choice:Choice};
-export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialogueAnchor){
- const avatar=readSetup()?.avatar??'male',guide=gateGuide(avatar).name,sapaan=gateGreeting(avatar);
+export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialogueAnchor,playerName=''){
+ const avatar=readSetup()?.avatar??'male',guide=avatar==='female'?'Petugas loket perempuan':'Petugas loket laki-laki',sapaan=gateGreeting(avatar);
  const key='hajji-gate-chat-v2:'+String(slug??'')+':'+avatar;
  let progress:Progress={stage:'welcome',choice:'check'};
  try{const v=JSON.parse(localStorage.getItem(key)??'null');if(v?.stage==='form')progress={stage:'form',choice:v.choice==='register'?'register':'check'};}catch{}
@@ -28,7 +28,7 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialo
  const notice=document.createElement('p');notice.className='gateWorldNotice';notice.setAttribute('role','status');
  panel.append(actions,content,notice);root.append(bubble,panel,closeBtn);document.body.append(root);
  document.documentElement.classList.add('gateDialogueActive');
- function say(s:Side,text:string){side=s;bubble.dataset.side=s;who.textContent=s==='guide'?guide:'Pemain';line.textContent=text;}
+ function say(s:Side,text:string){side=s;bubble.dataset.side=s;who.textContent=s==='guide'?guide:playerName||'Pemain';line.textContent=text;}
  function layout(){
   if(closed)return;
   const a=project(side),w=window.innerWidth,h=window.innerHeight,bw=bubble.offsetWidth,bh=bubble.offsetHeight;
@@ -62,7 +62,7 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialo
   clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'form',choice};save();
   root.dataset.line='reply';actions.hidden=true;content.hidden=true;notice.textContent='';
   say('player',choice==='check'?'Saya ingin cek tiket saya.':'Saya ingin mendaftar.');
-  const reveal=()=>{if(closed)return;root.dataset.line='form';say('guide',choice==='check'?'Baik, '+sapaan+'. Isi data untuk cek tiket, ya.':'Silakan isi data dulu, '+sapaan+'. Saya cek agar tidak ada pendaftaran ganda.');content.hidden=false;disposeRegistration=mountGateRegistration(content,notice,welcome);};
+  const reveal=()=>{if(closed)return;root.dataset.line='form';say('guide',choice==='check'?'Baik, '+sapaan+'. Isi data untuk cek tiket, ya.':'Silakan isi data dulu, '+sapaan+'. Saya cek agar tidak ada pendaftaran ganda.');content.hidden=false;disposeRegistration=mountGateRegistration(content,notice,welcome,playerName);};
   if(animate)timer=setTimeout(reveal,1100);else reveal();
  }
  closeBtn.onclick=close;document.addEventListener('keydown',escape);check.onclick=()=>form('check',true);register.onclick=()=>form('register',true);
