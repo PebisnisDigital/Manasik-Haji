@@ -19,7 +19,7 @@ function cssColor(value:string,property:string,onGold:boolean,primary:boolean){
  }else if(p==='background'||p==='background-color'||p==='background-image'){
   if(c.green)target=primary?gold:c.lum<85?ink:c.lum<155?surface:raised;
   else if(c.neutral&&c.lum>180)target=c.lum>238?surface:raised;
-  else if(c.warm&&c.lum>215&& !onGold)target=surface;
+  else if(c.warm&&c.lum>230&& !onGold)target=surface;
  }else if(p.includes('border')||p==='outline'||p==='outline-color'){
   if(c.green||c.neutral&&c.lum>140)target='#504534';
  }else if(p.includes('shadow')){
@@ -32,7 +32,7 @@ export function brandCSS(css:string){
  return css.replace(/([^{}]+)\{([^{}]*)\}/g,(all,selector:string,body:string)=>{
   const primary=/(?:\.primary\b|\.frontStart\b|\.gateEnterDistrict\b|\.travelPrimary\b|\.adminBottomNav a\[aria-current)/.test(selector);
   const backgrounds=[...body.matchAll(/(?:^|;)\s*background(?:-color)?\s*:\s*([^;]+)/gi)].flatMap(m=>m[1]!.match(hexRE)??[]);
-  const onGold=primary&&backgrounds.some(h=>info(h).green)||backgrounds.some(h=>{const c=info(h);return c.warm&&c.lum>=125&&c.lum<=215;});
+  const onGold=primary&&backgrounds.some(h=>info(h).green)||backgrounds.some(h=>{const c=info(h);return c.warm&&c.lum>=125&&c.lum<=230;});
   let next=body.replace(/(^|;)\s*([\w-]+)\s*:\s*([^;]*)/g,(m,sep:string,p:string,v:string)=>{
    if(v.includes('url('))return m;
    let mapped=v.replace(hexRE,h=>cssColor(h,p,onGold,primary));
@@ -52,7 +52,7 @@ const paint:Record<string,string>={
  '215847':'252525','173d32':'151515','203b34':'151515','234f47':'212121','14392e':'111111','316851':'6b5428','30483e':'303030','193d2f':'141414','37533c':'302719',
  '1c5141':'232323','164638':'151515','214e43':'252525','204d41':'111111','24533f':'151515','356f56':'484039','425747':'383838','52796b':'56504a',
  '53df76':'e8c76f','62e389':'e8c76f','63e88a':'e8c76f',
- 'c3d2c6':'d0cfca','667e65':'58524a','71877a':'5e5c55'
+ '12634e':'242424','124b3e':'151515','155341':'242424','c3d2c6':'d0cfca','667e65':'58524a','71877a':'5e5c55'
 };
 const sceneFiles=/(?:\/src\/(?:lobby|registrationHall|souvenirWorld|miqatRoom|hajjScenes|miniScenes|player|sai|salmaWelcome|gateRegistration|tawafAtmosphere)\.ts|\/src\/adventure\/(?:missionCity|districtWorld|cityLivePlazas|districtBoard|district|districtGuardTalk|cityMinimap|souvenirCelebration|tawafGame|saiGame|tahallulGame|hajjFieldExperience|muzdalifahExperience|aqabahExperience)\.(?:ts|js))$/;
 function sceneColors(code:string){
@@ -62,11 +62,11 @@ export function hajjiBrand():Plugin{
  return {name:'hajji-black-gold-brand',enforce:'pre',
   transform(code,id){const path=id.split('?')[0]!.replace(/\\/g,'/');if(!path.includes('/src/')||path.includes('/node_modules/'))return;
    if(path.endsWith('.css'))return {code:brandCSS(code),map:null};
-   if(sceneFiles.test(path))return {code:sceneColors(code),map:null};
+   if(sceneFiles.test(path)||path.endsWith('/src/pwa.ts'))return {code:sceneColors(code).replace(/pwa-icon-(?:192|512)\.png/g,'pwa-icon.svg').replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL'),map:null};
   },
   transformIndexHtml:{order:'pre',handler(html){
    let next=html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi,(_,attrs:string,css:string)=>'<style'+attrs+'>'+brandCSS(css)+'</style>');
-   next=next.replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/(<meta\s+name="theme-color"\s+content=")[^"]+"/gi,'$1#0a0a0a"').replace(/pwa-apple-180\.png/g,'pwa-icon.svg');
+   next=next.replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/(<meta\s+name="theme-color"\s+content=")[^"]+"/gi,'$1#0a0a0a"').replace(/pwa-(?:apple-180|icon-192|icon-512|maskable-512)\.png/g,'pwa-icon.svg');
    if(!/rel="icon"/i.test(next))next=next.replace('</head>','<link rel="icon" type="image/svg+xml" href="./pwa-icon.svg"></head>');
    return {html:next,tags:[{tag:'link',attrs:{rel:'stylesheet',href:'./hajji-brand.css'},injectTo:'head'}]};
   }}
