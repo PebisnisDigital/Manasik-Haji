@@ -15,6 +15,21 @@ export const TAWAF_PLACES=[
  {id:'hijr',title:'Hijr Ismail',x:-18,z:48,look:landmarkLook('hijr'),hint:'Cari Hijr Ismail: perhatikan dinding rendah melengkung di sisi Ka’bah. Berjalanlah di luar kawasan dindingnya.',body:'Perhatikan dinding rendah melengkung di sisi Ka’bah. Jalur latihan berputar mengitari bagian luar kawasan ini. Ikuti penanda hijau agar tetap pada rute yang disediakan.'},
  {id:'yamani',title:'Rukun Yamani',x:0,z:87,look:landmarkLook('yamani'),hint:'Cari sudut Rukun Yamani di sisi berikutnya. Amati sudut Ka’bah dari pelataran dan dekati penanda pengenalannya.',body:'Kenali sudut Rukun Yamani. Bagian perjalanan sesudahnya menuju Hajar Aswad dapat dikenali dengan penanda arah. Setelah mengenali arena, kita kembali ke garis awal untuk mulai menghitung.'},
 ] as const;
+/** The learning interaction uses the same landmark and proximity range as the visible label.
+ * The old safe observation point stays valid for existing saves and guided walking.
+ * This affects discovery only, not the seven-lap checkpoint radius.
+ */
+export function tawafDiscoveryNear(index:number,player:{x:number;z:number}):boolean{
+ const p=TAWAF_PLACES[index];if(!p||!Number.isFinite(player.x)||!Number.isFinite(player.z))return false;
+ const landmark=HARAM_LANDMARKS.find(l=>l.id===p.id)!;
+ return Math.hypot(player.x-landmark.at.x,player.z-(landmark.at.z+TAWAF_CENTRE.z))<=landmark.near||
+ Math.hypot(player.x-p.x,player.z-p.z)<=1.15;
+}
+export function tawafDiscoveryAction(index:number,player:{x:number;z:number}){
+ const p=TAWAF_PLACES[index];if(!p)return '';
+ const name=HARAM_LANDMARKS.find(l=>l.id===p.id)!.name;
+ return (tawafDiscoveryNear(index,player)?'Kenali ':'Dekati ')+name;
+}
 export const TAWAF_EXTRA_SOLIDS=[{x:-6,z:58,w:14,d:14},{x:12.7,z:51.3,w:3.2,d:3.2},{x:21.6,z:74.4,w:5.3,d:5.3}];
 export interface TawafTour{version:1;active:boolean;poi:number;started:boolean}
 export const tawafTourKey=(avatar:Avatar)=>playerKey('manasik-continuous-tawaf-'+avatar+'-v1');

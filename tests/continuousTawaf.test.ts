@@ -61,3 +61,30 @@ describe('Haram landmark geometry',()=>{
   expect(Math.hypot(CLOCK_POSITION.x,CLOCK_POSITION.z-64)).toBeGreaterThan(GALLERY.outerWallRadius);
  });
 });
+
+import {tawafDiscoveryNear,tawafDiscoveryAction} from '../src/continuousTawafModel.ts';
+describe('Qudum landmark interactions match the visible objects',()=>{
+ it('accepts a walkable position close to the real Maqam rather than requiring its old marker',()=>{
+  const m=HARAM_LANDMARKS.find(l=>l.id==='maqam')!,p=TAWAF_PLACES[1],obs=[...ARRIVAL_SOLIDS,...TAWAF_EXTRA_SOLIDS];
+  const pos={x:m.at.x+3.5,z:m.at.z+64};
+  expect(Math.hypot(pos.x-p.x,pos.z-p.z)).toBeGreaterThan(1.15);
+  expect(safePosition(pos.x,pos.z,obs,TAWAF_BOUNDS)).toBe(true);
+  expect(tawafDiscoveryNear(1,pos)).toBe(true);
+  expect(tawafDiscoveryAction(1,pos)).toBe('Kenali Maqam Ibrahim');
+ });
+ it('accepts accessible points within each rendered landmark zone and preserves old approach markers',()=>{
+  const obs=[...ARRIVAL_SOLIDS,...TAWAF_EXTRA_SOLIDS];
+  for(const [i,p] of TAWAF_PLACES.entries()){
+   const l=HARAM_LANDMARKS.find(l=>l.id===p.id)!;
+   let count=0;
+   for(let x=-35;x<=35;x++)for(let z=28;z<=96;z++){
+    if(safePosition(x,z,obs,TAWAF_BOUNDS)&&Math.hypot(x-l.at.x,z-l.at.z-64)<=l.near&&Math.hypot(x-p.x,z-p.z)>1.15){expect(tawafDiscoveryNear(i,{x,z})).toBe(true);count++;}
+   }
+   expect(count,p.id).toBeGreaterThan(0);
+   expect(tawafDiscoveryNear(i,p)).toBe(true);
+   expect(tawafDiscoveryAction(i,{x:35,z:0})).toBe('Dekati '+l.name);
+   expect(tawafDiscoveryNear(i,{x:35,z:0})).toBe(false);
+  }
+ });
+ it('does not accept an invalid position or nonexistent discovery',()=>{expect(tawafDiscoveryNear(4,{x:23,z:64})).toBe(false);expect(tawafDiscoveryNear(1,{x:NaN,z:51})).toBe(false);});
+});
