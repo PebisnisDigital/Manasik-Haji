@@ -6,7 +6,7 @@
   "scripts": {
     "registration:server": "node server/registration-server.mjs",
     "registration:admin": "node server/registration-admin.mjs",
-    "test:registration": "node --test server/registration.test.mjs",
+    "test:registration": "node --test server/registration.test.mjs server/buatqris.test.mjs",
     "dev": "vite",
     "build": "tsc --noEmit && npm run test:core && npm run test:release && npm run test:registration && node tools/pwa-build.mjs prepare && vite build && node tools/pwa-build.mjs finish && node tools/release-check.mjs",
     "preview": "vite preview",

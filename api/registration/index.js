@@ -1,4 +1,4 @@
-import {handleQr} from '../../server/buatqris.mjs';
+import {handleQr,QrisError} from '../../server/buatqris.mjs';
 import {createHash} from 'node:crypto';
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
@@ -21,5 +21,5 @@ export default async function handler(req,res){
  if(result.secret){res.setHeader('Set-Cookie','manasik_registration='+result.secret+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=31536000');delete result.secret;}
  if(qrisOp)result.qris=qris;else if(op==='get'&&result.registration?.status==='pending' ){try{result.qris=await handleQr('get',secret);}catch{}}
  return reply(200,result);
- }catch{return reply(503,{error:'Layanan pendaftaran belum tersambung.'});}
+ }catch(err){if(err instanceof QrisError)return reply(err.code==='rate_limited'?429:503,{error:err.message,code:err.code});console.warn('Registration request failed',{operation:op});return reply(503,{error:'Layanan pendaftaran belum tersambung.'});}
 }
