@@ -3,7 +3,7 @@ import {defaultSetup} from './frontModel.ts';
 import {gateGuide} from './gateGuide.ts';
 import {showMagicLinkPopup} from './magicAccess.ts';
 type Registration={id:string;name:string;avatar:'male'|'female';program:'hajj'|'umrah';status:'pending'|'reported'|'approved';reference:string|null};
-type ResponseData={ticket:{amount:number;bank:string;account:string;holder:string};registration:Registration|null;href?:string};
+type ResponseData={ticket:{amount:number;bank:string;account:string;holder:string;enabled?:boolean};registration:Registration|null;href?:string};
 async function request(action='',body?:unknown):Promise<ResponseData>{
  const response=await fetch(new URL('./api/registration'+action,location.href),{method:body?'POST':'GET',credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(8000)});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Layanan belum tersedia.');
@@ -61,6 +61,7 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
   const heading=document.createElement('h3');heading.textContent=r?'Pendaftaran '+r.id:'Formulir pendaftaran';host.append(heading);
   if(['localhost','127.0.0.1'].includes(location.hostname)){const test=document.createElement('p');test.className='gateTestNotice';test.textContent='Pengujian lokal — jangan transfer uang untuk mencoba alur ini.';host.append(test);}
   const price=document.createElement('p');price.textContent='Tiket petualangan · Rp100.000 / peserta. Haji 12 level atau Umroh 5 level, bus, misi, bekal, dan checkpoint.';host.append(price);
+  if(!r&&data.ticket.enabled===false){host.append('Pendaftaran berbayar belum dibuka. Silakan kembali setelah admin mengaktifkan rekening.',button('Periksa kembali',()=>void load()),back());return;}
   if(!r){
    const form=document.createElement('form');form.className='gateRegistrationForm';form.innerHTML='<label>Nama peserta<input name="name" autocomplete="name" required minlength="2" maxlength="60" placeholder="Nama lengkap"></label><label>Nomor WhatsApp<input name="phone" type="tel" autocomplete="tel" inputmode="tel" pattern="(\\+?62|0)8[0-9]{7,12}" required maxlength="17" placeholder="08… atau +628…"><small>Untuk data pendaftaran. Pengiriman akses WhatsApp belum diaktifkan.</small></label><label>Perjalanan<select name="program"><option value="hajj">Haji · 12 level</option><option value="umrah">Umroh · 5 level</option></select></label><label class="gateConsent"><input name="consent" type="checkbox" required><span>Saya setuju nama dan nomor WhatsApp disimpan untuk mengurus pendaftaran dan verifikasi transfer.</span></label><p>Setelah formulir dikirim, '+guide+' akan memberikan nomor pendaftaran dan petunjuk transfer. QRIS dan kode diskon belum tersedia.</p><button type="submit" class="travelPrimary">Daftar & lihat petunjuk transfer →</button>';
    const program=form.elements.namedItem('program') as HTMLSelectElement;program.value=readSetup()?.program??'hajj';
