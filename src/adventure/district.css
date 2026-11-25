@@ -9,3 +9,29 @@
 #dialogText{white-space:pre-line}.routeCue{position:fixed;left:50%;bottom:max(29px,env(safe-area-inset-bottom));transform:translateX(-50%);max-width:calc(100vw - 440px);padding:10px 16px;border:1px solid #e3c78b85;border-radius:10px;background:#193d34ed;color:#f2d9a0;font-size:12px;font-weight:750;text-align:center;pointer-events:none}@media(max-height:550px){.routeCue{bottom:13px;font-size:10px;padding:7px 10px;max-width:calc(100vw - 440px)}}@media(max-width:650px){.topRight{gap:5px}.iconButton{width:44px}.rewardCard{padding:8px}.routeCue{left:auto;right:12px;transform:none;bottom:143px;max-width:220px;font-size:9px}}
 
 .busGuide{position:fixed;top:220px;left:max(22px,env(safe-area-inset-left));width:300px;max-width:calc(100vw - 44px);padding:12px 15px;background:#173c33ee;color:#e7e3cd;border:1px solid #cfba8277;border-radius:12px;font:12px/1.6 system-ui;pointer-events:none}.busGuide strong{display:block;font-size:9px;letter-spacing:.08em;color:#edcf8d;margin-bottom:5px}.busGuide[hidden]{display:none!important}@media(max-height:550px){.busGuide{top:123px;left:max(12px,env(safe-area-inset-left));width:275px;padding:8px 11px;font-size:10px}.busGuide strong{font-size:8px;margin-bottom:2px}}
+
+/* Mission district: the same twin-stick HUD and crisp world dialogue as the registration entrance. */
+.districtHubMode .districtBottom .actionControls{display:none!important}
+.districtHubMode .districtBottom .stickWrap>span{display:none}
+.districtHubMode .districtLookStick{margin-left:auto;flex:none;pointer-events:auto;touch-action:none}
+.districtLookStick>span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:38%;height:38%;border-radius:50%;border:1px solid #fff4;background:#e6cf9cbb;pointer-events:none}
+.districtSpeech{position:fixed;z-index:20;box-sizing:border-box;width:max-content;max-width:min(290px,calc(100vw - 24px));padding:10px 12px;background:#fff9eb;color:#193b30;border:1.5px solid #c8a65b;border-radius:12px;text-shadow:none!important;font:600 14px/1.4 system-ui,sans-serif}
+.districtSpeech strong{display:block;color:#8b622b;font-size:11px;text-transform:uppercase;margin-bottom:4px}
+.districtSpeech p{margin:0;text-shadow:none!important}
+.districtSpeech:after{content:"";position:absolute;bottom:-7px;left:calc(50% - 6px);width:12px;height:12px;background:#fff9eb;border-right:1.5px solid #c8a65b;border-bottom:1.5px solid #c8a65b;transform:rotate(45deg);pointer-events:none}
+.districtSpeech[data-side=player]{background:#e6efdc;border-color:#829e79}
+.districtSpeech[data-side=player]:after{display:none}
+.districtContextPrompt button{display:flex;width:100%;min-height:44px;margin-top:5px;justify-content:center;text-shadow:none!important}
+.districtContextPrompt button[hidden],.districtContextPrompt[hidden],.districtLookStick[hidden]{display:none!important}
+.districtGuardTalk{position:fixed;inset:0;z-index:40;pointer-events:none}
+.districtGuardTalk .districtSpeech{z-index:1;pointer-events:none}
+.districtGuardAnswer{position:absolute;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(620px,calc(100vw - 28px));box-sizing:border-box;border:1px solid #c8a65b;border-radius:12px;padding:10px;background:#173c32;pointer-events:auto;display:flex;gap:8px;justify-content:center}
+.districtGuardAnswer:empty{display:none}
+.districtGuardAnswer form{display:flex;gap:8px;width:100%}
+.districtGuardAnswer input{flex:1;min-width:0;box-sizing:border-box;border:1px solid #c8a65b;border-radius:8px;padding:10px 12px;background:#fff9eb;color:#193b30;font:16px system-ui}
+.districtGuardAnswer button{min-height:44px;flex:none;text-shadow:none!important}
+.districtGuardClose{position:absolute;top:10px;right:12px;width:44px;height:44px;background:#173c32;color:#fff9eb;border:1px solid #c8a65b;border-radius:9px;font-size:25px;pointer-events:auto}
+html:has(.districtGuardTalk) .districtHubMode .districtBottom,html:has(.districtGuardTalk) .districtHud .topRight,html:has(.districtGuardTalk) .districtHud .miniMap{visibility:hidden}
+html.districtHubMode:has(.districtGuardTalk) .districtBottom{visibility:hidden}
+@media(orientation:landscape) and (max-height:520px){.districtSpeech{max-width:min(250px,45vw);font-size:12px;padding:8px 10px}.districtGuardAnswer{width:min(480px,75vw);bottom:8px;padding:6px}.districtGuardClose{top:6px;right:8px}}
+@media(orientation:portrait) and (pointer:coarse){.districtGuardTalk,.districtContextPrompt{visibility:hidden}}
