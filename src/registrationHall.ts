@@ -1,3 +1,4 @@
+import {drawNamePlate} from './characters/NamePlate.ts';
 import {sweepGround,type SolidBody} from './sim/GroundCollision.ts';
 import {GATE_OFFICE as O,GATE_VIDEOTRON as V} from './gateVideotronModel.ts';
 import {joinQueue,serveQueue,type QueueTicket} from './queueTicket.ts';
@@ -31,15 +32,15 @@ function rope(scene:THREE.Scene,x:number,a:number,b:number){
 }
 function label(root:THREE.Group,height:number):{label:THREE.Sprite;canvas:HTMLCanvasElement}{
  const canvas=document.createElement('canvas');canvas.width=256;canvas.height=64;const map=new THREE.CanvasTexture(canvas);map.colorSpace=THREE.SRGBColorSpace;
- const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false}));sprite.position.y=height+.24;sprite.scale.set(.92,.23,1);root.add(sprite);return {label:sprite,canvas};
+ const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map,transparent:true,depthWrite:false}));sprite.position.y=height+.24;sprite.scale.set(1.22,.305,1);root.add(sprite);return {label:sprite,canvas};
 }
 function rename(npc:LaneNPC,lane:Lane){
  const name=lane.names[lane.nextName++%lane.names.length];npc.nameIndex=lane.nextName;
- const c=npc.canvas,g=c.getContext('2d')!;g.clearRect(0,0,c.width,c.height);g.fillStyle='#163b30ed';g.fillRect(0,4,256,56);g.strokeStyle='#d5bb79';g.lineWidth=2;g.strokeRect(2,6,252,52);g.font='bold 30px sans-serif';g.textAlign='center';g.fillStyle='#fff4db';g.fillText(name,128,44,242);npc.label.material.map!.needsUpdate=true; npc.root.userData.registrationName=name;
+ drawNamePlate(npc.canvas.getContext('2d')!,name);npc.label.material.map!.needsUpdate=true; npc.root.userData.registrationName=name;
 }
 function makeAdmin(scene:THREE.Scene,x:number,female:boolean){
  const admin=new THREE.Group();admin.position.set(x,0,-4.06);scene.add(admin);
- const uniform=material(female?0x427b69:0x305e55),skin=material(female?0xc99d7b:0x9c7153);
+ const uniform=material(female?0x191919:0x305e55),skin=material(female?0xc99d7b:0x9c7153);
  // A seated clerk behind the counter. Forearm and pencil move over the ledger.
  box(admin,.48,.6,.32,0,1.04,0,uniform);sphere(admin,.137,0,1.49,.015,skin);
  if(female){sphere(admin,.154,0,1.49,-.05,uniform);sphere(admin,.128,0,1.49,.078,skin);box(admin,.34,.23,.18,0,1.28,.02,uniform);}
