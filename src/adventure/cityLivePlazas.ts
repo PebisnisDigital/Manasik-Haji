@@ -1,3 +1,4 @@
+import {drawNamePlate} from '../characters/NamePlate.ts';
 import {joinQueue,serveQueue,type QueueTicket} from '../queueTicket.ts';
 import * as THREE from 'three';
 import {humanActor} from '../characters/HumanActors.ts';
@@ -39,7 +40,7 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;textures.push(tex);const m=new THREE.MeshBasicMaterial({map:tex,toneMapped:false});materials.push(m);
   const mesh=new THREE.Mesh(signGeo,m);mesh.position.set(x,y,z);mesh.scale.set(w,h,1);parent.add(mesh);
  }
- function tag(root:THREE.Group,name:string,height:number){const c=document.createElement('canvas');c.width=384;c.height=80;const ctx=c.getContext('2d')!;ctx.fillStyle='#173d32';ctx.fillRect(0,0,384,80);ctx.strokeStyle='#d4bd83';ctx.lineWidth=3;ctx.strokeRect(2,2,380,76);ctx.font='bold 29px system-ui';ctx.textAlign='center';ctx.fillStyle='#fff4df';ctx.fillText(name,192,51,366);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;textures.push(t);const m=new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false});materials.push(m);const s=new THREE.Sprite(m);s.position.set(0,height+.30,0);s.scale.set(1.85,.385,1);root.add(s);return s;}
+ function tag(root:THREE.Group,name:string,height:number){const c=document.createElement('canvas');c.width=384;c.height=80;const ctx=c.getContext('2d')!;drawNamePlate(ctx,name);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;textures.push(t);const m=new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false});materials.push(m);const s=new THREE.Sprite(m);s.position.set(0,height+.30,0);s.scale.set(1.85,.385,1);root.add(s);return s;}
  function point(p:Place,x:number,z:number):Point{return {x:p.x+Math.cos(p.yaw)*x+Math.sin(p.yaw)*z,z:p.z-Math.sin(p.yaw)*x+Math.cos(p.yaw)*z};}
  function solid(p:Place,x:number,z:number,w:number,d:number){const a=point(p,x,z),c=Math.abs(Math.cos(p.yaw)),s=Math.abs(Math.sin(p.yaw));solids.push({...a,w:w*c+d*s,d:w*s+d*c});}
  const lanes:{place:Place;actors:QueueActor[];decor:THREE.Group;market:Snack[];clock:number;ticket:QueueTicket|null}[]=[];
