@@ -37,6 +37,6 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
   css.domElement.hidden=false;css.render(scene,camera);
  }
  const hide=()=>{if(document.hidden)unload();};document.addEventListener('visibilitychange',hide);
- const dispose=()=>{document.removeEventListener('visibilitychange',hide);unload();css.domElement.remove();};window.addEventListener('pagehide',dispose,{once:true});
+ const dispose=()=>{document.removeEventListener('visibilitychange',hide);unload();css.domElement.remove();};window.addEventListener('pagehide',event=>{if(event.persisted)unload();else dispose();});
  resize();unload();return {draw,resize,dispose};
 }
