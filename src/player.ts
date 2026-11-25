@@ -1,3 +1,4 @@
+import {sweepGround,reportContact} from './sim/GroundCollision.ts';
 import {mountArenaLookPad,publishWorldAction} from './worldInteraction.ts';
 import {cityArenaLevel,createArenaDoor,exitButton} from './adventure/arenaDoor.ts';
 import {districtReturnUrl} from './adventure/districtReturn.ts';
@@ -186,7 +187,7 @@ function boot(): void {
     const factor=life.factor({x,z});dx*=factor;dz*=factor;
     const oldX=x,oldZ=z;
     if(!finished){
-      x+=dx*dt;z+=dz*dt;const r=Math.hypot(x,z);const bounded=THREE.MathUtils.clamp(r,MIN_RADIUS,MAX_RADIUS);if(r>0){x*=bounded/r;z*=bounded/r;}
+      const r=Math.hypot(x+dx*dt,z+dz*dt),bounded=THREE.MathUtils.clamp(r,MIN_RADIUS,MAX_RADIUS);const target=r>0?{x:(x+dx*dt)*bounded/r,z:(z+dz*dt)*bounded/r}:{x,z};const moved=sweepGround({x,z},target,npc.map(n=>pathPoint('tawaf',n.lane,n.s)),(a,b)=>Math.hypot(a,b)>=MIN_RADIUS-1e-6&&Math.hypot(a,b)<=MAX_RADIUS+1e-6);x=moved.x;z=moved.z;reportContact(moved.hit);
       const a=Math.atan2(z,x),delta=wrap(lastAngle-a);lastAngle=a;total+=delta;if(dt>0&&delta>=0)reading?.set(tawafReading(a));
       completed=Math.max(0,Math.min(7,Math.floor((total+1e-7)/TAU)));
       if(completed>0)tutorial?.event({type:'route'});if(core&&completed!==lastSaved&&saveCheckpoint(core,completed))lastSaved=completed;
