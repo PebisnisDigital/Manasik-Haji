@@ -61,7 +61,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   const canvas=el<HTMLCanvasElement>('districtWorld');canvas.tabIndex=0;
   const renderer=new THREE.WebGLRenderer({canvas,antialias:graphicsTier()!=='low',powerPreference:'high-performance'});
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;
-  const budget=createRenderBudget(renderer),world=createDistrictWorld(renderer,arafahToMuzdalifah),camera=new THREE.PerspectiveCamera(61,1,.1,230);
+  const budget=createRenderBudget(renderer),world=createDistrictWorld(renderer,arafahToMuzdalifah,!!hub),camera=new THREE.PerspectiveCamera(61,1,.1,230);
   camera.far=hub?320:230;camera.updateProjectionMatrix();
   const rig=new ThirdPersonCamera(camera,[...BUILDINGS,...(hub?CITY_BUILDINGS.slice(0,hub.access.program==='hajj'?12:5):[])].map(b=>new THREE.Box3(new THREE.Vector3(b.x-b.w/2,0,b.z-b.d/2),new THREE.Vector3(b.x+b.w/2,b.height,b.z+b.d/2))));
   const journeyBus=()=>transfer?transferBus(save as TransferSave):busSpawn(save);
