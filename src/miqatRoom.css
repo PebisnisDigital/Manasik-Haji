@@ -4,3 +4,10 @@
 @media(max-height:540px){.tawafRadio{left:15px;top:65px;width:250px;padding:9px 11px}.tawafRadio p{font-size:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.tawafRadio small{display:none}.tawafRadioActions{grid-template-columns:1fr 1fr 1fr;gap:4px}.tawafRadioActions .ambienceToggle{grid-column:auto}.miqatRoomMode .tawafRadio button{font-size:10px;padding:4px}.tawafRadio>button{margin-top:4px}}
 
 .miqatDialog:has(#saiDepart){width:min(740px,calc(100% - 32px));padding:clamp(24px,5vw,45px);background:linear-gradient(135deg,#1e5947f5,#122f2bed);border-color:#f2d58d}.miqatDialog:has(#saiDepart) h2{font-size:clamp(30px,5vw,55px);letter-spacing:-.04em;line-height:1.05}.miqatDialog:has(#saiDepart) #saiDepart{min-height:52px}
+
+.miqatDialog.miqatNpcTalk{position:fixed;inset:auto 12px max(12px,env(safe-area-inset-bottom));margin:0 auto;width:min(620px,calc(100vw - 24px));max-height:45dvh;padding:12px 15px;background:#fff9eb;color:#193b30;border:1.5px solid #c8a65b;text-shadow:none;box-shadow:none}
+.miqatDialog.miqatNpcTalk::backdrop{background:transparent;backdrop-filter:none}
+.miqatDialog.miqatNpcTalk .miqatEyebrow{color:#8b622b}
+.miqatDialog.miqatNpcTalk h2{font-size:16px;margin:4px 0}
+.miqatDialog.miqatNpcTalk p{font-size:13px;line-height:1.4;margin:5px 0}
+.miqatDialog.miqatNpcTalk .miqatDialogActions{display:flex;flex-wrap:wrap;margin-top:8px}
