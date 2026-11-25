@@ -1,3 +1,4 @@
+import {sweepGround,reportContact} from './sim/GroundCollision.ts';
 import {mountArenaLookPad,publishWorldAction} from './worldInteraction.ts';
 import {mountSimplePlayHud} from './simplePlayHud.ts';
 import {simpleMenuOpen,simpleSprinting} from './simpleInput.ts';
@@ -176,7 +177,7 @@ function boot(): void {
     const factor=life.factor({x,z});dx*=factor;dz*=factor;
     const oldX=x,oldZ=z;
     if(!finished){
-      x=THREE.MathUtils.clamp(x+dx*dt,-WALK_WIDTH,WALK_WIDTH);z=THREE.MathUtils.clamp(z+dz*dt,-END,END);
+      const moved=sweepGround({x,z},{x:THREE.MathUtils.clamp(x+dx*dt,-WALK_WIDTH,WALK_WIDTH),z:THREE.MathUtils.clamp(z+dz*dt,-END,END)},npc.map(n=>pathPoint('sai',n.lane,n.s,END)),(a,b)=>Math.abs(a)<=WALK_WIDTH&&Math.abs(b)<=END);x=moved.x;z=moved.z;reportContact(moved.hit);
       const arrived=track.update(z);if(dt>0)reading?.set(saiReading(z,END));
       if(track.completed>0)tutorial?.event({type:'route'});if(core&&track.completed!==lastSaved&&saveCheckpoint(core,track.completed))lastSaved=track.completed;
       count.textContent=track.completed+' / 7';progress.value=track.fraction(z);
