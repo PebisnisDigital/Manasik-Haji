@@ -37,10 +37,10 @@ type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:R
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
 let videotron:ReturnType<typeof mountGateVideotron>|undefined;
 let closeGateDialogue:(()=>void)|undefined;
-let gateEncounter:'guide'|'clerk'|null=null,guideNearArmed=true,guideIntroduced=false,guidePlayerName='';
+let gateEncounter:'guide'|'clerk'|null=null,guideIntroduced=false,guidePlayerName='';
 let queueJoining=false,queueStage=0,queueAuthorized=false;
-function leaveRegistrationQueue(){if(registrationHall&&queueJoining)registrationHall.leave(avatar==='female');queueJoining=false;queueStage=0;queueAuthorized=false;stopMotion();}
-function registrationAction(){if(!selected||modal||encounter||portraitBlocked)return;if(queueJoining){leaveRegistrationQueue();$('instruction').textContent='Keluar dari antrean. Pilih MASUK ANTREAN untuk ikut kembali.';return;}if(!sceneReady||!registrationHall){$('instruction').textContent='Arena antrean belum tersedia. Muat ulang halaman.';return;}target=null;stopMotion();queueJoining=true;queueStage=0;registrationHall.join(avatar==='female');dismissGuideCall();$('instruction').textContent='Menuju bagian belakang antrean';}
+function leaveRegistrationQueue(){if(registrationHall&&(queueJoining||queueAuthorized)){registrationHall.leave(avatar==='female');registrationHall.setRegistrationBusy(false);}queueJoining=false;queueStage=0;queueAuthorized=false;stopMotion();}
+function registrationAction(){if(!selected||modal||encounter||portraitBlocked)return;if(queueJoining||queueAuthorized){leaveRegistrationQueue();$('instruction').textContent='Keluar dari antrean. Dekati papan MULAI ANTREAN untuk ikut kembali.';return;}if(!sceneReady||!registrationHall){$('instruction').textContent='Arena antrean belum tersedia. Muat ulang halaman.';return;}target=null;stopMotion();queueJoining=true;queueStage=0;registrationHall.join(avatar==='female');dismissGuideCall();$('instruction').textContent='Menuju bagian belakang antrean';}
 const guideRings:Partial<Record<Program,THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>>>= {};
 const guideLines={
  male:['Assalamualaikum, Akhi! Mari ke sini.','Mau tahu tentang HAJJI.DIGITAL?','Silakan datang, saya jelaskan dulu.'],
@@ -98,25 +98,25 @@ function greet(p:Program){
  if(guideMode&&p!==gateGuide(avatar).slot){target=null;$('instruction').textContent='Temui '+gateGuide(avatar).name+'.';return;}
  tutorial.event({type:'guide'});encounter=true;encounterProgram=p;target=null;stopMotion();
  if(guideMode){
-  dismissGuideCall();guideNearArmed=false;
+  dismissGuideCall();
   if(queueAuthorized){
    queueAuthorized=false;gateEncounter='clerk';registrationHall?.setRegistrationBusy(true);
    $('instruction').textContent='Sedang dilayani petugas pendaftaran';
-   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);guideIntroduced=true;$('instruction').textContent='Pilih MASUK ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName);
+   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);guideIntroduced=true;$('instruction').textContent='Dekati papan MULAI ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName);
   }else{
    gateEncounter='guide';$('instruction').textContent='Berbincang dengan '+gateGuide(avatar).name;
-   closeGateDialogue=openGateGuide((name,join)=>{guidePlayerName=name;guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Silakan pilih MASUK ANTREAN untuk mendaftar';if(join)registrationAction();},side=>gateProject(p,false,side),guidePlayerName);
+   closeGateDialogue=openGateGuide((name,join)=>{guidePlayerName=name;guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Dekati papan MULAI ANTREAN untuk mendaftar';if(join)registrationAction();},side=>gateProject(p,false,side),guidePlayerName);
   }
   return;
  }
  $('speaker').textContent=p==='hajj'?'Pemandu manasik haji':'Pemandu manasik umroh';$('speech').textContent=p==='hajj'?'Assalamualaikum! Mari belajar manasik haji.':'Assalamualaikum! Mari belajar manasik umroh.';$('bubble').hidden=false;$('instruction').textContent='Temui pemandu';dialogueTimer=window.setTimeout(()=>openRegistration(p),3600);
 }
-function go(p:Program){if(guideMode&&p!==gateGuide(avatar).slot){$('instruction').textContent='Temui '+gateGuide(avatar).name+' sesuai karakter pilihanmu.';return;}if(!selected||modal||encounter||portraitBlocked||queueJoining)return;if(!sceneReady){greet(p);return;}target=p;$('instruction').textContent=guideMode?'Menuju '+gateGuide(avatar).name:'Menuju '+programs[p].title;}
+function go(p:Program){if(guideMode){const a=currentGateAction();if(a?.id==='guide'&&p===gateGuide(avatar).slot)a.run();return;}if(!selected||modal||encounter||portraitBlocked||queueJoining)return;if(!sceneReady){greet(p);return;}target=p;$('instruction').textContent=guideMode?'Menuju '+gateGuide(avatar).name:'Menuju '+programs[p].title;}
 $<HTMLFormElement>('registerForm').onsubmit=async e=>{e.preventDefault();if(portraitBlocked||starting)return;starting=true;btn('startTraining').disabled=true;const requested=chosenProgram;await loadSettings();if(requested!==chosenProgram||$('registerModal').hidden||portraitBlocked||!newSessionAllowed(settings,requested)){starting=false;applyProgramSetting(chosenProgram);return;}const previous=readCore(chosenProgram);if(previous&&!confirm('Mulai ulang latihan program ini? Progress lama akan diganti.')){starting=false;applyProgramSetting(chosenProgram);return;}const j=newCore(chosenProgram,avatar,$<HTMLInputElement>('fullName').value||'Peserta Demo');if(!writeCore(j)){$('payNotice').textContent='Penyimpanan browser tidak tersedia.';starting=false;applyProgramSetting(chosenProgram);return;}btn('startTraining').disabled=true;if(accountId())await Promise.race([syncRuns(),new Promise(resolve=>setTimeout(resolve,1800))]);location.assign(coreUrl(j));};
 btn('resumeTraining').onclick=()=>{const j=readCore(chosenProgram);if(j&&!portraitBlocked)location.assign(coreUrl(j));};
 btn('closeRegister').onclick=()=>{$('registerModal').hidden=true;$<HTMLFormElement>('registerForm').reset();modal=false;encounter=false;resetPosition();$('instruction').textContent='Temui pemandu';};
-function choose(a:Avatar){if(queueJoining)leaveRegistrationQueue();guideNearArmed=true;guideIntroduced=false;guidePlayerName='';gateEncounter=null;avatar=a;selected=true;modal=false;encounter=false;target=null;$('avatarModal').hidden=true;$('instruction').textContent='Temui pemandu';if(sceneReady){s.remove(hero.root);hero.root.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();if(!Array.isArray(o.material))o.material.dispose();}});hero=person(avatar==='female',avatar==='female'?0x64867a:0xf4ead6,true);resetPosition();}tutorial.paint();}
-function selectAtGate(a:Avatar){if(guideMode&&!saveSetup({...readSetup()??defaultSetup(),avatar:a})){$('instruction').textContent='Pilihan belum tersimpan. Periksa penyimpanan browser.';return;}choose(a);if(guideMode){resetGuideCall(true);$('instruction').textContent='Temui '+gateGuide(avatar).name+' atau pilih MASUK ANTREAN';const meet=document.querySelector('.guideMeet');if(meet)meet.textContent='MASUK ANTREAN';}}
+function choose(a:Avatar){if(queueJoining||queueAuthorized)leaveRegistrationQueue();guideIntroduced=false;guidePlayerName='';gateEncounter=null;avatar=a;selected=true;modal=false;encounter=false;target=null;$('avatarModal').hidden=true;$('instruction').textContent='Temui pemandu';if(sceneReady){s.remove(hero.root);hero.root.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();if(!Array.isArray(o.material))o.material.dispose();}});hero=person(avatar==='female',avatar==='female'?0x64867a:0xf4ead6,true);resetPosition();}tutorial.paint();}
+function selectAtGate(a:Avatar){if(guideMode&&!saveSetup({...readSetup()??defaultSetup(),avatar:a})){$('instruction').textContent='Pilihan belum tersimpan. Periksa penyimpanan browser.';return;}choose(a);if(guideMode){resetGuideCall(true);$('instruction').textContent='Dekati '+gateGuide(avatar).name+' untuk berbicara, atau papan antrean untuk mendaftar';}}
 btn('male').onclick=()=>selectAtGate('male');btn('female').onclick=()=>selectAtGate('female');btn('goHajj').onclick=()=>go('hajj');btn('goUmrah').onclick=()=>go('umrah');btn('change').onclick=()=>{if(entranceMode&&!entranceFramePresented)return;if(guideMode){closeGateDialogue?.();leaveRegistrationQueue();dismissGuideCall();}clearTimeout(dialogueTimer);encounter=false;encounterProgram=null;target=null;modal=true;stopMotion();$('bubble').hidden=true;$('registerModal').hidden=true;$('avatarModal').hidden=false;btn(avatar).focus();};
 const mat=(c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.78});
 function mesh(g:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
@@ -148,24 +148,69 @@ canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal|
 canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
 canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
 canvas.addEventListener('wheel',e=>{if(modal||(encounter&&!guideMode))return;e.preventDefault();cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter){e.preventDefault();registrationAction();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',stopGuideVoice);
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter&&!portraitBlocked){e.preventDefault();currentGateAction()?.run();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',stopGuideVoice);
 let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
-j.addEventListener('pointerdown',e=>{if(modal||encounter||portraitBlocked||queueJoining||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
+j.addEventListener('pointerdown',e=>{if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
+// One contextual interaction at a time, with the same range checks for touch, mouse and E.
+type GateAction={id:'guide'|'queue'|'leave'|'clerk';title:string;label:string;line:string;point:THREE.Vector3;run:()=>void;secondary?:()=>void};
+let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gatePromptCancel:HTMLButtonElement|undefined;
+const cameraStick=new THREE.Vector2();let cameraStickPointer:number|null=null;let gateCameraPad:HTMLElement|undefined;
+function currentGateAction():GateAction|null{
+ if(!guideMode||!sceneReady||!selected||modal||encounter||portraitBlocked||paused||!registrationHall)return null;
+ const p=gateGuide(avatar).slot,female=avatar==='female',pos=hero.root.position;
+ if(queueAuthorized){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'PETUGAS PENDAFTARAN',line:'Silakan, sekarang giliran Anda.',label:'DAFTAR / CEK DATA',point,run:()=>greet(p),secondary:registrationAction};}
+ if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'KELUAR ANTREAN',point,run:registrationAction};}
+ const g=placements[p],q=new THREE.Vector3(female?4.15:-4.15,0,5.34);
+ const dg=Math.hypot(pos.x-g.x,pos.z-g.z),dq=Math.hypot(pos.x-q.x,pos.z-q.z);
+ if(dg<=2.1&&dg<=dq){const point=g.clone();point.y=2.12;return {id:'guide',title:gateGuide(avatar).name,line:'Assalamualaikum! Mau tahu tentang HAJJI.DIGITAL?',label:'BICARA',point,run:()=>greet(p)};}
+ if(dq<=2.35){q.y=2.18;return {id:'queue',title:female?'LOKET PEREMPUAN':'LOKET LAKI-LAKI',line:'Silakan ikut barisan dari sini.',label:'MASUK ANTREAN',point:q,run:registrationAction};}
+ return null;
+}
+function paintGateAction(a:GateAction|null){
+ if(!gatePrompt||!gatePromptTitle||!gatePromptLine||!gatePromptButton||!gatePromptCancel)return;
+ if(!a){gatePrompt.hidden=true;delete document.documentElement.dataset.gateAction;return;}
+ document.documentElement.dataset.gateAction=a.id;
+ const pt=a.point.clone(),v=pt.clone().applyMatrix4(cam.matrixWorldInverse);pt.project(cam);
+ if(v.z>=-cam.near||pt.z< -1||pt.z>1||Math.abs(pt.x)>1||Math.abs(pt.y)>1){gatePrompt.hidden=true;return;}
+ if(gatePrompt.dataset.action!==a.id){gatePrompt.dataset.action=a.id;gatePromptTitle.textContent=a.title;gatePromptLine.textContent=a.line;gatePromptButton.textContent=a.label;gatePromptCancel.hidden=!a.secondary;}
+ gatePrompt.hidden=false;
+ const rect=canvas.getBoundingClientRect(),x=rect.left+(pt.x*.5+.5)*rect.width,y=rect.top+(.5-pt.y*.5)*rect.height,w=gatePrompt.offsetWidth,h=gatePrompt.offsetHeight;
+ const left=Math.max(10,Math.min(innerWidth-w-10,x-w/2)),top=Math.max(68,Math.min(innerHeight-h-12,y-h-12));
+ gatePrompt.style.left=Math.round(left)+'px';gatePrompt.style.top=Math.round(top)+'px';gatePrompt.style.setProperty('--gate-tail',Math.round(Math.max(15,Math.min(w-15,x-left)))+'px');
+ gatePrompt.classList.toggle('detached',Math.abs(top-(y-h-12))>20);
+}
+function resetCameraStick(){cameraStickPointer=null;cameraStick.set(0,0);const knob=gateCameraPad?.firstElementChild as HTMLElement|undefined;if(knob)knob.style.transform='translate(-50%,-50%)';}
+function mountGateControls(){
+ const pad=document.createElement('div');pad.className='gateCameraPad joy';pad.setAttribute('aria-label','Joystick kamera');pad.title='Geser untuk memutar kamera';pad.append(document.createElement('div'));document.querySelector('.bottom')!.append(pad);gateCameraPad=pad;
+ function move(e:PointerEvent){const b=pad.getBoundingClientRect();cameraStick.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(cameraStick.length()>1)cameraStick.normalize();(pad.firstElementChild as HTMLElement).style.transform='translate(calc(-50% + '+cameraStick.x*b.width*.28+'px),calc(-50% + '+cameraStick.y*b.height*.28+'px))';}
+ pad.addEventListener('pointerdown',e=>{if(!selected||modal||portraitBlocked||cameraStickPointer!==null||e.button!==0)return;e.preventDefault();cameraStickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);move(e);});
+ pad.addEventListener('pointermove',e=>{if(e.pointerId===cameraStickPointer)move(e);});
+ const release=(e:PointerEvent)=>{if(e.pointerId===cameraStickPointer)resetCameraStick();};
+ pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);pad.addEventListener('lostpointercapture',release);
+ window.addEventListener('blur',resetCameraStick);document.addEventListener('visibilitychange',resetCameraStick);window.addEventListener('orientationchange',resetCameraStick);
+ const prompt=document.createElement('section');prompt.className='gateContextPrompt';prompt.hidden=true;
+ const title=document.createElement('strong'),line=document.createElement('p'),row=document.createElement('div'),action=document.createElement('button'),cancel=document.createElement('button');
+ row.className='gateContextActions';action.type='button';cancel.type='button';cancel.textContent='KELUAR';cancel.hidden=true;
+ action.onclick=()=>{const a=currentGateAction();if(a&&a.id===prompt.dataset.action)a.run();};
+ cancel.onclick=()=>{const a=currentGateAction();if(a&&a.id===prompt.dataset.action)a.secondary?.();};
+ row.append(action,cancel);prompt.append(title,line,row);$('lobby').append(prompt);
+ gatePrompt=prompt;gatePromptTitle=title;gatePromptLine=line;gatePromptButton=action;gatePromptCancel=cancel;
+}
 function frame(now:number){
  requestAnimationFrame(frame);const dt=Math.min(.05,last?(now-last)/1000:0);last=now;if(paused||document.hidden||(portraitBlocked&&(!entranceMode||entranceFramePresented))||introPlaying||budget.lost()){videotron?.draw(cam,false);return;}tutorial.paint();
+ if(guideMode&&gateCameraPad){gateCameraPad.hidden=!selected||modal||portraitBlocked;if(modal||portraitBlocked)resetCameraStick();if(cameraStick.lengthSq()>.006){cameraYaw-=cameraStick.x*dt*2.15*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+cameraStick.y*dt*1.35*lookFactor(),.045,.75);lookedAt=now;tutorial.event({type:'look',amount:cameraStick.length()*dt*90});}}
  const pos=hero.root.position;let dx=0,dz=0;let automatic=false;
- if(selected&&!modal&&!encounter){
-  if(queueJoining&&registrationHall){automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female);const side=female?1:-1;const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(queueStage<2)queueStage++;else if(registrationHall.ahead(female)===0){queueJoining=false;queueAuthorized=true;registrationHall.setRegistrationBusy(true);greet(gateGuide(avatar).slot);}dx=dz=0;}}
+ if(selected&&!modal&&!encounter&&!queueAuthorized){
+  if(queueJoining&&registrationHall){automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female);const side=female?1:-1;const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(queueStage<2)queueStage++;else if(registrationHall.ahead(female)===0){queueJoining=false;queueAuthorized=true;registrationHall.setRegistrationBusy(true);$('instruction').textContent='Giliran Anda. Pilih DAFTAR di dekat petugas.';}dx=dz=0;}}
   else if(target){automatic=true;const t=placements[target];dx=t.x-pos.x;dz=t.z+.96-pos.z;if(Math.hypot(dx,dz)<.10){greet(target);dx=dz=0;}}
   else{const side=joy.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),forward=-joy.y+Number(keys.has('w')||keys.has('arrowup'))-Number(keys.has('s')||keys.has('arrowdown'));dx=-Math.cos(cameraYaw)*side+Math.sin(cameraYaw)*forward;dz=Math.sin(cameraYaw)*side+Math.cos(cameraYaw)*forward;}
  }
  const n=Math.hypot(dx,dz),speed=2.6*walkFactor(automatic);const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
- if(modal||encounter)velocity.set(0,0);
+ if(modal||encounter||queueAuthorized)velocity.set(0,0);
  const moving=velocity.length()>.055;
  if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-12.35:-5.6,guideMode?12.35:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,-3,guideMode?8.1:5.8);
   if(guideMode){const allowed=(x:number,z:number)=>Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8;if(!allowed(nx,nz)){if(allowed(pos.x,nz))nx=pos.x;else if(allowed(nx,pos.z))nz=pos.z;else{nx=pos.x;nz=pos.z;}}}
   const moved=Math.hypot(nx-pos.x,nz-pos.z);lobbySound.walk(moved);tutorial.event({type:'walk',amount:moved});pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
- if(guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!target){const p=gateGuide(avatar).slot;const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d>2.2)guideNearArmed=true;if(d<1.35&&guideNearArmed)greet(p);}
  if(!guideMode&&selected&&!modal&&!encounter){for(const p of ['hajj','umrah'] as const){const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d<1.05){greet(p);break;}}}
  if(encounter&&encounterProgram){const t=gateEncounter==='clerk'?(registrationHall?.clerk(avatar==='female').position??placements[encounterProgram]):placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
  hero.root.rotation.y=heading;
@@ -181,7 +226,7 @@ function frame(now:number){
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*11);cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
  hero.root.visible=cam.position.distanceTo(pivot)>.85;
- const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!guideIntroduced?gateGuide(avatar).slot:null;
+ const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!guideIntroduced?gateGuide(avatar).slot:null;
  if(activeSlot){
   callClock+=dt;
   const cycle=Math.floor(callClock/CALL_PERIOD);
@@ -225,9 +270,9 @@ function frame(now:number){
   }
  }
 
- if(guideMode)$('bubble').hidden=!showCallBubble;
+ if(guideMode){const a=currentGateAction();$('bubble').hidden=!showCallBubble||a?.id==='guide';paintGateAction(a);}
  registrationHall?.update(dt);
- if(guideMode){const meet=document.querySelector<HTMLElement>('.guideMeet');const ahead=registrationHall?.ahead(avatar==='female');const talk=document.querySelector<HTMLButtonElement>('.gateTalk');if(talk)talk.hidden=!selected||modal||encounter||queueJoining;if(meet){const label=queueJoining?'KELUAR ANTREAN':'MASUK ANTREAN';if(meet.textContent!==label)meet.textContent=label;meet.setAttribute('aria-label',label);}if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=gateEncounter==='clerk'?'serving':queueJoining?String(ahead):'idle';}
+ if(guideMode){const ahead=registrationHall?.ahead(avatar==='female');if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=gateEncounter==='clerk'?'serving':queueAuthorized?'ready':queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
  updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!portraitBlocked&&!budget.lost());
  // Present the character picker only after the first rendered registration scene has been painted.
@@ -249,11 +294,10 @@ if(guideMode){
  $('movementHint').style.setProperty('display','none','important');
  $('cinematicIntro').remove();$('hajjLabel').textContent='PAK HUSEN · PENDAFTARAN';$('umrahLabel').textContent='BU SALMA · PENDAFTARAN';document.querySelector('#lobby .brand')!.textContent='HAJJI.DIGITAL';
  const npcNotice=document.createElement('small');npcNotice.textContent='Antrean NPC · simulasi';npcNotice.style.cssText='display:block;color:#f0dcad;font-size:11px;margin-top:4px;letter-spacing:.02em';document.querySelector('.menu nav')!.append(npcNotice);
- const meet=document.createElement('a');meet.className='guideMeet';meet.href='#';meet.onclick=e=>{e.preventDefault();registrationAction();};document.querySelector('.chooser')!.prepend(meet);
- const talk=document.createElement('button');talk.type='button';talk.className='gateTalk';talk.textContent='BICARA DENGAN PEMANDU';talk.onclick=()=>go(gateGuide(avatar).slot);meet.before(talk);
+ document.querySelector('.chooser')!.setAttribute('hidden','');mountGateControls();
  const settingsLink=document.createElement('a');settingsLink.className='gateSettings';settingsLink.href=tenantUrl('./index.html?setup=1');settingsLink.textContent='⚙ Perjalanan, suara & grafis';document.querySelector('.menu nav')!.append(settingsLink);
  document.querySelector('#avatarModal h1')!.textContent='Pilih karakter';
  // Keep the entrance character picker minimal. Comfort settings and account access remain in the main menu.
  for(const element of document.querySelectorAll('#avatarModal #comfortIntro, #avatarModal .fine, #avatarModal .pwaInstall, #avatarModal .accountLink'))element.remove();
- if(entranceMode){modal=true;$('avatarModal').hidden=true;$('instruction').textContent='Pilih karakter · antre · daftar · berangkat';meet.textContent='PILIH KARAKTER TERLEBIH DAHULU';}else{selectAtGate(readSetup()?.avatar??'male');document.documentElement.dataset.guideReady='true';}
+ if(entranceMode){modal=true;$('avatarModal').hidden=true;$('instruction').textContent='Pilih karakter · antre · daftar · berangkat';}else{selectAtGate(readSetup()?.avatar??'male');document.documentElement.dataset.guideReady='true';}
 }
