@@ -1,3 +1,4 @@
+import {sweepGround,type SolidBody} from './sim/GroundCollision.ts';
 import {GATE_OFFICE as O,GATE_VIDEOTRON as V} from './gateVideotronModel.ts';
 import {joinQueue,serveQueue,type QueueTicket} from './queueTicket.ts';
 import * as THREE from 'three';
@@ -73,11 +74,11 @@ function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  }
  return lane;
 }
-function advance(npc:LaneNPC,dt:number,speed:number){
+function advance(npc:LaneNPC,dt:number,speed:number,bodies:readonly SolidBody[]){
  const p=npc.root.position,dx=npc.target.x-p.x,dz=npc.target.z-p.z,d=Math.hypot(dx,dz);
- if(d<.015){p.copy(npc.target);return true;}
- const distance=Math.min(d,speed*dt);p.x+=dx/d*distance;p.z+=dz/d*distance;
- const yaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(yaw-npc.root.rotation.y),Math.cos(yaw-npc.root.rotation.y));npc.root.rotation.y+=delta*(1-Math.exp(-dt*9));return distance===d;
+ if(d<.015)return true;
+ const distance=Math.min(d,speed*dt),next=sweepGround(p,{x:p.x+dx/d*distance,z:p.z+dz/d*distance},bodies,undefined,.30);p.x=next.x;p.z=next.z;
+ const yaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(yaw-npc.root.rotation.y),Math.cos(yaw-npc.root.rotation.y));npc.root.rotation.y+=delta*(1-Math.exp(-dt*9));return Math.hypot(p.x-npc.target.x,p.z-npc.target.z)<.015;
 }
 
 /** Parked Indonesian-style MPVs and scooters; outside the pedestrian and gate lanes. */
@@ -273,14 +274,15 @@ export function createRegistrationHall(scene:THREE.Scene){
  let marketTime=0;
  const lanes=[createLane(scene,-1,false),createLane(scene,1,true)];
  let completed=0,registrationBusy=false;
- function update(dt:number){
+ function update(dt:number,player?:SolidBody){
   marketTime+=dt;animateMarket(marketTime);
   if(registrationBusy)return;
   for(const lane of lanes){
    lane.clock+=dt;lane.pen.rotation.y=Math.sin(lane.clock*7)*.16;lane.pen.position.x=.15+Math.sin(lane.clock*5)*.025;lane.pen.position.z=.22+Math.cos(lane.clock*5)*.015;
-   for(const npc of lane.queue)advance(npc,dt,1.12);
+   const bodies=(npc:LaneNPC)=>[...lane.queue.filter(n=>n!==npc).map(n=>({...n.root.position,radius:.30})),...(lane.outgoing&&lane.outgoing!==npc?[{...lane.outgoing.root.position,radius:.30}]:[]),...(player?[player]:[])];
+   for(const npc of lane.queue)advance(npc,dt,1.12,bodies(npc));
    if(lane.outgoing){
-    const npc=lane.outgoing;if(advance(npc,dt,1.55)){
+    const npc=lane.outgoing;if(advance(npc,dt,1.55,bodies(npc))){
      if(lane.exitStep===0){lane.exitStep=1;npc.target.set(lane.side*5.9,0,-4.55);}
      else if(lane.exitStep===1){lane.exitStep=2;npc.target.set(lane.side*6,0,-7.20);}
      else{npc.root.visible=false;lane.spare=npc;lane.outgoing=null;completed++;}
