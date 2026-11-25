@@ -114,3 +114,11 @@ html[data-gate-camera=clerk] #lobby .gateCameraPad,html[data-gate-camera=clerk] 
  .gateClerkDialogue .gateWorldBubble{max-width:min(250px,42vw)}
  .gateClerkDialogue .gateAnswerInput input,.gateClerkDialogue .gateAnswerInput button{min-height:44px}
 }
+
+/* Eye-level counter view: all form controls sit in the lower half, on the ledger. */
+.gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{width:min(620px,calc(100vw - 28px));max-height:min(34dvh,210px)}
+.gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(400px,calc(100vw - 28px));max-height:48dvh;overflow-y:auto}
+@media(orientation:landscape) and (max-height:520px){
+ .gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{width:min(520px,72vw);max-height:40dvh}
+ .gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(390px,62vw);max-height:48dvh}
+}
