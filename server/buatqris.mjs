@@ -23,7 +23,7 @@ export async function provider(config,fields,fetcher=fetch){
 }
 function trustedUrl(raw){try{const u=new URL(String(raw));return u.protocol==='https:'&&(u.hostname==='buatqris.site'||u.hostname.endsWith('.buatqris.site'))?u.href:null;}catch{return null;}}
 export function qrDisplay(data){
- const img=typeof data.qris_image==='string'&&/^data:image\\/png;base64,[A-Za-z0-9+/=]+$/.test(data.qris_image)&&data.qris_image.length<500000?data.qris_image:null;
+  const img=typeof data.qris_image==='string'&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(data.qris_image)&&data.qris_image.length<500000?data.qris_image:null;
  return {qr_url:trustedUrl(data.qr_url)??img,qr_image:img,payment_url:trustedUrl(data.payment_url)};
 }
 export function paymentResult(data){const isTest=data.is_test===true||data.is_test===1||data.is_test==='1'?true:data.is_test===false||data.is_test===0||data.is_test==='0'?false:null;return {transaction_id:String(data.transaction_id??''),status:String(data.status??''),amount:Number(data.amount),total_amount:Number(data.total_amount),is_test:isTest};}
