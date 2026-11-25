@@ -1,3 +1,4 @@
+import {SOUVENIR_NUMBER,canOpenSouvenir} from './citySouvenir.ts';
 import {cityArenaHref} from './arenaDoor.ts';
 import {directMissionEntry} from './cityMissionEntry.ts';
 import {isExampleMode,validExampleCode,exampleKey} from './exampleAccess.ts';
@@ -64,6 +65,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function check(number:number){const fresh=levels(program),result=checkGateProgress(fresh,number);return {...result,preview,example,done:fresh.some(l=>l.number===number&&l.done),starred:readStars(fresh).includes(number),title:fresh.find(l=>l.number===number)?.title??'Level '+number,previousTitle:fresh.find(l=>l.number===number-1)?.title??'',total:fresh.length};}
  function launch(number:number,code=''){
   if(launching)return false;
+  if(number===SOUVENIR_NUMBER){if(!bonusReady()){toast(bonusMessage());return false;}if(!recordDistrictVisit(SOUVENIR_NUMBER)){toast('Catatan pintu masuk belum tersimpan.');return false;}try{sessionStorage.setItem(exampleKey('hajji-district-return'),demo?'demo':'magic');}catch{return false;}launching=true;location.assign(tenantUrl('./oleh-oleh.html?city=1'));return true;}
   if(example&&!validExampleCode(code)){toast('Kode contoh belum benar.');return false;}
   if(!check(number).allowed){toast('Checkpoint sebelumnya belum selesai.');return false;}
   if(preview){toast('Pratinjau: level hanya bisa dimainkan melalui tiket terverifikasi.');return false;}
@@ -75,7 +77,9 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   launching=true;try{sessionStorage.setItem(exampleKey('hajji-district-return'),example?'contoh':mode==='demo'?'demo':'magic');}catch{}location.assign(destination);return true;
  }
  function select(number:number){const level=levels(program).find(l=>l.number===number);if(!level?.available){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}if(onSelect){closeMap();onSelect(number);}else launch(number);}
- function bonus(){if(example){toast('Ini latihan contoh. Hadiah peserta berbayar tidak diterbitkan.');return;}if(preview||program!=='hajj'||!loadNusukRoute().complete||readStars(levels(program)).length!==12){toast('Selesaikan 12 level untuk membuka oleh-oleh.');return;}location.assign(tenantUrl('./oleh-oleh.html'));}
+ function bonusReady(){return program==='hajj'&&!preview&&!example&&canOpenSouvenir(loadNusukRoute().complete,readStars(levels(program)),example,preview);}
+ function bonusMessage(){return example?'Mode CONTOH tidak menerbitkan hadiah peserta berbayar.':preview?'Pratinjau gedung oleh-oleh.': 'Kumpulkan seluruh 12 bintang untuk membuka oleh-oleh.';}
+ function bonus(){if(onSelect){closeMap();onSelect(SOUVENIR_NUMBER);return;}if(!bonusReady()){toast(bonusMessage());return;}location.assign(tenantUrl('./oleh-oleh.html'));}
  function draw(){
   list=levels(program);const completed=list.filter(l=>l.done).length,stars=program==='hajj'?readStars(list):[];
   const w=c.width,h=c.height;ctx.fillStyle='#14392e';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#c9ac6c';ctx.lineWidth=8;ctx.strokeRect(16,16,w-32,h-32);
@@ -97,13 +101,13 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
    for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>tw-42&&line){ctx.fillText(line,x+22,yy,tw-42);yy+=39;line=word;}else line=next;}ctx.fillText(line,x+22,yy,tw-42);
    ctx.font='bold 25px system-ui';ctx.fillStyle=l.available&&!l.done?'#37533c':'#c1cec0';ctx.fillText(stars.includes(l.number)?'★ BINTANG DITERIMA':l.done?'SELESAI · CEK PENJAGA':l.available?'KUNJUNGI GEDUNG':'TERKUNCI',x+22,y+185,tw-42);
   }
-  ctx.fillStyle='#e9cb89';ctx.font='bold 26px system-ui';ctx.fillText(program==='hajj'?'BONUS OLEH-OLEH · '+(stars.length===12?'TERBUKA':'KUMPULKAN 12 BINTANG'):'JALUR LATIHAN UMROH',66,989);
+  ctx.fillStyle='#e9cb89';ctx.font='bold 26px system-ui';ctx.fillText(program==='hajj'?'GEDUNG OLEH-OLEH · '+(bonusReady()?'TERBUKA':example?'MODE LATIHAN':'KUMPULKAN 12 BINTANG'):'JALUR LATIHAN UMROH',66,989);
   if(program==='hajj')hitZones.push({x:66,y:936,w:1000,h:65,number:0});
   if(preview||example){ctx.textAlign='right';ctx.font='23px system-ui';ctx.fillText(example?'MODE CONTOH · GRATIS':'PRATINJAU DESAIN',w-66,989);ctx.textAlign='left';}
   texture.needsUpdate=true;
   count.textContent=program==='hajj'?'★ '+stars.length+' / 12 BINTANG':completed+' / '+list.length+' LEVEL';heading.textContent=program==='hajj'?'Peta Perjalanan Haji':'Peta Perjalanan Umroh';subtitle.textContent=(preview?'Pratinjau tanpa transaksi':example?'Mode CONTOH · gratis':demo?'Demo lokal':'Selamat datang, '+name)+' · Pilih gedung tujuan.';
   grid.replaceChildren();for(const l of list){const b=elem('button','boardLevel '+(l.done?'done':l.available?'available':'locked'));b.type='button';b.dataset.level=String(l.number);b.disabled=!l.available||(!preview&&!l.href);b.append(elem('span','boardNumber',String(l.number).padStart(2,'0')),elem('strong','boardLevelTitle',l.title),elem('small','boardLevelStatus',stars.includes(l.number)?'★ Bintang diterima':l.done?'Selesai · temui penjaga':l.available?'Kunjungi gedung':'Terkunci'));b.onclick=()=>select(l.number);grid.append(b);}
-  foot.replaceChildren(close);if(program==='hajj'){const b=elem('button','boardBonus',stars.length===12?'Buka oleh-oleh':'Bonus · terkunci');b.disabled=preview||stars.length!==12;b.onclick=bonus;foot.append(b);}
+  foot.replaceChildren(close);if(program==='hajj'){const b=elem('button','boardBonus',bonusReady()?'Kunjungi Gedung Oleh-Oleh':'Gedung Oleh-Oleh · '+stars.length+'/12 bintang');b.disabled=!onSelect&&!bonusReady();b.onclick=bonus;foot.append(b);}
  }
  const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
  function tap(clientX:number,clientY:number,camera:THREE.Camera,canvas:HTMLCanvasElement){
@@ -117,5 +121,5 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function open(){draw();dialog.hidden=false;if(!dialog.open)dialog.showModal();close.focus();}
  draw();group.updateMatrixWorld(true);window.addEventListener('storage',draw);window.addEventListener('pageshow',e=>{if(e.persisted){launching=false;draw();}});
  document.documentElement.dataset.districtBoardReady='true';
- return {tap,open,launch,check,refresh:draw,stars:()=>program==='hajj'&&!preview?readStars(levels(program)):[],claim:(n:number)=>{if(preview||program!=='hajj')return {stars:[],awarded:false,stored:false};const result=claimStar(levels(program),n);draw();return result;},available:()=>list.filter(l=>l.available).map(l=>l.number),next:()=>list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
+ return {tap,open,launch,check,bonusReady,bonusMessage,refresh:draw,stars:()=>program==='hajj'&&!preview?readStars(levels(program)):[],claim:(n:number)=>{if(preview||program!=='hajj')return {stars:[],awarded:false,stored:false};const result=claimStar(levels(program),n);draw();return result;},available:()=>[...list.filter(l=>l.available).map(l=>l.number),...(bonusReady()?[SOUVENIR_NUMBER]:[])],next:()=>program==='hajj'&&!preview&&readStars(levels(program)).length===12?SOUVENIR_NUMBER:list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
 }

@@ -1,3 +1,4 @@
+import {SOUVENIR_NUMBER} from './citySouvenir.ts';
 import * as THREE from 'three';
 import {districtReturnUrl,districtVisit} from './districtReturn.ts';
 export const QUDUM_ENTRY=[13,25] as const;
@@ -12,7 +13,7 @@ export function createArenaDoor(scene:THREE.Scene,x:number,z:number,yaw:number,l
  function box(w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.Material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);group.add(mesh);return mesh;}
  for(const x of [-1.85,1.85]){box(.42,3.4,.48,x,1.7,0,stone);box(.56,.18,.58,x,3.34,0,gold);}
  box(4.1,.43,.55,0,3.65,0,stone);box(3.8,.12,.56,0,3.41,0,gold);
- const c=document.createElement('canvas');c.width=640;c.height=128;const ctx=c.getContext('2d')!;ctx.fillStyle='#173e32';ctx.fillRect(0,0,640,128);ctx.strokeStyle='#d8b774';ctx.lineWidth=5;ctx.strokeRect(4,4,632,120);ctx.fillStyle='#fff0ce';ctx.font='bold 42px system-ui';ctx.textAlign='center';ctx.fillText('PINTU GEDUNG '+String(level).padStart(2,'0'),320,57);ctx.font='26px system-ui';ctx.fillText('MASUK / KELUAR',320,99);
+ const c=document.createElement('canvas');c.width=640;c.height=128;const ctx=c.getContext('2d')!;ctx.fillStyle='#173e32';ctx.fillRect(0,0,640,128);ctx.strokeStyle='#d8b774';ctx.lineWidth=5;ctx.strokeRect(4,4,632,120);ctx.fillStyle='#fff0ce';ctx.font='bold 42px system-ui';ctx.textAlign='center';ctx.fillText(level===SOUVENIR_NUMBER?'PINTU OLEH-OLEH':'PINTU GEDUNG '+String(level).padStart(2,'0'),320,57,610);ctx.font='26px system-ui';ctx.fillText('MASUK / KELUAR',320,99);
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.9,.78),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));sign.position.set(0,3.07,.30);group.add(sign);
  const left=box(1.6,2.65,.12,-2.55,1.325,0,green),right=box(1.6,2.65,.12,2.55,1.325,0,green);
  const ring=new THREE.Mesh(new THREE.RingGeometry(.74,.86,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x59e688,side:THREE.DoubleSide}));ring.position.y=.035;group.add(ring);ring.visible=false;

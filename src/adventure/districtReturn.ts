@@ -1,3 +1,4 @@
+import {SOUVENIR_NUMBER} from './citySouvenir.ts';
 import {isExampleMode,exampleKey} from './exampleAccess.ts';
 import {playerKey} from '../playerCloud.ts';
 import {tenantUrl} from '../tenant.ts';
@@ -8,7 +9,7 @@ export function districtReturnUrl():string|null{
 }
 
 const visitKey=()=>playerKey('manasik-city-visit-v1');
-export function recordDistrictVisit(number:number):boolean{try{if(!Number.isInteger(number)||number<1||number>12)return false;sessionStorage.setItem(visitKey(),String(number));return true;}catch{return false;}}
-export function districtVisit():number|null{try{const n=Number(sessionStorage.getItem(visitKey()));return Number.isInteger(n)&&n>=1&&n<=12?n:null;}catch{return null;}}
+export function recordDistrictVisit(number:number):boolean{try{if(!Number.isInteger(number)||number<1||number>SOUVENIR_NUMBER)return false;sessionStorage.setItem(visitKey(),String(number));return true;}catch{return false;}}
+export function districtVisit():number|null{try{const n=Number(sessionStorage.getItem(visitKey()));return Number.isInteger(n)&&n>=1&&n<=SOUVENIR_NUMBER?n:null;}catch{return null;}}
 export function clearDistrictVisit(){try{sessionStorage.removeItem(visitKey());}catch{}}
 export function districtExitLabel(fallback:string){return districtReturnUrl()&&districtVisit()!==null?'Keluar lewat pintu gedung':fallback;}
