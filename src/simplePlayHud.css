@@ -19,3 +19,6 @@
 
 .simplePlay .smartTutorial{display:none!important}.simplePlay .tutorialTarget{outline:0!important;animation:none!important}.simplePlay #simpleSettings header{position:sticky;top:0;background:#143d32;z-index:1}
 .simplePlay #simpleContext{font-size:15px;line-height:1.5;color:#f8e8c4}.simplePlay .overlay .modal,.simplePlay .layer .modal{max-height:calc(100dvh - 28px);overflow:auto;overscroll-behavior:contain}.simplePlay .overlay button,.simplePlay .layer button,.simplePlay .miqatDialog button{min-height:44px}
+
+/* A contextual verb needs more room than a one-word round button. */
+.simplePlay #simpleAction{width:auto;min-width:100px;max-width:min(210px,34vw);height:auto;min-height:60px;border-radius:18px;padding:10px 15px;line-height:1.18;font-size:13px;white-space:normal;overflow-wrap:anywhere;text-align:center}.simplePlay #simpleAction[hidden]{display:none!important}.simplePlay .simpleGuide{right:305px}.simplePlay .simpleButtons{max-width:46vw}.simplePlay #simpleRun{flex-shrink:0}@media(max-height:500px){.simplePlay #simpleAction{min-width:86px;max-width:28vw;min-height:54px;padding:8px 12px;font-size:12px}.simplePlay .simpleGuide{right:calc(28vw + 84px);font-size:13px}}@media(orientation:portrait){.simplePlay .simpleGuide{left:12px;right:12px;bottom:125px;max-height:65px}.simplePlay #simpleAction{max-width:44vw}}

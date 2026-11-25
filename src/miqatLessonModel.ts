@@ -4,9 +4,9 @@ export interface MiqatLesson{version:1;stage:number;book:boolean}
 export const MIQAT_GOALS=[
  {title:'Temui pembimbing',action:'Bicara dengan pembimbing',x:0,z:4.5},
  {title:'Masuk ruang persiapan',action:'Masuk ruang persiapan',x:0,z:-1.2},
- {title:'Kenakan pakaian ihram',action:'Siapkan pakaian ihram',x:-3.8,z:-3.5},
- {title:'Ambil buku & pelajari niat',action:'Buka buku panduan',x:0,z:-6},
- {title:'Pelajari bacaan talbiyah',action:'Belajar talbiyah',x:3.8,z:-4.8},
+ {title:'Kenakan pakaian ihram',action:'Pakai baju ihram',x:-3.8,z:-3.5},
+ {title:'Ambil buku & pelajari niat',action:'Ambil buku panduan',x:0,z:-6},
+ {title:'Pelajari bacaan talbiyah',action:'Pelajari talbiyah',x:3.8,z:-4.8},
  {title:'Kembali ke pembimbing',action:'Laporkan persiapan',x:0,z:2.5},
  {title:'Miqat & Ihram selesai',action:'Lanjut Level 2',x:0,z:2.5},
 ] as const;
