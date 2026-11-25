@@ -56,7 +56,7 @@ export function mountSimplePlayHud(kind:Kind){
  function proxy(source:HTMLElement){const b=document.createElement('button');b.type='button';b.textContent=(source.textContent??'').trim();b.onclick=()=>{close();source.click();queue();};options.append(b);}
  el('simpleGear').onclick=()=>{
   if(overlay())return;options.replaceChildren();
-  const links=[['Peta level','./adventure-map.html?journey='+(nusukHajjActive()?'hajj':'umrah')],['Menu utama','./index.html?lobby=1']];
+  const links=[['Peta level','./adventure-map.html?journey='+(nusukHajjActive()?'hajj':'umrah')],['Menu utama','./index.html?lobby=1'],['Referral & komisi','./affiliate.html']];
   const help=document.createElement('button');help.type='button';help.textContent='Cara main';help.onclick=()=>{assign(el('simpleSettingsTitle'),'Cara main');const p=document.createElement('p');p.textContent='Joystick untuk berjalan. Geser layar untuk melihat. Lari mempercepat gerakan. Tombol kuning menunjukkan kegiatan yang dapat dilakukan. Di bus, Lari berubah menjadi Rem. PC: WASD/panah, Shift; E adalah pintasan tombol kegiatan.';options.replaceChildren(p);};options.append(help);
   const district=districtReturnUrl();if(district)links.unshift(['Kembali ke distrik',district]);
   for(const [label,href]of links){const a=document.createElement('a');a.textContent=label;a.href=tenantUrl(href);options.append(a);}
