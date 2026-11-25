@@ -1,3 +1,5 @@
+import {humanBodies} from './characters/HumanActors.ts';
+import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
@@ -218,6 +220,7 @@ function frame(now:number){
  const moving=velocity.length()>.055;
  if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-12.35:-5.6,guideMode?12.35:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,departure?-6.6:-3,guideMode?8.1:5.8);
   if(guideMode&&!departure){const allowed=(x:number,z:number)=>Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8;if(!allowed(nx,nz)){if(allowed(pos.x,nz))nx=pos.x;else if(allowed(nx,pos.z))nz=pos.z;else{nx=pos.x;nz=pos.z;}}}
+  if(!queueJoining&&!queueAuthorized&&!departure){const step=sweepGround(pos,{x:nx,z:nz},humanBodies(s),(x,z)=>!guideMode||Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8);nx=step.x;nz=step.z;}
   const moved=Math.hypot(nx-pos.x,nz-pos.z);lobbySound.walk(moved);tutorial.event({type:'walk',amount:moved});pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
  if(!guideMode&&selected&&!modal&&!encounter){for(const p of ['hajj','umrah'] as const){const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d<1.05){greet(p);break;}}}
  if(encounter&&encounterProgram){const t=gateEncounter==='clerk'?(registrationHall?.clerk(avatar==='female').position??placements[encounterProgram]):placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
@@ -299,7 +302,7 @@ function frame(now:number){
  }
 
  if(guideMode){const a=currentGateAction();$('bubble').hidden=!showCallBubble||a?.id==='guide';paintGateAction(a);}
- registrationHall?.update(dt);
+ registrationHall?.update(dt,pos);
  if(guideMode){if(gateQueueCancel)gateQueueCancel.hidden=!(queueJoining||queueAuthorized);const ahead=registrationHall?.ahead(avatar==='female');if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=departure?'departing':gateEncounter==='clerk'?'serving':queueAuthorized?'ready':queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
  updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!portraitBlocked&&!budget.lost());
