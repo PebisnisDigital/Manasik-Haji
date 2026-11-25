@@ -1,3 +1,4 @@
+import {drawNamePlate} from '../characters/NamePlate.ts';
 import {createSouvenirCelebration} from './souvenirCelebration.ts';
 import {SOUVENIR_BUILDING,SOUVENIR_NUMBER} from './citySouvenir.ts';
 import {slidingDoorOffset} from './cityMissionEntry.ts';
@@ -84,9 +85,9 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   guard.position.set(p.x+Math.cos(p.yaw)*2.95+Math.sin(p.yaw)*11.8,.1,p.z-Math.sin(p.yaw)*2.95+Math.cos(p.yaw)*11.8);
   guard.rotation.y=p.yaw;const bubbleCanvas=document.createElement('canvas');bubbleCanvas.width=512;bubbleCanvas.height=128;const bubbleCtx=bubbleCanvas.getContext('2d')!;const bubbleTex=new THREE.CanvasTexture(bubbleCanvas);bubbleTex.colorSpace=THREE.SRGBColorSpace;signs.push(bubbleTex);const bubble=new THREE.Sprite(new THREE.SpriteMaterial({map:bubbleTex,transparent:true,depthWrite:false}));bubble.position.set(0,2.75,0);bubble.scale.set(2.65,.66,1);bubble.visible=false;guard.add(bubble);guards.push({root:guard,yaw:p.yaw,number:p.number,status:bubble,ctx:bubbleCtx,tex:bubbleTex,last:''});
   const tagCanvas=document.createElement('canvas');tagCanvas.width=512;tagCanvas.height=116;const tg=tagCanvas.getContext('2d')!;
-  tg.fillStyle='#173b32';tg.fillRect(0,0,512,116);tg.strokeStyle='#c9aa67';tg.lineWidth=4;tg.strokeRect(4,4,504,108);tg.textAlign='center';tg.fillStyle='#f5e4b6';tg.font='bold 38px system-ui';tg.fillText(p.guardName,256,48);tg.font='bold 25px system-ui';tg.fillText('PETUGAS KEAMANAN',256,87);
+  drawNamePlate(tg,p.guardName,'PETUGAS KEAMANAN');
   const tagTexture=new THREE.CanvasTexture(tagCanvas);tagTexture.colorSpace=THREE.SRGBColorSpace;signs.push(tagTexture);
-  const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tagTexture,transparent:true,depthWrite:false}));tag.position.set(0,2.11,0);tag.scale.set(1.65,.374,1);guard.add(tag);
+  const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:tagTexture,transparent:true,depthWrite:false}));tag.position.set(0,2.11,0);tag.scale.set(2.05,.465,1);guard.add(tag);
   const badge=box(guard,.13,.09,.025,-.15,1.36,.18,gold);badge.rotation.y=0;
   // A low security podium identifies the checkpoint without obstructing the door.
   box(g,.70,1.05,.55,4.3,.525,11.8,green);box(g,.82,.07,.65,4.3,1.08,11.8,gold);box(g,.38,.025,.26,4.3,1.13,11.8,white);
