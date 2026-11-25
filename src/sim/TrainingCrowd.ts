@@ -1,3 +1,4 @@
+import {bodyClear} from './GroundCollision.ts';
 /** Bounded, deterministic lane-following crowd AI. Simulation only; not real crowd safety modelling. */
 export interface Position{x:number;z:number}
 export interface PathPoint extends Position{yaw:number}
@@ -31,9 +32,12 @@ export function updateLanes(kind:Route,agents:LaneAgent[],dt:number,player:Posit
    targetSpeed.set(a,Math.min(a.pace*playerFactor,Math.max(0,(gap-.92)*.85),Math.max(0,(gap-.92)/dt)));
   }
  }
- for(const a of agents){const desired=targetSpeed.get(a)??0;
-  // Brake immediately for a blocked path, accelerate gently again.
-  a.speed=Math.min(desired,a.speed+dt*1.8);const L=routeLength(kind,a.lane,end);a.s=wrapDistance(a.s+a.speed*dt,L);a.phase=wrapDistance(a.phase+a.speed*dt/1.42,1);
+ const bodies=agents.map(a=>pathPoint(kind,a.lane,a.s,end));
+ for(let i=0;i<agents.length;i++){const a=agents[i],desired=targetSpeed.get(a)??0;
+  // Brake for a blocked lane, including crossing traffic and the player.
+  a.speed=Math.min(desired,a.speed+dt*1.8);const L=routeLength(kind,a.lane,end),next=wrapDistance(a.s+a.speed*dt,L),p=pathPoint(kind,a.lane,next,end);
+  if(bodyClear(bodies[i],p,[player,...bodies.filter((_,j)=>i!==j)])){a.s=next;bodies[i]=p;}else a.speed=0;
+  a.phase=wrapDistance(a.phase+a.speed*dt/1.42,1);
  }
 }
 export type Patrol={x:number;z:number;homeX:number;homeZ:number;yaw:number;h:number;phase:number;moving:boolean;rest:boolean};
