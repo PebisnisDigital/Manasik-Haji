@@ -9,6 +9,7 @@ import {gateGuide} from './gateGuide.ts';
 import {readStory,saveStory} from './travelStory.ts';
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const params=new URLSearchParams(location.search);
+const referral=params.get('ref');if(referral&&/^HJ-[A-Fa-f0-9]{12}$/.test(referral)){try{sessionStorage.setItem('hajji-referral-code',referral.toUpperCase());}catch{}}
 function bootError(error:unknown){document.documentElement.classList.remove('gameBoot','frontMode');for(const id of ['gameFront','lobby','cinematicIntro'])document.getElementById(id)?.remove();const panel=document.createElement('main');panel.style.cssText='padding:24px;color:#fff4dc;background:#102c24;min-height:100dvh';const title=document.createElement('h2');title.textContent='Arena belum berhasil dimuat';const message=document.createElement('p');message.textContent='Checkpoint tetap tersimpan. Muat ulang untuk mencoba lagi.';const retry=document.createElement('button');retry.textContent='Muat ulang';retry.onclick=()=>location.reload();panel.append(title,message,retry);document.body.append(panel);console.error(error);}
 if(params.get('play')==='miqat'){
  $('gameFront').remove();void import('./miqatRoom.ts').then(m=>m.mountMiqatRoom()).catch(bootError);
