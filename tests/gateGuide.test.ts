@@ -7,3 +7,6 @@ it('creates a manual transfer WhatsApp draft with the saved registration and dis
 
 import {manualConfirmationUrl,registrationSummary} from '../src/registrationHandoff.ts';
 it('prepares a distinct proof-of-transfer WhatsApp draft and receipt without claiming payment approval',()=>{const r={id:'HJ-DEMO',name:'Peserta Demo',email:'demo@example.invalid',phone:'081234567890',program:'hajj' as const,amount:90000,discount:10000,coupon:'HJ-REF',status:'pending'};const b={bank:'Bank Demo',account:'12345678',holder:'Demo'};const u=new URL(manualConfirmationUrl(r,b));expect(u.pathname).toBe('/'+ADMIN_WHATSAPP);expect(u.searchParams.get('text')).toContain('foto atau screenshot bukti transfer');expect(u.searchParams.get('text')).toContain('Rp90.000');expect(u.searchParams.get('text')).toContain(r.id);expect(u.searchParams.get('text')).not.toContain('Tiket aktif');expect(u.href).not.toBe(manualWhatsAppUrl(r,b));const fields=Object.fromEntries(registrationSummary(r));expect(fields['Harga tiket']).toBe('Rp100.000');expect(fields['Potongan']).toBe('Rp10.000');expect(fields['Email']).toBe(r.email);expect(fields['WhatsApp']).toBe(r.phone);});
+
+import {gateGreeting} from '../src/gateGuide.ts';
+it('uses Akhi and Ukhti according to player character',()=>{expect(gateGreeting('male')).toBe('Akhi');expect(gateGreeting('female')).toBe('Ukhti');});

@@ -5,7 +5,7 @@ export default async function handler(req,res){
  const reply=(code,value)=>res.status(code).json(value);
  const path=new URL(req.url,'https://local.invalid').pathname.replace(/^\/api\/registration\/?/,'');
  const op=req.method==='GET'&&!path?'get':req.method==='POST'?(path||'create'):'';
- if(!['get','create','report','magic-link','redeem','qris-create','qris-check','coupon','affiliate'].includes(op))return reply(405,{error:'Metode tidak tersedia.'});
+ if(!['get','create','report','magic-link','redeem','qris-create','qris-check','coupon','affiliate','lookup'].includes(op))return reply(405,{error:'Metode tidak tersedia.'});
  if(req.method==='POST'&&(req.headers.origin!=='https://'+req.headers.host||!String(req.headers['content-type']).startsWith('application/json')))return reply(403,{error:'Permintaan tidak diizinkan.'});
  let data={};try{data=typeof req.body==='string'?JSON.parse(req.body):req.body??{};if(!data||typeof data!=='object'||Array.isArray(data)||JSON.stringify(data).length>4096)return reply(400,{error:'Data tidak valid.'});}catch{return reply(400,{error:'Data tidak valid.'});}
  const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY,url=process.env.VITE_SUPABASE_URL,cap=process.env.HAJJI_TICKET_GATEWAY;
@@ -19,7 +19,7 @@ export default async function handler(req,res){
  if(!response.ok)return reply(response.status===403?503:400,{error:response.status>=500||response.status===403?'Layanan belum tersedia.':String(result.message??'Permintaan gagal.').slice(0,180)});
  if(result.error)return reply(429,{error:result.error});
  if(result.secret){res.setHeader('Set-Cookie','manasik_registration='+result.secret+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=31536000');delete result.secret;}
- if(qrisOp)result.qris=qris;else if(op==='get'&&result.registration?.status==='pending' ){try{result.qris=await handleQr('get',secret);}catch{}}
+ if(qrisOp)result.qris=qris;else if((op==='get'||op==='lookup'&&result.lookup==='verified')&&result.registration?.status==='pending' ){try{result.qris=await handleQr('get',secret);}catch{}}
  return reply(200,result);
  }catch(err){if(err instanceof QrisError)return reply(err.code==='rate_limited'?429:503,{error:err.message,code:err.code});console.warn('Registration request failed',{operation:op});return reply(503,{error:'Layanan pendaftaran belum tersambung.'});}
 }
