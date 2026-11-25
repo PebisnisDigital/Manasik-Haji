@@ -5,7 +5,7 @@ import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts
 import {Clip} from './sim/States.ts';
 import {defaultSetup} from './frontModel.ts';
 import {gateGuide} from './gateGuide.ts';
-import {openSalmaWelcome} from './salmaWelcome.ts';
+import {openSalmaWelcome,openGateGuide} from './salmaWelcome.ts';
 import {createRegistrationHall} from './registrationHall.ts';
 import {mountCinematicIntro} from './cinematicIntro.ts';
 import {mountPwa} from './pwa.ts';
@@ -37,13 +37,14 @@ type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:R
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
 let videotron:ReturnType<typeof mountGateVideotron>|undefined;
 let closeGateDialogue:(()=>void)|undefined;
+let gateEncounter:'guide'|'clerk'|null=null,guideNearArmed=true,guideIntroduced=false,guidePlayerName='';
 let queueJoining=false,queueStage=0,queueAuthorized=false;
 function leaveRegistrationQueue(){if(registrationHall&&queueJoining)registrationHall.leave(avatar==='female');queueJoining=false;queueStage=0;queueAuthorized=false;stopMotion();}
 function registrationAction(){if(!selected||modal||encounter||portraitBlocked)return;if(queueJoining){leaveRegistrationQueue();$('instruction').textContent='Keluar dari antrean. Pilih MASUK ANTREAN untuk ikut kembali.';return;}if(!sceneReady||!registrationHall){$('instruction').textContent='Arena antrean belum tersedia. Muat ulang halaman.';return;}target=null;stopMotion();queueJoining=true;queueStage=0;registrationHall.join(avatar==='female');dismissGuideCall();$('instruction').textContent='Menuju bagian belakang antrean';}
 const guideRings:Partial<Record<Program,THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>>>= {};
 const guideLines={
- male:['Assalamualaikum, Akhi! Silakan antre dulu, ya.','Ambil antrean di loket laki-laki supaya tertib.','Nanti kalau sudah giliran, saya bantu pendaftarannya.'],
- female:['Assalamualaikum, Ukhti! Silakan antre dulu, ya.','Ambil antrean di loket perempuan supaya tertib.','Nanti kalau sudah giliran, saya bantu pendaftarannya.']
+ male:['Assalamualaikum, Akhi! Mari ke sini.','Mau tahu tentang HAJJI.DIGITAL?','Silakan datang, saya jelaskan dulu.'],
+ female:['Assalamualaikum, Ukhti! Mari ke sini.','Mau tahu tentang HAJJI.DIGITAL?','Silakan datang, saya jelaskan dulu.']
 } as const;
 let callClock=0,callCycle=-1,callVoiceCount=0,callUtterance:SpeechSynthesisUtterance|null=null;
 const CALL_PERIOD=6.8,CALL_SHOW=3.8;
@@ -87,13 +88,35 @@ function stopMotion(){keys.clear();joy.set(0,0);velocity.set(0,0);$('knob').styl
 
 function applyProgramSetting(p:Program){const open=newSessionAllowed(settings,p);btn('startTraining').disabled=!open||starting;if(!open)$('payNotice').textContent='Sesi baru sedang dijeda. Latihan lama tetap bisa dilanjutkan.';}
 function openRegistration(p:Program){chosenProgram=p;clearTimeout(dialogueTimer);encounter=false;encounterProgram=null;modal=true;target=null;stopMotion();$('bubble').hidden=true;$('programTitle').textContent=programs[p].title;$('programDesc').textContent=programs[p].desc;$('levelList').replaceChildren(...programs[p].levels.map((v,i)=>{const el=document.createElement('span');el.textContent=String(i+1).padStart(2,'0')+' · '+v;return el;}));$<HTMLFormElement>('registerForm').reset();const previous=readCore(p);btn('resumeTraining').hidden=!previous;btn('resumeTraining').textContent=previous?(isComplete(previous)?'Lihat sertifikat':'Lanjut level '+levelNumber(previous.step)):'Lanjutkan progress';btn('startTraining').textContent=previous?'Mulai ulang':'Mulai manasik';if(previous)$<HTMLInputElement>('fullName').value=previous.name;$('payNotice').textContent=accountId()?'Akses gratis • progress disinkronkan ke akun.':'Akses tamu • progress hanya di perangkat.';$('registerModal').hidden=false;$('instruction').textContent='Mulai manasik';applyProgramSetting(p);void loadSettings().then(()=>{if(chosenProgram===p&&!$('registerModal').hidden)applyProgramSetting(p);});if(!portraitBlocked)btn('closeRegister').focus({preventScroll:true});}
-function greet(p:Program){if(modal||encounter||!selected||portraitBlocked)return;if(guideMode&&!queueAuthorized){$('instruction').textContent='Ikuti antrean dahulu dengan tombol MASUK ANTREAN.';return;}queueAuthorized=false;if(guideMode&&p!==gateGuide(avatar).slot){target=null;$('instruction').textContent='Silakan antre di loket '+gateGuide(avatar).name+'.';return;}tutorial.event({type:'guide'});encounter=true;encounterProgram=p;target=null;stopMotion();if(guideMode){dismissGuideCall();$('instruction').textContent='Berbincang dengan '+gateGuide(avatar).name;closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;resetPosition(true);resetGuideCall();$('instruction').textContent='Silakan antre di loket '+gateGuide(avatar).name+' untuk daftar atau cek pembayaran';},side=>{const actor=side==='guide'?guides[p].root:hero.root;const point=actor.position.clone();point.y+=2.12;const view=point.clone().applyMatrix4(cam.matrixWorldInverse);point.project(cam);const rect=$<HTMLCanvasElement>('world').getBoundingClientRect();const visible=view.z< -cam.near&&point.z>=-1&&point.z<=1&&Math.abs(point.x)<=1&&Math.abs(point.y)<=1;return {x:rect.left+(point.x*.5+.5)*rect.width,y:rect.top+(.5-point.y*.5)*rect.height,visible};});return;}$('speaker').textContent=p==='hajj'?'Pemandu manasik haji':'Pemandu manasik umroh';$('speech').textContent=p==='hajj'?'Assalamualaikum! Mari belajar manasik haji.':'Assalamualaikum! Mari belajar manasik umroh.';$('bubble').hidden=false;$('instruction').textContent='Temui pemandu';dialogueTimer=window.setTimeout(()=>openRegistration(p),3600);}
-function go(p:Program){if(guideMode&&p===gateGuide(avatar).slot){registrationAction();return;}if(guideMode&&p!==gateGuide(avatar).slot){$('instruction').textContent='Silakan antre di loket '+gateGuide(avatar).name+'.';return;}if(!selected||modal||encounter||portraitBlocked)return;if(!sceneReady){greet(p);return;}target=p;$('instruction').textContent=guideMode?'Menuju '+gateGuide(avatar).name:'Menuju '+programs[p].title;}
+function gateProject(p:Program,clerk:boolean,side:'guide'|'player'){
+ const actor=side==='player'?hero.root:clerk?(registrationHall?.clerk(avatar==='female')??guides[p].root):guides[p].root;
+ const point=actor.position.clone();point.y+=side==='guide'&&clerk?1.88:2.12;const view=point.clone().applyMatrix4(cam.matrixWorldInverse);point.project(cam);
+ const rect=$<HTMLCanvasElement>('world').getBoundingClientRect();return {x:rect.left+(point.x*.5+.5)*rect.width,y:rect.top+(.5-point.y*.5)*rect.height,visible:view.z< -cam.near&&point.z>=-1&&point.z<=1&&Math.abs(point.x)<=1&&Math.abs(point.y)<=1};
+}
+function greet(p:Program){
+ if(modal||encounter||!selected||portraitBlocked)return;
+ if(guideMode&&p!==gateGuide(avatar).slot){target=null;$('instruction').textContent='Temui '+gateGuide(avatar).name+'.';return;}
+ tutorial.event({type:'guide'});encounter=true;encounterProgram=p;target=null;stopMotion();
+ if(guideMode){
+  dismissGuideCall();guideNearArmed=false;
+  if(queueAuthorized){
+   queueAuthorized=false;gateEncounter='clerk';registrationHall?.setRegistrationBusy(true);
+   $('instruction').textContent='Sedang dilayani petugas pendaftaran';
+   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);guideIntroduced=true;$('instruction').textContent='Pilih MASUK ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName);
+  }else{
+   gateEncounter='guide';$('instruction').textContent='Berbincang dengan '+gateGuide(avatar).name;
+   closeGateDialogue=openGateGuide((name,join)=>{guidePlayerName=name;guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Silakan pilih MASUK ANTREAN untuk mendaftar';if(join)registrationAction();},side=>gateProject(p,false,side),guidePlayerName);
+  }
+  return;
+ }
+ $('speaker').textContent=p==='hajj'?'Pemandu manasik haji':'Pemandu manasik umroh';$('speech').textContent=p==='hajj'?'Assalamualaikum! Mari belajar manasik haji.':'Assalamualaikum! Mari belajar manasik umroh.';$('bubble').hidden=false;$('instruction').textContent='Temui pemandu';dialogueTimer=window.setTimeout(()=>openRegistration(p),3600);
+}
+function go(p:Program){if(guideMode&&p!==gateGuide(avatar).slot){$('instruction').textContent='Temui '+gateGuide(avatar).name+' sesuai karakter pilihanmu.';return;}if(!selected||modal||encounter||portraitBlocked||queueJoining)return;if(!sceneReady){greet(p);return;}target=p;$('instruction').textContent=guideMode?'Menuju '+gateGuide(avatar).name:'Menuju '+programs[p].title;}
 $<HTMLFormElement>('registerForm').onsubmit=async e=>{e.preventDefault();if(portraitBlocked||starting)return;starting=true;btn('startTraining').disabled=true;const requested=chosenProgram;await loadSettings();if(requested!==chosenProgram||$('registerModal').hidden||portraitBlocked||!newSessionAllowed(settings,requested)){starting=false;applyProgramSetting(chosenProgram);return;}const previous=readCore(chosenProgram);if(previous&&!confirm('Mulai ulang latihan program ini? Progress lama akan diganti.')){starting=false;applyProgramSetting(chosenProgram);return;}const j=newCore(chosenProgram,avatar,$<HTMLInputElement>('fullName').value||'Peserta Demo');if(!writeCore(j)){$('payNotice').textContent='Penyimpanan browser tidak tersedia.';starting=false;applyProgramSetting(chosenProgram);return;}btn('startTraining').disabled=true;if(accountId())await Promise.race([syncRuns(),new Promise(resolve=>setTimeout(resolve,1800))]);location.assign(coreUrl(j));};
 btn('resumeTraining').onclick=()=>{const j=readCore(chosenProgram);if(j&&!portraitBlocked)location.assign(coreUrl(j));};
 btn('closeRegister').onclick=()=>{$('registerModal').hidden=true;$<HTMLFormElement>('registerForm').reset();modal=false;encounter=false;resetPosition();$('instruction').textContent='Temui pemandu';};
-function choose(a:Avatar){if(queueJoining)leaveRegistrationQueue();avatar=a;selected=true;modal=false;encounter=false;target=null;$('avatarModal').hidden=true;$('instruction').textContent='Temui pemandu';if(sceneReady){s.remove(hero.root);hero.root.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();if(!Array.isArray(o.material))o.material.dispose();}});hero=person(avatar==='female',avatar==='female'?0x64867a:0xf4ead6,true);resetPosition();}tutorial.paint();}
-function selectAtGate(a:Avatar){if(guideMode&&!saveSetup({...readSetup()??defaultSetup(),avatar:a})){$('instruction').textContent='Pilihan belum tersimpan. Periksa penyimpanan browser.';return;}choose(a);if(guideMode){resetGuideCall(true);$('instruction').textContent='Tekan MASUK ANTREAN untuk mendaftar di loket '+gateGuide(avatar).name;const meet=document.querySelector('.guideMeet');if(meet)meet.textContent='MASUK ANTREAN';}}
+function choose(a:Avatar){if(queueJoining)leaveRegistrationQueue();guideNearArmed=true;guideIntroduced=false;guidePlayerName='';gateEncounter=null;avatar=a;selected=true;modal=false;encounter=false;target=null;$('avatarModal').hidden=true;$('instruction').textContent='Temui pemandu';if(sceneReady){s.remove(hero.root);hero.root.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.dispose();if(!Array.isArray(o.material))o.material.dispose();}});hero=person(avatar==='female',avatar==='female'?0x64867a:0xf4ead6,true);resetPosition();}tutorial.paint();}
+function selectAtGate(a:Avatar){if(guideMode&&!saveSetup({...readSetup()??defaultSetup(),avatar:a})){$('instruction').textContent='Pilihan belum tersimpan. Periksa penyimpanan browser.';return;}choose(a);if(guideMode){resetGuideCall(true);$('instruction').textContent='Temui '+gateGuide(avatar).name+' atau pilih MASUK ANTREAN';const meet=document.querySelector('.guideMeet');if(meet)meet.textContent='MASUK ANTREAN';}}
 btn('male').onclick=()=>selectAtGate('male');btn('female').onclick=()=>selectAtGate('female');btn('goHajj').onclick=()=>go('hajj');btn('goUmrah').onclick=()=>go('umrah');btn('change').onclick=()=>{if(entranceMode&&!entranceFramePresented)return;if(guideMode){closeGateDialogue?.();leaveRegistrationQueue();dismissGuideCall();}clearTimeout(dialogueTimer);encounter=false;encounterProgram=null;target=null;modal=true;stopMotion();$('bubble').hidden=true;$('registerModal').hidden=true;$('avatarModal').hidden=false;btn(avatar).focus();};
 const mat=(c:number)=>new THREE.MeshStandardMaterial({color:c,roughness:.78});
 function mesh(g:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D){const o=new THREE.Mesh(g,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
@@ -132,7 +155,7 @@ function frame(now:number){
  requestAnimationFrame(frame);const dt=Math.min(.05,last?(now-last)/1000:0);last=now;if(paused||document.hidden||(portraitBlocked&&(!entranceMode||entranceFramePresented))||introPlaying||budget.lost()){videotron?.draw(cam,false);return;}tutorial.paint();
  const pos=hero.root.position;let dx=0,dz=0;let automatic=false;
  if(selected&&!modal&&!encounter){
-  if(queueJoining&&registrationHall){automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female);const side=female?1:-1;const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(queueStage<2)queueStage++;else if(registrationHall.ahead(female)===0){registrationHall.leave(female);queueJoining=false;queueAuthorized=true;greet(gateGuide(avatar).slot);}dx=dz=0;}}
+  if(queueJoining&&registrationHall){automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female);const side=female?1:-1;const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(queueStage<2)queueStage++;else if(registrationHall.ahead(female)===0){queueJoining=false;queueAuthorized=true;registrationHall.setRegistrationBusy(true);greet(gateGuide(avatar).slot);}dx=dz=0;}}
   else if(target){automatic=true;const t=placements[target];dx=t.x-pos.x;dz=t.z+.96-pos.z;if(Math.hypot(dx,dz)<.10){greet(target);dx=dz=0;}}
   else{const side=joy.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),forward=-joy.y+Number(keys.has('w')||keys.has('arrowup'))-Number(keys.has('s')||keys.has('arrowdown'));dx=-Math.cos(cameraYaw)*side+Math.sin(cameraYaw)*forward;dz=Math.sin(cameraYaw)*side+Math.cos(cameraYaw)*forward;}
  }
@@ -142,8 +165,9 @@ function frame(now:number){
  if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-12.35:-5.6,guideMode?12.35:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,-3,guideMode?8.1:5.8);
   if(guideMode){const allowed=(x:number,z:number)=>Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8;if(!allowed(nx,nz)){if(allowed(pos.x,nz))nx=pos.x;else if(allowed(nx,pos.z))nz=pos.z;else{nx=pos.x;nz=pos.z;}}}
   const moved=Math.hypot(nx-pos.x,nz-pos.z);lobbySound.walk(moved);tutorial.event({type:'walk',amount:moved});pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
+ if(guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!target){const p=gateGuide(avatar).slot;const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d>2.2)guideNearArmed=true;if(d<1.35&&guideNearArmed)greet(p);}
  if(!guideMode&&selected&&!modal&&!encounter){for(const p of ['hajj','umrah'] as const){const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d<1.05){greet(p);break;}}}
- if(encounter&&encounterProgram){const t=placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
+ if(encounter&&encounterProgram){const t=gateEncounter==='clerk'?(registrationHall?.clerk(avatar==='female').position??placements[encounterProgram]):placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
  hero.root.rotation.y=heading;
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
  // Registration camera is a manual orbit: auto-walk and conversations must not change its yaw.
@@ -157,7 +181,7 @@ function frame(now:number){
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*11);cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
  hero.root.visible=cam.position.distanceTo(pivot)>.85;
- const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining?gateGuide(avatar).slot:null;
+ const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!guideIntroduced?gateGuide(avatar).slot:null;
  if(activeSlot){
   callClock+=dt;
   const cycle=Math.floor(callClock/CALL_PERIOD);
@@ -186,7 +210,7 @@ function frame(now:number){
   el.hidden=offscreen||!!encounterProgram&&encounter;
   if(guideMode){
    el.classList.toggle('guideIsCalling',calling);el.classList.toggle('guideIsPassive',!!activeSlot&&!calling);
-   const title=(p==='hajj'?'PAK HUSEN':'BU SALMA')+(calling?' · SILAKAN ANTRE':' · PENDAFTARAN');
+   const title=(p==='hajj'?'PAK HUSEN':'BU SALMA')+(calling?' · MARI KE SINI':' · PEMANDU');
    if(el.textContent!==title)el.textContent=title;
    if(calling&&!offscreen&&callClock%CALL_PERIOD<CALL_SHOW){
     const bubble=$('bubble'),line=guideLines[avatar][Math.max(0,callCycle)%3];
@@ -203,7 +227,7 @@ function frame(now:number){
 
  if(guideMode)$('bubble').hidden=!showCallBubble;
  registrationHall?.update(dt);
- if(guideMode){const meet=document.querySelector<HTMLElement>('.guideMeet');const ahead=registrationHall?.ahead(avatar==='female');if(meet){const label=queueJoining?'KELUAR ANTREAN':'MASUK ANTREAN';if(meet.textContent!==label)meet.textContent=label;meet.setAttribute('aria-label',label);}if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=queueJoining?String(ahead):'idle';}
+ if(guideMode){const meet=document.querySelector<HTMLElement>('.guideMeet');const ahead=registrationHall?.ahead(avatar==='female');const talk=document.querySelector<HTMLButtonElement>('.gateTalk');if(talk)talk.hidden=!selected||modal||encounter||queueJoining;if(meet){const label=queueJoining?'KELUAR ANTREAN':'MASUK ANTREAN';if(meet.textContent!==label)meet.textContent=label;meet.setAttribute('aria-label',label);}if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=gateEncounter==='clerk'?'serving':queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
  updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!portraitBlocked&&!budget.lost());
  // Present the character picker only after the first rendered registration scene has been painted.
@@ -226,6 +250,7 @@ if(guideMode){
  $('cinematicIntro').remove();$('hajjLabel').textContent='PAK HUSEN · PENDAFTARAN';$('umrahLabel').textContent='BU SALMA · PENDAFTARAN';document.querySelector('#lobby .brand')!.textContent='HAJJI.DIGITAL';
  const npcNotice=document.createElement('small');npcNotice.textContent='Antrean NPC · simulasi';npcNotice.style.cssText='display:block;color:#f0dcad;font-size:11px;margin-top:4px;letter-spacing:.02em';document.querySelector('.menu nav')!.append(npcNotice);
  const meet=document.createElement('a');meet.className='guideMeet';meet.href='#';meet.onclick=e=>{e.preventDefault();registrationAction();};document.querySelector('.chooser')!.prepend(meet);
+ const talk=document.createElement('button');talk.type='button';talk.className='gateTalk';talk.textContent='BICARA DENGAN PEMANDU';talk.onclick=()=>go(gateGuide(avatar).slot);meet.before(talk);
  const settingsLink=document.createElement('a');settingsLink.className='gateSettings';settingsLink.href=tenantUrl('./index.html?setup=1');settingsLink.textContent='⚙ Perjalanan, suara & grafis';document.querySelector('.menu nav')!.append(settingsLink);
  document.querySelector('#avatarModal h1')!.textContent='Pilih karakter';
  // Keep the entrance character picker minimal. Comfort settings and account access remain in the main menu.
