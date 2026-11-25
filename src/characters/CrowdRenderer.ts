@@ -46,6 +46,19 @@ const PALETTES: ReadonlyArray<readonly [number, number, number]> = [
   [0x5f6660, 0xe8e6de, 0xd4ab84],
 ];
 
+/** Seven dark outfits, three muted alternatives. Keep skin colors independent. */
+export const FEMALE_PALETTES: ReadonlyArray<readonly [number, number, number]> = [
+ [0x141414,0x202020,0xc59d78],
+ [0x1c1c1c,0x181818,0x8d6748],
+ [0x50465b,0x62566a,0xe0b892],
+ [0x222222,0x171717,0x6f4e35],
+ [0x384554,0x485461,0xb98d66],
+ [0x191919,0x242424,0xd4ab84],
+ [0x282828,0x202020,0x9c7550],
+ [0x9b8278,0xb29a8f,0xc0966f],
+ [0x161616,0x1d1d1d,0xb98d66],
+ [0x202020,0x171717,0xd4ab84],
+];
 export const PALETTE_COUNT = PALETTES.length;
 
 export interface CrowdQuality {
@@ -168,9 +181,10 @@ export class CrowdRenderer {
     this.quality = quality;
     this.group.name = 'crowd';
 
-    for (const c of colors) {
+    const garmentColors=this.variant?.pilgrimStyle==='female'?FEMALE_PALETTES:colors;
+    for (const c of garmentColors) {
       for (let k = 0; k < 3; k++) {
-        this.paletteUniform.push(new THREE.Color(colors===PALETTES&&this.variant?.casual&&k===0?0x527987:colors===PALETTES&&this.variant?.casual&&k===1&&this.variant.pilgrimStyle==='female'?0x527987:c[k]));
+        this.paletteUniform.push(new THREE.Color(colors===PALETTES&&this.variant?.pilgrimStyle!=='female'&&this.variant?.casual&&k===0?0x527987:c[k]));
       }
     }
 
