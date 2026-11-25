@@ -19,7 +19,7 @@ if(params.get('play')==='miqat'){
  if(params.has('guide')&&!readSetup()){location.replace(tenantUrl('./index.html'));}
  document.documentElement.classList.remove('frontMode','gameBoot');$('gameFront').remove();$('lobby').hidden=false;void import('./lobby.ts').catch(bootError);
 }else if(!params.has('setup')){
- document.documentElement.classList.remove('frontMode','gameBoot');document.documentElement.classList.add('entranceMode');$('gameFront').remove();$('lobby').hidden=false;void import('./lobby.ts').catch(bootError);
+ document.documentElement.classList.remove('frontMode','gameBoot');document.documentElement.classList.add('entranceMode');$('gameFront').remove();$('avatarModal').hidden=true;$('lobby').hidden=false;void import('./lobby.ts').catch(bootError);
 }else{
  document.documentElement.classList.remove('gameBoot');document.documentElement.classList.add('frontMode');
  $('lobby').hidden=true;const coverArt=document.querySelector('.introArt')?.cloneNode(true);$('cinematicIntro').remove();bootTenant();
