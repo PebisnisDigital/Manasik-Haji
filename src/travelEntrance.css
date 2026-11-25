@@ -122,3 +122,35 @@ html[data-gate-camera=clerk] #lobby .gateCameraPad,html[data-gate-camera=clerk] 
  .gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{width:min(520px,72vw);max-height:40dvh}
  .gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(390px,62vw);max-height:48dvh}
 }
+
+/* Full invoice card: no internal scrollbar, reflow to two columns on short landscape screens. */
+.gateClerkDialogue[data-line=bill] .gateWorldPanel{box-sizing:border-box;width:min(420px,calc(100vw - 24px));max-height:none;height:auto;overflow:visible;padding:12px;transform-origin:top left;box-shadow:0 8px 24px #102e2633}
+.gateClerkDialogue[data-line=bill] .gateWorldForm h3{font-size:17px;margin:0 0 6px}
+.gateClerkDialogue[data-line=bill] .gateWorldForm>p{font-size:12px;line-height:1.3;margin:4px 0 6px}
+.gateClerkDialogue[data-line=bill] .gateStatus{padding:6px 9px}
+.gateInvoiceLayout,.gateInvoicePayment{display:grid;gap:7px;min-width:0;align-content:start}
+.gateInvoiceLayout .gateReceipt{padding:10px;gap:6px}
+.gateInvoiceLayout .gateReceipt dl{font-size:12px;gap:4px 8px;line-height:1.25;grid-template-columns:minmax(66px,35%) minmax(0,1fr)}
+.gateInvoiceLayout .gateReceipt dd{overflow-wrap:anywhere}
+.gateInvoiceLayout .gateReceiptTotal{padding-top:6px}
+.gateInvoiceLayout .gateReceiptTotal strong{font-size:22px}
+.gateInvoiceLayout .gateReceiptBank{margin:0;padding:10px}
+.gateInvoiceLayout .gateReceiptBank strong{font-size:22px}
+.gateInvoiceLayout .gateReceiptBank p{font-size:12px;margin:3px 0}
+.gateInvoiceLayout .gateReceiptBank button{margin:4px 0 0;min-height:40px}
+.gateInvoiceLayout .gateReceiptInstruction{margin:0;font-size:12px;line-height:1.35}
+.gateInvoiceLayout .gateEnterDistrict{margin:0;min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center}
+.gateClerkDialogue[data-line=bill] .gateInvoiceQris{padding:10px}
+.gateClerkDialogue[data-line=bill] .gateInvoiceQris p{font-size:12px;line-height:1.3;margin:4px 0}
+.gateClerkDialogue[data-line=bill] .gateInvoiceQris strong{font-size:18px}
+.gateClerkDialogue[data-line=bill] .gateInvoiceQris img{box-sizing:border-box;width:min(190px,100%)!important;height:auto;margin:6px auto!important;padding:5px!important}
+@media(max-height:650px) and (min-width:600px){
+ .gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(630px,68vw);padding:9px}
+ .gateInvoiceLayout{grid-template-columns:minmax(0,1.13fr) minmax(0,1fr);align-items:start}
+ .gateInvoiceLayout .gateReceipt{padding:8px}
+ .gateInvoiceLayout .gateReceipt dl{gap:3px 6px}
+ .gateInvoiceLayout .gateReceiptTotal strong{font-size:19px}
+ .gateInvoiceLayout .gateReceiptBank{padding:8px}
+ .gateInvoiceLayout .gateReceiptBank strong{font-size:19px}
+ .gateClerkDialogue[data-line=bill] .gateInvoiceQris img{width:min(135px,100%)!important}
+}
