@@ -9,7 +9,7 @@ export type GateDialogueAnchor={x:number;y:number;visible:boolean};
 type Side='guide'|'player';
 type Choice='check'|'register';
 type Progress={stage:'welcome'|'form';choice:Choice};
-export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialogueAnchor,playerName='',onDeparture?:(href:string)=>void){
+export function openSalmaWelcome(onClose:()=>void,project:(side:Side|'desk')=>GateDialogueAnchor,playerName='',onDeparture?:(href:string)=>void){
  const avatar=readSetup()?.avatar??'male',guide=avatar==='female'?'Petugas loket perempuan':'Petugas loket laki-laki',sapaan=gateGreeting(avatar);
  const key='hajji-gate-chat-v2:'+String(slug??'')+':'+avatar;
  let progress:Progress={stage:'welcome',choice:'check'};
@@ -34,6 +34,26 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialo
   const clamp=(v:number,min:number,max:number)=>Math.max(min,Math.min(v,Math.max(min,max)));
   let x=clamp(a.x-bw/2,12,w-bw-12),y=clamp(a.y-bh-12,78,h-bh-12);
   let detached=!a.visible||Math.abs(y-(a.y-bh-12))>18;
+  // Anchor the interactive HTML card to the ledger on the real 3D counter.
+  // Keep the input level, readable and usable by touch instead of tilting it in perspective.
+  const desk=project('desk'),pw=panel.offsetWidth,ph=panel.offsetHeight,bill=root.dataset.line==='bill';
+  if(pw&&ph){
+   let left:number,top:number;
+   if(bill){
+    // Use the side with more room, away from the two faces when possible.
+    const roomRight=w-desk.x,roomLeft=desk.x;
+    left=roomRight>=roomLeft?desk.x+48:desk.x-pw-48;
+    top=desk.y-ph*.55;
+   }else{
+    left=desk.x-pw/2;
+    top=desk.y+18;
+   }
+   if(!desk.visible){left=(w-pw)/2;top=h-ph-16;}
+   panel.style.left=Math.round(clamp(left,12,w-pw-12))+'px';
+   panel.style.top=Math.round(clamp(top,64,h-ph-12))+'px';
+   panel.style.right='auto';panel.style.bottom='auto';panel.style.transform='none';
+   panel.dataset.anchor=desk.visible?'desk':'fallback';
+  }
   const p=panel.getBoundingClientRect();
   // Prefer the actual head anchor. If it intersects the data card, use the free side or above the card.
   if(x<p.right&&x+bw>p.left&&y<p.bottom&&y+bh>p.top){
@@ -42,7 +62,7 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side)=>GateDialo
    else y=clamp(p.top-bh-16,12,h-bh-12);
    detached=true;
   }
-  if(!a.visible){x=clamp((w-bw)/2,12,w-bw-12);y=12;detached=true;}
+  if(!a.visible){x=clamp((w-bw)/2,12,w-bw-12);y=64;detached=true;}
   // In a very short viewport prioritize the actual form over an overlapping detached label.
   const overlaps=x<p.right&&x+bw>p.left&&y<p.bottom&&y+bh>p.top;
   bubble.style.visibility=overlaps?'hidden':'visible';
