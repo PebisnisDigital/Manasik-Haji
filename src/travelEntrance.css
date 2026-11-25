@@ -86,3 +86,18 @@
 .portraitBlocked #lobby .gateCameraPad{visibility:hidden!important}
 @media(orientation:landscape) and (max-height:520px){.guideMode #lobby .gateCameraPad{right:max(20px,env(safe-area-inset-right));bottom:4px}.gateContextPrompt{max-width:min(235px,45vw);padding:8px 10px}.gateContextPrompt p{font-size:12px}}
 @media(max-width:600px){.guideMode #lobby .gateCameraPad{right:max(14px,env(safe-area-inset-right))}}
+
+/* Clerk dialogue: answer composer stays bottom-center; only an issued invoice uses the side panel. */
+.gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{left:50%;right:auto;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(960px,calc(100vw - 32px));max-height:40dvh;padding:9px 12px}
+.gateClerkDialogue .gateWorldActions{grid-template-columns:1fr}
+.gateClerkDialogue .gateWorldForm{margin:0;min-width:0}
+.gateClerkDialogue .gateWorldNotice:empty{display:none}
+.gateClerkDialogue .gateWorldPanel:has(.gateWorldActions[hidden]):has(.gateWorldForm:empty):has(.gateWorldNotice:empty):not(:has(.gateDemoAccess)){display:none}
+.gateAnswerInput{display:flex;gap:9px;align-items:center}
+.gateAnswerInput input{flex:1;min-width:0;min-height:46px;padding:10px 14px;border:1px solid #c8a65b;border-radius:9px;background:#fff9eb;color:#193b30;font:16px system-ui,sans-serif}
+.gateAnswerInput button{margin:0;min-width:90px}
+.gateAnswerChoices{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.gateAnswerChoices button{flex:1 1 112px;max-width:300px;margin:0;min-height:44px;font-weight:800}
+.gateClerkDialogue .gateAnswerConsent{font-size:12px;margin:0 0 8px;color:#e5e5d5}
+.gateClerkDialogue[data-line=bill] .gateWorldPanel{left:auto;right:max(14px,env(safe-area-inset-right));transform:none;width:min(390px,calc(100vw - 28px));max-height:calc(100dvh - 85px);padding:14px}
+@media(orientation:landscape) and (max-height:520px){.gateClerkDialogue .gateWorldPanel,.gateClerkDialogue[data-line=form] .gateWorldPanel{width:min(760px,calc(100vw - 28px));max-height:46dvh;bottom:8px;padding:7px 10px}.gateClerkDialogue[data-line=bill] .gateWorldPanel{width:min(350px,48vw);max-height:calc(100dvh - 68px);right:12px}.gateAnswerChoices button{flex-basis:90px}}
