@@ -1,3 +1,5 @@
+import {humanBodies} from '../characters/HumanActors.ts';
+import {sweepGround,reportContact} from '../sim/GroundCollision.ts';
 import {publishWorldAction} from '../worldInteraction.ts';
 import {mountDistrictGuard,verifyDistrictIdentity} from './districtGuardTalk.ts';
 import {SOUVENIR_BUILDING,SOUVENIR_NUMBER} from './citySouvenir.ts';
@@ -302,8 +304,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     }else if(active){
       const m=cameraMove(forward,right,cameraYaw),speed=((simpleSprinting()||fast||keys.has('ShiftLeft')||keys.has('ShiftRight'))&&life.canSprint()?4.4:2.8)*life.factor(hero);
       const nextX=hero.x+m.x*speed*step,nextZ=hero.z+m.z*speed*step;
-      if(walkAllowed(nextX,hero.z)&&(city||!insideBus({x:nextX,z:hero.z},bus)))hero.x=nextX;
-      if(walkAllowed(hero.x,nextZ)&&(city||!insideBus({x:hero.x,z:nextZ},bus)))hero.z=nextZ;
+      const moved=sweepGround(hero,{x:nextX,z:nextZ},[...humanBodies(world.scene),...npcs],(x,z)=>walkAllowed(x,z)&&(!!city||!insideBus({x,z},bus)));hero.x=moved.x;hero.z=moved.z;reportContact(moved.hit);
       if(Math.hypot(hero.x-beforeX,hero.z-beforeZ)>.001){const desired=Math.atan2(m.x,m.z);heading+=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading))*followAlpha(14,step);audio.step();}
     }
     if(city){document.documentElement.dataset.playerQueue=guardTalk?'serving':queuedBuilding===null?'idle':String(city.queueAhead(queuedBuilding));}
@@ -323,7 +324,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     crowd.beginFrame();submit(crowd,STATIONS.briefing.x,STATIONS.briefing.z,Math.atan2(hero.x+12,hero.z-17),clock*.00015,false,9);
     for(const n of npcs){
       n.waiting=npcWaiting(Math.hypot(n.x-hero.x,n.z-hero.z),n.waiting)||insideBus(n,bus,.9);let travel=0;
-      if(active&&!n.waiting){const tx=n.route[n.index*2],tz=n.route[n.index*2+1],d=Math.hypot(tx-n.x,tz-n.z);if(d<.15)n.index=(n.index+1)%4;else{const direction=Math.atan2(tx-n.x,tz-n.z);travel=Math.min(d,step*.75);n.x+=Math.sin(direction)*travel;n.z+=Math.cos(direction)*travel;}}
+      if(active&&!n.waiting){const tx=n.route[n.index*2],tz=n.route[n.index*2+1],d=Math.hypot(tx-n.x,tz-n.z);if(d<.15)n.index=(n.index+1)%4;else{const direction=Math.atan2(tx-n.x,tz-n.z);travel=Math.min(d,step*.75);const moved=sweepGround(n,{x:n.x+Math.sin(direction)*travel,z:n.z+Math.cos(direction)*travel},[hero,...npcs.filter(p=>p!==n),...humanBodies(world.scene)],walkAllowed);travel=Math.hypot(moved.x-n.x,moved.z-n.z);n.x=moved.x;n.z=moved.z;}}
       n.motion.update(travel,step,active);
       if(active){const desired=n.waiting?Math.atan2(hero.x-n.x,hero.z-n.z):Math.atan2(n.route[n.index*2]-n.x,n.route[n.index*2+1]-n.z);n.yaw+=Math.atan2(Math.sin(desired-n.yaw),Math.cos(desired-n.yaw))*followAlpha(8,step);}
       submit(crowd,n.x,n.z,n.yaw,0,false,n.palette,n.motion);
