@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import {humanActor} from './characters/HumanActors.ts';
 
 type LaneNPC={root:THREE.Group;label:THREE.Sprite;canvas:HTMLCanvasElement;nameIndex:number;target:THREE.Vector3};
-type Lane={ticket:QueueTicket|null;side:number;female:boolean;queue:LaneNPC[];spare:LaneNPC|null;outgoing:LaneNPC|null;exitStep:number;service:number;pen:THREE.Group;clock:number;nextName:number;names:readonly string[]};
+type Lane={ticket:QueueTicket|null;side:number;female:boolean;queue:LaneNPC[];spare:LaneNPC|null;outgoing:LaneNPC|null;exitStep:number;service:number;pen:THREE.Group;clerk:THREE.Group;clock:number;nextName:number;names:readonly string[]};
 const namesMale=['Asep','Dedi','Ujang','Agus','Bambang','Eko','Jajang','Yanto','Dadang','Sutrisno','Wawan','Tatang','Rudi','Dadan','Wahyu','Hendra','Rizky','Budi','Ari','Rohmat','Slamet','Bayu','Dimas','Joko'];
 const namesFemale=['Siti','Neneng','Nining','Yuni','Dewi','Sri','Titin','Enung','Rina','Wati','Euis','Nani','Yayah','Ratna','Wulan','Rini','Tuti','Sulastri','Fitri','Ayu','Nia','Rahayu','Linda','Dian'];
 const material=(color:number)=>new THREE.MeshStandardMaterial({color,roughness:.72});
@@ -45,7 +45,7 @@ function makeAdmin(scene:THREE.Scene,x:number,female:boolean){
  else{sphere(admin,.141,0,1.55,-.02,green);box(admin,.26,.065,.23,0,1.58,.016,cream);}
  box(admin,.13,.12,.40,-.15,1.09,.18,uniform);sphere(admin,.064,-.15,1.09,.38,skin);
  const pen=new THREE.Group();pen.position.set(.15,1.10,.22);admin.add(pen);box(pen,.12,.11,.34,0,0,.10,uniform);sphere(pen,.064,0,0,.28,skin);const pencil=box(pen,.025,.025,.20,0,.018,.36,gold);pencil.rotation.x=-.36;
- return pen;
+ return {pen,clerk:admin};
 }
 const slot=(lane:Lane,i:number)=>{const rank=i+(lane.ticket&&i>=lane.ticket.ahead?1:0);return new THREE.Vector3(lane.side*(4.15+(rank%2?.075:0)),0,-2.77+rank*.77);};
 const entrance=(side:number)=>new THREE.Vector3(side*5.65,0,5.85);
@@ -59,11 +59,11 @@ function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  sign(scene,female?'LOKET PEREMPUAN':'LOKET LAKI-LAKI','PENDAFTARAN · SIMULASI NPC',x,2.43,-2.96,2.03,.58);
  box(scene,.30,.018,.23,x+.15,1.089,-3.52,paper);for(let i=0;i<4;i++)box(scene,.22,.003,.008,x+.15,1.10,-3.59+i*.038,ink);
  const screen=box(scene,.32,.22,.045,x-.42,1.26,-3.68,ink);screen.rotation.x=-.12;box(scene,.07,.12,.06,x-.42,1.13,-3.68,green);
- const pen=makeAdmin(scene,x,female);
+ const {pen,clerk}=makeAdmin(scene,x,female);
  sign(scene,'GERBANG','KEBERANGKATAN',side*6,2.77,-5.68,2.05,.53);
  sign(scene,'MULAI ANTREAN','MASUK ANTREAN',x,1.95,5.34,1.95,.56);box(scene,.82,.025,.76,x,.021,4.93,gold);
  const railX=side*4.83;for(let i=0;i<5;i++){const z=-2.30+i*1.55;post(scene,railX,z);if(i)rope(scene,railX,z-1.55,z);}
- const lane:Lane={ticket:null,side,female,queue:[],spare:null,outgoing:null,exitStep:0,service:side<0?1.3:4.1,pen,clock:0,nextName:0,names:female?namesFemale:namesMale};
+ const lane:Lane={ticket:null,side,female,queue:[],spare:null,outgoing:null,exitStep:0,service:side<0?1.3:4.1,pen,clerk,clock:0,nextName:0,names:female?namesFemale:namesMale};
  for(let i=0;i<11;i++){
   const height=(female?1.57:1.66)+(i%4)*.055;
   const root=humanActor(scene,0xffffff,female,height,undefined,{palette:i%10,build:.87+(i%5)*.067,brightness:.94+(i%3)*.045,registration:true,cull:true});
@@ -272,9 +272,10 @@ export function createRegistrationHall(scene:THREE.Scene){
  const animateMarket=createFoodCourt(scene);
  let marketTime=0;
  const lanes=[createLane(scene,-1,false),createLane(scene,1,true)];
- let completed=0;
+ let completed=0,registrationBusy=false;
  function update(dt:number){
   marketTime+=dt;animateMarket(marketTime);
+  if(registrationBusy)return;
   for(const lane of lanes){
    lane.clock+=dt;lane.pen.rotation.y=Math.sin(lane.clock*7)*.16;lane.pen.position.x=.15+Math.sin(lane.clock*5)*.025;lane.pen.position.z=.22+Math.cos(lane.clock*5)*.015;
    for(const npc of lane.queue)advance(npc,dt,1.12);
@@ -298,5 +299,5 @@ export function createRegistrationHall(scene:THREE.Scene){
  function join(female:boolean){const lane=get(female);if(!lane.ticket)lane.ticket=joinQueue(lane.queue.length);lane.queue.forEach((npc,i)=>npc.target.copy(slot(lane,i)));}
  function leave(female:boolean){const lane=get(female);lane.ticket=null;lane.queue.forEach((npc,i)=>npc.target.copy(slot(lane,i)));}
  function playerSlot(female:boolean){const lane=get(female),rank=lane.ticket?.ahead??lane.queue.length;return new THREE.Vector3(lane.side*(4.15+(rank%2?.075:0)),0,-2.77+rank*.77);}
- return {update,join,leave,playerSlot,ahead:(female:boolean)=>get(female).ticket?.ahead??null,stats:()=>({male:lanes[0]!.queue.length,female:lanes[1]!.queue.length,completed})};
+ return {update,join,leave,playerSlot,clerk:(female:boolean)=>get(female).clerk,setRegistrationBusy:(busy:boolean)=>{registrationBusy=busy;},ahead:(female:boolean)=>get(female).ticket?.ahead??null,stats:()=>({male:lanes[0]!.queue.length,female:lanes[1]!.queue.length,completed})};
 }
