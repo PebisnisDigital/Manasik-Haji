@@ -10,7 +10,7 @@ import {readStory,saveStory} from './travelStory.ts';
 const $=<T extends HTMLElement>(id:string)=>document.getElementById(id) as T;
 const params=new URLSearchParams(location.search);
 const referral=params.get('ref');if(referral&&/^HJ-[A-Fa-f0-9]{12}$/.test(referral)){try{sessionStorage.setItem('hajji-referral-code',referral.toUpperCase());}catch{}}
-function bootError(error:unknown){document.documentElement.classList.remove('gameBoot','frontMode');for(const id of ['gameFront','lobby','cinematicIntro'])document.getElementById(id)?.remove();const panel=document.createElement('main');panel.style.cssText='padding:24px;color:#fff4dc;background:#102c24;min-height:100dvh';const title=document.createElement('h2');title.textContent='Arena belum berhasil dimuat';const message=document.createElement('p');message.textContent='Checkpoint tetap tersimpan. Muat ulang untuk mencoba lagi.';const retry=document.createElement('button');retry.textContent='Muat ulang';retry.onclick=()=>location.reload();panel.append(title,message,retry);document.body.append(panel);console.error(error);}
+function bootError(error:unknown){document.documentElement.classList.remove('gameBoot','frontMode','gatePreparing');for(const id of ['gameFront','lobby','cinematicIntro'])document.getElementById(id)?.remove();const panel=document.createElement('main');panel.style.cssText='padding:24px;color:#fff4dc;background:#102c24;min-height:100dvh';const title=document.createElement('h2');title.textContent='Arena belum berhasil dimuat';const message=document.createElement('p');message.textContent='Checkpoint tetap tersimpan. Muat ulang untuk mencoba lagi.';const retry=document.createElement('button');retry.textContent='Muat ulang';retry.onclick=()=>location.reload();panel.append(title,message,retry);document.body.append(panel);console.error(error);}
 if(params.get('play')==='miqat'){
  $('gameFront').remove();void import('./miqatRoom.ts').then(m=>m.mountMiqatRoom()).catch(bootError);
 }else if(params.has('access')||params.get('demo')==='magic'){
@@ -19,7 +19,7 @@ if(params.get('play')==='miqat'){
  if(params.has('guide')&&!readSetup()){location.replace(tenantUrl('./index.html'));}
  document.documentElement.classList.remove('frontMode','gameBoot');$('gameFront').remove();$('lobby').hidden=false;void import('./lobby.ts').catch(bootError);
 }else if(!params.has('setup')){
- document.documentElement.classList.remove('frontMode','gameBoot');document.documentElement.classList.add('entranceMode');$('gameFront').remove();$('avatarModal').hidden=true;$('lobby').hidden=false;void import('./lobby.ts').catch(bootError);
+ document.documentElement.classList.add('entranceMode','gatePreparing');$('gameFront').remove();$('avatarModal').hidden=true;$('lobby').inert=true;$('lobby').hidden=false;document.documentElement.classList.remove('frontMode','gameBoot');void import('./lobby.ts').catch(bootError);
 }else{
  document.documentElement.classList.remove('gameBoot');document.documentElement.classList.add('frontMode');
  $('lobby').hidden=true;const coverArt=document.querySelector('.introArt')?.cloneNode(true);$('cinematicIntro').remove();bootTenant();
