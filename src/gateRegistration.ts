@@ -1,4 +1,4 @@
-import {manualWhatsAppUrl} from './registrationHandoff.ts';
+import {manualWhatsAppUrl,manualConfirmationUrl,registrationSummary} from './registrationHandoff.ts';
 import {readSetup,saveSetup} from './frontSettings.ts';
 import {defaultSetup} from './frontModel.ts';
 import {gateGuide} from './gateGuide.ts';
@@ -105,12 +105,16 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
    if(q?.status==='pending'||q?.status==='creating'||(data.ticket.manual_enabled===false||r.payment_method==='qris')){host.append(back());return;}
   }
   if(data.ticket.manual_enabled===false||r.payment_method==='qris'){host.append(button('Periksa kembali',()=>void load()),back());return;}
-  const bank=document.createElement('div');bank.className='gateBank';const label=document.createElement('span');label.textContent='Transfer manual · '+data.ticket.bank;const account=document.createElement('strong');account.textContent=data.ticket.account;const holder=document.createElement('p');holder.textContent='a.n. '+data.ticket.holder+' · Rp'+(r.amount??100000).toLocaleString('id-ID');const copy=button('Salin nomor rekening',()=>{if(!navigator.clipboard){notice.textContent='Pilih dan salin nomor rekening di atas.';return;}void navigator.clipboard.writeText(data.ticket.account).then(()=>{notice.textContent='Nomor rekening disalin.';},()=>{notice.textContent='Pilih dan salin nomor rekening di atas.';});});bank.append(label,account,holder,copy);host.append(bank);
-  const wa=document.createElement('a');wa.className='travelPrimary gateEnterDistrict';wa.href=manualWhatsAppUrl(r,data.ticket);wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='KIRIM DATA KE WHATSAPP →';host.append(wa);const help=document.createElement('p');help.textContent='WhatsApp admin terbuka dengan data pendaftaran dan tagihan. Tekan Kirim di WhatsApp, lalu kirim bukti transfer. Admin memeriksa mutasi dan mengirim Magic Link setelah pembayaran terverifikasi. Jika WhatsApp tidak terbuka otomatis, gunakan tombol di atas.';host.append(help);
-  if(r.status==='pending'){
-   const form=document.createElement('form');form.className='gateRegistrationForm';form.innerHTML='<label>Nama pengirim & waktu / referensi transfer<input name="reference" required minlength="4" maxlength="120" placeholder="Contoh: nama pengirim, tanggal dan jam"></label><button type="submit" class="travelPrimary">Saya sudah transfer · laporkan ke admin</button>';
-   form.onsubmit=async e=>{e.preventDefault();if(busy||disposed)return;busy=true;const b=form.querySelector('button')!;b.disabled=true;notice.textContent='Mengirim laporan…';try{const next=await request('/report',{reference:new FormData(form).get('reference')});if(!disposed)paint(next);}catch(error){if(!disposed)message(error);}finally{busy=false;b.disabled=false;}};host.append(form);
-  }
+  heading.textContent='Pendaftaran Berhasil!';
+  price.textContent='Data sudah tersimpan. Selesaikan pembayaran untuk mengaktifkan tiket.';
+  const summary=document.createElement('section');summary.className='gateReceipt';summary.setAttribute('aria-label','Ringkasan pendaftaran');const summaryTitle=document.createElement('h4');summaryTitle.textContent='RINGKASAN PENDAFTARAN';const details=document.createElement('dl');
+  for(const [key,value] of registrationSummary(r)){const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=key;detail.textContent=value;details.append(term,detail);}
+  const total=document.createElement('div');total.className='gateReceiptTotal';const totalLabel=document.createElement('span'),totalValue=document.createElement('strong');totalLabel.textContent='TOTAL BAYAR';totalValue.textContent='Rp'+(r.amount??100000).toLocaleString('id-ID');total.append(totalLabel,totalValue);summary.append(summaryTitle,details,total);host.append(summary);
+  const bank=document.createElement('div');bank.className='gateBank gateReceiptBank';const label=document.createElement('span');label.textContent='Transfer manual · '+data.ticket.bank;const account=document.createElement('strong');account.textContent=data.ticket.account;const holder=document.createElement('p');holder.textContent='a.n. '+data.ticket.holder+' · Rp'+(r.amount??100000).toLocaleString('id-ID');const copy=button('Salin nomor rekening',()=>{if(!navigator.clipboard){notice.textContent='Pilih dan salin nomor rekening di atas.';return;}void navigator.clipboard.writeText(data.ticket.account).then(()=>{notice.textContent='Nomor rekening disalin.';},()=>{notice.textContent='Pilih dan salin nomor rekening di atas.';});});bank.append(label,account,holder,copy);host.append(bank);
+  const help=document.createElement('p');help.className='gateReceiptInstruction';help.textContent='Jika sudah transfer, kirimkan foto atau screenshot bukti transfer dengan klik tombol KONFIRMASI TRANSFER di bawah. Admin akan memeriksa pembayaran dan mengirim Magic Link.';
+  const confirmation=document.createElement('a');confirmation.className='travelPrimary gateEnterDistrict';confirmation.href=manualConfirmationUrl(r,data.ticket);confirmation.target='_blank';confirmation.rel='noopener noreferrer';confirmation.textContent='KONFIRMASI TRANSFER →';confirmation.id='confirmTransferWhatsApp';
+  const wa=document.createElement('a');wa.className='gateReceiptResend';wa.href=manualWhatsAppUrl(r,data.ticket);wa.target='_blank';wa.rel='noopener noreferrer';wa.textContent='Kirim ulang data pendaftaran ke WhatsApp';
+  host.append(help,confirmation,wa);
   host.append(button('Periksa status pembayaran',()=>void load()),back());
  }
  void load();return ()=>{disposed=true;clearTimeout(poll);disposePopup?.();};
