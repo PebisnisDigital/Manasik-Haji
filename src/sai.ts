@@ -205,7 +205,7 @@ function boot(): void {
     if(!initializedCamera){camera.position.copy(desiredCamera);smoothLook.copy(desiredLook);initializedCamera=true;}
     else {const a=1-Math.exp(-elapsed*9);camera.position.lerp(desiredCamera,a);smoothLook.lerp(desiredLook,a);}
     camera.lookAt(smoothLook);camera.updateMatrixWorld();
-    publishWorldAction(camera,x,1.9,z,finished);
+    publishWorldAction(camera,x,1.9,z,false);
 
     const active=hero();
     male.group.visible=active===male&&cameraMode.value!=='first';
