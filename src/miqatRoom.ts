@@ -52,10 +52,10 @@ export function mountMiqatRoom(){
  const blocked=()=>simpleMenuOpen()||dialog.open||portrait()||failed;
  // A history restore must rebuild the WebGL resources released on pagehide.
  window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
- function close(){dialog.close();window.dispatchEvent(new Event('blur'));paint();}
+ function close(){walker?.endTalk();dialog.classList.remove('miqatNpcTalk');dialog.close();window.dispatchEvent(new Event('blur'));paint();}
  function button(label:string,fn:()=>void,primary=true,id?:string){const b=document.createElement('button');b.type='button';b.textContent=label;b.className=primary?'miqatPrimary':'';if(id)b.id=id;b.onclick=fn;return b;}
  function show(title:string,body:string,actions:{label:string;fn:()=>void;id?:string;primary?:boolean}[],card?:MiqatCard){
-  dialog.replaceChildren();const eyebrow=document.createElement('div');eyebrow.className='miqatEyebrow';const number=Number(title.match(/level\s+(\d+)/i)?.[1]??(arrival?.tawaf()?.transferView()?3:arrival?2:1));dialog.dataset.level=String(number);eyebrow.textContent='LEVEL '+number+' · '+guide.name+(arrival?.tawaf()?' · RADIO PEMANDU':'');const heading=document.createElement('h2');heading.id='miqatDialogTitle';heading.textContent=title;const p=document.createElement('p');p.textContent=body;dialog.append(eyebrow,heading,p);
+  walker?.endTalk();dialog.classList.remove('miqatNpcTalk');dialog.replaceChildren();const eyebrow=document.createElement('div');eyebrow.className='miqatEyebrow';const number=Number(title.match(/level\s+(\d+)/i)?.[1]??(arrival?.tawaf()?.transferView()?3:arrival?2:1));dialog.dataset.level=String(number);eyebrow.textContent='LEVEL '+number+' · '+guide.name+(arrival?.tawaf()?' · RADIO PEMANDU':'');const heading=document.createElement('h2');heading.id='miqatDialogTitle';heading.textContent=title;const p=document.createElement('p');p.textContent=body;dialog.append(eyebrow,heading,p);
   if(card)for(const field of ['arabic','latin','meaning'] as const)if(card[field]){const line=document.createElement('p');line.className='miqatReading '+field;line.textContent=card[field]!;if(field==='arabic'){line.lang='ar';line.dir='rtl';}dialog.append(line);}
   const status=document.createElement('p');status.id='miqatDialogNotice';status.setAttribute('role','status');dialog.append(status);
   const row=document.createElement('div');row.className='miqatDialogActions';for(const a of actions)row.append(button(a.label,a.fn,a.primary!==false,a.id));row.append(button('Kembali ke arena',close,false,'miqatClose'));dialog.append(row);
@@ -69,7 +69,7 @@ export function mountMiqatRoom(){
   if(arrival){if(!lifeOpen())arrival.interact();return;}
   if(blocked()||lifeOpen()||!walker.near())return;
   walker.face(lesson.stage===0||lesson.stage===5?0:MIQAT_GOALS[lesson.stage].x,lesson.stage===0||lesson.stage===5?3.5:MIQAT_GOALS[lesson.stage].z-.8);
-  if(lesson.stage===0)show('Selamat datang, petualang!',`Saya ${guide.name}, pembimbingmu. Kita mulai di sini, di tempat persiapan Miqat & Ihram. Masuk melalui pintu di belakang saya. Siapkan pakaian ihram, ambil buku niat, lalu pelajari talbiyah. Ikuti penanda emas; kamu bisa berjalan sendiri atau memakai tombol bantuan.`,[{label:'Baik, saya masuk ruang persiapan',fn:()=>advance(1),id:'miqatContinue'}]);
+  if(lesson.stage===0){show('Selamat datang, petualang!',`Saya ${guide.name}, pembimbingmu. Kita mulai di sini, di tempat persiapan Miqat & Ihram. Masuk melalui pintu di belakang saya. Siapkan pakaian ihram, ambil buku niat, lalu pelajari talbiyah. Ikuti penanda emas; kamu bisa berjalan sendiri atau memakai tombol bantuan.`,[{label:'Baik, saya masuk ruang persiapan',fn:()=>advance(1),id:'miqatContinue'}]);dialog.classList.add('miqatNpcTalk');walker.talkTo(0,1.58,3.5);}
   else if(lesson.stage===1)show('Ruang persiapan Miqat', 'Mulai dari ruang ganti di sebelah kiri. Kita belajar mempersiapkan pakaian sebelum melanjutkan niat dan talbiyah.',[{label:'Cari tempat pakaian ihram',fn:()=>advance(2),id:'miqatContinue'}]);
   else if(lesson.stage===2){const clothes=miqatCards(0,setup.avatar,'madinah',setup.program==='hajj'?'qiran':'umrah')[1];card(clothes.title,clothes,()=>{
    if(readMiqatLesson(setup.program,setup.avatar).stage!==2){warning();return;}
@@ -78,7 +78,7 @@ export function mountMiqatRoom(){
   },'PAKAI BAJU IHRAM');}
   else if(lesson.stage===3)openBook();
   else if(lesson.stage===4)talbiyah(0);
-  else if(lesson.stage===5)show('Siap melanjutkan perjalanan?', 'Pakaian ihram sudah siap, buku panduan sudah kamu terima, dan niat serta talbiyah sudah dipelajari. Ini akhir persiapan Level 1. Semoga belajarmu membawa kebaikan dan keberkahan.',[{label:'Selesaikan Level 1',id:'miqatFinish',fn:()=>{if(!completeMiqatLesson(setup.program,setup.avatar)){warning();return;}if(!save(6))return;saveStory({},setup.program==='hajj'?'hajj:miqat':'umrah:1');close();setGoal();finished();}}]);
+  else if(lesson.stage===5){show('Siap melanjutkan perjalanan?', 'Pakaian ihram sudah siap, buku panduan sudah kamu terima, dan niat serta talbiyah sudah dipelajari. Ini akhir persiapan Level 1. Semoga belajarmu membawa kebaikan dan keberkahan.',[{label:'Selesaikan Level 1',id:'miqatFinish',fn:()=>{if(!completeMiqatLesson(setup.program,setup.avatar)){warning();return;}if(!save(6))return;saveStory({},setup.program==='hajj'?'hajj:miqat':'umrah:1');close();setGoal();finished();}}]);dialog.classList.add('miqatNpcTalk');walker.talkTo(0,1.58,3.5);}
   else finished();
  }
  function openBook(){
