@@ -1,3 +1,4 @@
+import {createSouvenirCelebration} from './souvenirCelebration.ts';
 import {SOUVENIR_BUILDING,SOUVENIR_NUMBER} from './citySouvenir.ts';
 import {slidingDoorOffset} from './cityMissionEntry.ts';
 import {createLivePlazas} from './cityLivePlazas.ts';
@@ -32,7 +33,7 @@ export function cityDrive(v:CityVehicle,forward:number,right:number,brake:boolea
 export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',boardSolid:Rect){
  const missions=CITY_BUILDINGS.slice(0,program==='hajj'?12:5),places=program==='hajj'?[...missions,SOUVENIR_BUILDING]:missions;
  const solids:Rect[]=[...DISTRICT_SOLIDS,boardSolid,...places];
- const plazas=createLivePlazas(scene,missions);solids.push(...plazas.solids);
+ const plazas=createLivePlazas(scene,missions);solids.push(...plazas.solids);const celebration=program==='hajj'?createSouvenirCelebration(scene):null;if(celebration)solids.push(...celebration.solids);
  const vehicles=initial();let selected:CityVehicle|null=null;
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
  const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xece6d5),gold=mat(0xc5a46b),green=mat(0x1c5040),glass=mat(0x355d68,.32),dark=mat(0x252e30),rubber=mat(0x252526);
@@ -50,7 +51,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  for(const p of places){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;scene.add(g);
   const gift=p.number===SOUVENIR_NUMBER;
-  const wall=mat(gift?0xe9d7ac:[0xe1d6bd,0xc3d2c6,0xdcc2aa][(p.number-1)%3]!);
+  const wall=mat(gift?0x17634e:[0xe1d6bd,0xc3d2c6,0xdcc2aa][(p.number-1)%3]!);
   // Recessed doorway: the facade has an actual opening, not a painted door on a solid block.
   box(g,20,p.height,17.2,0,p.height/2,-1.4,wall);
   for(const x of [-5.95,5.95])box(g,8.1,p.height,2.8,x,p.height/2,8.6,wall);
@@ -66,9 +67,11 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   box(g,5.8,.22,2.4,0,4.13,10.8,green);
   const doorMat=mat(0x263a36),left=box(g,1.8,3.0,.15,-.90,1.58,10.12,doorMat),right=box(g,1.8,3.0,.15,.90,1.58,10.12,doorMat);doors.push({left,right,open:0});
   const c=document.createElement('canvas');c.width=1024;c.height=256;const t=c.getContext('2d')!;
-  t.fillStyle='#193d31';t.fillRect(0,0,1024,256);t.strokeStyle='#d8b972';t.lineWidth=7;t.strokeRect(9,9,1006,238);t.fillStyle='#f2d18b';t.font='bold 62px system-ui';t.textAlign='center';t.fillText(gift?'GEDUNG OLEH-OLEH':'GEDUNG '+String(p.number).padStart(2,'0'),512,88);t.fillStyle='#fff4d9';t.font='bold 46px system-ui';t.fillText(gift?'12 BINTANG · HADIAH PERJALANAN':names[p.number-1]??'Level '+p.number,512,172,945);
+  t.fillStyle=gift?'#0e4739':'#193d31';t.fillRect(0,0,1024,256);t.strokeStyle='#d8b972';t.lineWidth=7;t.strokeRect(9,9,1006,238);t.fillStyle='#f2d18b';t.font=gift?'bold 80px system-ui':'bold 62px system-ui';t.textAlign='center';t.fillText(gift?'GEDUNG OLEH-OLEH':'GEDUNG '+String(p.number).padStart(2,'0'),512,88);t.fillStyle='#fff4d9';t.font='bold 46px system-ui';t.fillText(gift?'12 BINTANG · HADIAH PERJALANAN':names[p.number-1]??'Level '+p.number,512,172,945);
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;signs.push(tex);const sign=new THREE.Mesh(new THREE.PlaneGeometry(15,3.75),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));sign.position.set(0,5.4,10.25);g.add(sign);
   if(gift){
+   for(const x of [-9.6,9.6]){box(g,.5,p.height+.15,.85,x,p.height/2,10.3,gold);}
+   box(g,20.5,.24,.6,0,p.height-1.2,10.1,gold);
    // Distinct golden gift sculpture above the entrance, outside walking space.
    box(g,4,3.1,3.1,0,p.height+1.9,0,green);box(g,4.35,.38,3.45,0,p.height+3.65,0,gold);box(g,.55,3.5,3.16,0,p.height+1.9,0,gold);box(g,4.06,.48,.12,0,p.height+1.9,1.61,gold);
    for(const side of [-1,1]){const ribbon=new THREE.Mesh(new THREE.TorusGeometry(.83,.19,8,24),gold);ribbon.position.set(side*.85,p.height+4.35,0);ribbon.rotation.z=side*.55;g.add(ribbon);}
@@ -112,7 +115,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  }
  function openDoor(number:number,amount:number){const d=doors[number-1];if(!d)return;d.open=amount;const offset=slidingDoorOffset(amount);d.left.position.x=-offset;d.right.position.x=offset;}
  function entrance(p:Point){return places.find(b=>distance(p,b.door)<3.5||guards.some(g=>g.number===b.number&&distance(p,{x:g.root.position.x,z:g.root.position.z})<2.4))??null;}
- function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});const q=plazas.guardStatus(g.number);const line=g.number===SOUVENIR_NUMBER?'Periksa 12 bintang':q.phase==='check'?'Periksa progres…':q.phase==='allow'?'Silakan masuk, '+q.name.split(' ')[0]:q.phase==='player'?'Giliran Anda':'Peserta berikutnya';g.status.visible=distance(hero,p)<15&&(g.number===SOUVENIR_NUMBER||q.phase!=='wait');if(g.last!==line){g.last=line;g.ctx.fillStyle='#fff4dc';g.ctx.fillRect(0,0,512,128);g.ctx.strokeStyle='#bca16c';g.ctx.lineWidth=5;g.ctx.strokeRect(4,4,504,120);g.ctx.fillStyle='#23463a';g.ctx.font='bold 37px system-ui';g.ctx.textAlign='center';g.ctx.fillText(line,256,76,486);g.tex.needsUpdate=true;}}updateHumanActors(scene,dt,active,camera);}
+ function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean){celebration?.update(hero,dt,active);for(const g of guards){const p=g.root.position;const nearby=distance(hero,p)<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});const q=plazas.guardStatus(g.number);const line=g.number===SOUVENIR_NUMBER?'Periksa 12 bintang':q.phase==='check'?'Periksa progres…':q.phase==='allow'?'Silakan masuk, '+q.name.split(' ')[0]:q.phase==='player'?'Giliran Anda':'Peserta berikutnya';g.status.visible=distance(hero,p)<15&&(g.number===SOUVENIR_NUMBER||q.phase!=='wait');if(g.last!==line){g.last=line;g.ctx.fillStyle='#fff4dc';g.ctx.fillRect(0,0,512,128);g.ctx.strokeStyle='#bca16c';g.ctx.lineWidth=5;g.ctx.strokeRect(4,4,504,120);g.ctx.fillStyle='#23463a';g.ctx.font='bold 37px system-ui';g.ctx.textAlign='center';g.ctx.fillText(line,256,76,486);g.tex.needsUpdate=true;}}updateHumanActors(scene,dt,active,camera);}
  function reset(){const fresh=initial();for(const v of fresh)Object.assign(get(v.kind),v);selected=null;}
- return {places,solids,plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,near,take,update,leave,render,openDoor,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
+ return {places,solids,celebrateSouvenir:()=>celebration?.celebrate(),plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,near,take,update,leave,render,openDoor,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,otherSolids()),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,otherSolids(v.kind)),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{celebration?.dispose();plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
 }
