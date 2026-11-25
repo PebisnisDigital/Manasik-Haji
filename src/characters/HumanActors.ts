@@ -51,3 +51,8 @@ export function disposeHumanActors(scene:THREE.Scene):void {
   for(const crowd of pool.renderers.values()){scene.remove(crowd.group);crowd.dispose();}
   pools.delete(scene);
 }
+
+/** NPC ground bodies use their actual gameplay roots, not the render meshes or camera culling. */
+export function humanBodies(scene:THREE.Scene){
+ return (pools.get(scene)?.actors??[]).filter(a=>a.root.parent&&a.root.visible&&!a.renderKey.includes(':player:')&&a.root.userData.noCollision!==true).map(a=>({x:a.root.position.x,z:a.root.position.z,radius:.32*a.build}));
+}
