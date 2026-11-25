@@ -1,5 +1,5 @@
 import {createHmac,timingSafeEqual} from 'node:crypto';
-export const endpoint='https://api.buatqris.site';
+export const endpoint='https://app.buatqris.site/api';
 export class QrisError extends Error{constructor(code,message){super(message);this.name='QrisError';this.code=code;}}
 export async function qrRpc(op,secret='',data={}){
  const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY,url=process.env.VITE_SUPABASE_URL,k=process.env.HAJJI_TICKET_GATEWAY;
@@ -8,6 +8,7 @@ export async function qrRpc(op,secret='',data={}){
  if(!r.ok){console.warn('QRIS database operation failed',{operation:op,status:r.status});throw new QrisError('database_error','QRIS belum dapat disimpan. Hubungi admin jika sudah membayar.');}return r.json();
 }
 export async function provider(config,fields,fetcher=fetch){
+ if(typeof config.account_id!=='string'||typeof config.secret_token!=='string'||config.account_id.length<5||config.secret_token.length<8||/\s/.test(config.account_id)||/\s/.test(config.secret_token))throw new QrisError('provider_rejected','Format kredensial BuatQRIS tidak valid. Admin perlu menyalin Account ID dan Secret Token secara terpisah, tanpa label atau spasi.');
  const form=new URLSearchParams({account_id:config.account_id,secret_token:config.secret_token,...fields});
  let r;try{r=await fetcher(endpoint,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded','User-Agent':'HAJJI-DIGITAL/1.0'},body:form.toString(),signal:AbortSignal.timeout(10000),redirect:'error'});}catch{throw new QrisError('provider_unknown','Koneksi BuatQRIS terputus. Status transaksi belum diketahui; jangan bayar ulang.');}
  let payload;try{payload=await r.json();}catch{throw new QrisError('provider_unknown','BuatQRIS mengembalikan respons yang belum bisa dibaca. Jangan bayar ulang.');}
@@ -17,7 +18,10 @@ export async function provider(config,fields,fetcher=fetch){
   const explicit=payload?.success===false&&!data?.transaction_id&&[200,400,401,403,422].includes(r.status);
   const kind=explicit?'provider_rejected':'provider_unknown';
   console.warn('BuatQRIS request failed',{status:r.status,kind});
-  throw new QrisError(kind,explicit?'BuatQRIS menolak pembuatan QR. Periksa Account ID, Secret Token dan metode QRIS di admin.':'Status transaksi belum diketahui. Hubungi admin sebelum mencoba pembayaran lagi.');
+  const msg=String(payload?.message??payload?.error??'').toLowerCase();
+  const auth=r.status===401||r.status===403||/credential|token|autentikasi|account.id|unauthorized|kredensial/.test(msg);
+  const reason=auth?'Autentikasi BuatQRIS ditolak. Periksa Account ID dan Secret Token.':/saldo|balance|insufficient/.test(msg)?'BuatQRIS menolak karena saldo tidak mencukupi.':/qris.method|metode|merchant/.test(msg)?'Metode atau merchant QRIS ditolak. Periksa pengaturan BuatQRIS.':'BuatQRIS menolak pembuatan QR. Periksa konfigurasi merchant.';
+  throw new QrisError(kind,explicit?reason:'Status transaksi belum diketahui. Hubungi admin sebelum mencoba pembayaran lagi.');
  }
  return data;
 }
