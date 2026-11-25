@@ -1,3 +1,4 @@
+import {mountArenaLookPad} from '../worldInteraction.ts';
 import {simpleMenuOpen} from '../simpleInput.ts';
 import {lifeOpen} from './lifeWorld.ts';
 import {companionOpen} from './companionView.ts';
@@ -24,6 +25,7 @@ export function attachAdventureControls(o:Options) {
   const abort=new AbortController(),signal=abort.signal;
   let stickId:number|null=null,lookId:number|null=null,lastX=0,lastY=0;
   const playable=()=>!simpleMenuOpen()&&o.active()&&!lifeOpen()&&!companionOpen()&&!document.hidden&&!portrait.matches&&!overlays.some(el=>!el.hidden);
+  mountArenaLookPad(playable,o.look,signal);
   function resetStick(){o.joy.x=o.joy.y=0;knob.style.left=knob.style.top='50%';}
   function release(el:HTMLElement,id:number|null){if(id!==null&&el.hasPointerCapture(id))el.releasePointerCapture(id);}
   function clear(){o.keys.clear();const a=stickId,b=lookId;stickId=lookId=null;resetStick();release(stick,a);release(o.canvas,b);}
