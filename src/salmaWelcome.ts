@@ -9,7 +9,7 @@ import {localPreview,demoMagicUrl,showMagicLinkPopup} from './magicAccess.ts';
 import {loadProgress,QUEST_KEYS,decodeRoute,decodeTahallul} from './adventure/questProgress.ts';
 import './travelEntrance.css';
 const LINES=[
- {id:'welcome',title:'Selamat datang di HAJJI.DIGITAL.',text:'Saya penjaga gerbang sekaligus pendamping perjalananmu. Mau ikut petualangan manasik? Saya bantu mendaftar. Setelah pembayaran terverifikasi, tiket perjalanan siap digunakan.',reply:'Saya ingin daftar manasik →'},
+ {id:'welcome',title:'Selamat datang di HAJJI.DIGITAL.',text:'Saya penjaga gerbang sekaligus pendamping perjalananmu. Sudah siap memulai petualangan manasik? Kalau mau mendaftar, saya bantu ya. Setelah pembayaran terverifikasi, kita bisa mulai perjalanan.',reply:'Saya ingin daftar manasik →'},
  {id:'goals',title:'Satu tujuan, satu langkah.',text:'Ini petualangan Haji atau Umroh. Ikuti tujuan di layar, dekati tokoh atau penanda, lalu tekan E atau tombol Interaksi. Selesaikan misi untuk membuka level berikutnya. Kamu juga bisa menolong jemaah di sepanjang perjalanan.',reply:'Bagaimana cara bergeraknya? →'},
  {id:'controls',title:'Jalan, lihat sekitar, dan berinteraksi.',text:'Di komputer: WASD atau tombol arah untuk jalan, geser layar untuk kamera. Di HP: gunakan posisi landscape, joystick kiri dan tombol Interaksi. Bus bisa kamu kemudikan: W/S maju-mundur, A/D belok, Spasi rem. Di HP gunakan joystick dan Rem.',reply:'Apa saja yang perlu dijaga? →'},
  {id:'care',title:'Jaga diri dan rombongan.',text:'Panas, lelah, lapar, haus, dan debu menjadi tantangan perjalanan. Buka Tas untuk makan atau minum. Gunakan pos istirahat, mandi / bersih diri, dan isi bekal. Checkpoint tersimpan di browser ini. Ini game pembelajaran; ikuti pembimbing saat beribadah sungguhan.',reply:'Bagaimana cara daftarnya? →'},
@@ -17,13 +17,14 @@ const LINES=[
 ] as const;
 /** Export retained for existing callers; the speaker follows the character choice. */
 export function openSalmaWelcome(onClose:()=>void){
- const guide=gateGuide(readSetup()?.avatar??'male').name;
+ const avatar=readSetup()?.avatar??'male';
+ const guide=gateGuide(avatar).name,sapaan=avatar==='female'?'Ukhti':'Akhi';
  const dialog=document.createElement('dialog');dialog.className='salmaWelcome';dialog.setAttribute('aria-labelledby','salmaWelcomeTitle');dialog.dataset.guide=guide;let index=0,disposeRegistration:(()=>void)|undefined;
  const top=document.createElement('div');top.className='travelKicker';top.textContent=guide.toUpperCase()+' · PENJAGA GERBANG & PENDAMPING';
  const heading=document.createElement('h2');heading.id='salmaWelcomeTitle';const body=document.createElement('p'),count=document.createElement('small'),notice=document.createElement('p');notice.setAttribute('role','status');
  const content=document.createElement('div');content.className='gateConversation';
  const actions=document.createElement('div');actions.className='travelActions';const back=document.createElement('button'),next=document.createElement('button'),later=document.createElement('button');back.textContent='← Sebelumnya';next.className='travelPrimary';later.textContent='Kembali ke gerbang';
- function paint(){disposeRegistration?.();disposeRegistration=undefined;content.replaceChildren();actions.hidden=false;heading.hidden=false;top.hidden=false;body.hidden=false;count.hidden=false;notice.textContent='';const line=LINES[index];dialog.dataset.line=line.id;heading.textContent=line.title;body.textContent=index===0?'Assalamualaikum, '+(readStory().name||'Petualang')+'. Saya '+guide+'. '+line.text:line.text;count.textContent='Obrolan '+(index+1)+' / '+LINES.length;back.hidden=index===0;help.hidden=index!==0;next.textContent=index===0?'DAFTAR SEKARANG →':line.reply;dialog.scrollTop=0;next.focus();}
+ function paint(){disposeRegistration?.();disposeRegistration=undefined;content.replaceChildren();actions.hidden=false;heading.hidden=false;top.hidden=false;body.hidden=false;count.hidden=false;notice.textContent='';const line=LINES[index];dialog.dataset.line=line.id;heading.textContent=line.title;body.textContent=index===0?'Assalamualaikum, '+(sapaan+(readStory().name.trim()?' '+readStory().name.trim():''))+'. Saya '+guide+'. '+line.text:line.text;count.textContent='Obrolan '+(index+1)+' / '+LINES.length;back.hidden=index===0;help.hidden=index!==0;next.textContent=index===0?'DAFTAR SEKARANG →':line.reply;dialog.scrollTop=0;next.focus();}
  let disposeDemo:(()=>void)|undefined;
  function close(){disposeDemo?.();disposeRegistration?.();dialog.close();dialog.remove();onClose();}
  back.onclick=()=>{index=Math.max(0,index-1);paint();};later.onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
