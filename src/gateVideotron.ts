@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {CSS3DObject,CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js';
 import {GATE_VIDEOTRON as V,youtubeGateEmbed} from './gateVideotronModel.ts';
-type YouTubePlayer={unMute():void;playVideo():void;destroy():void;isMuted():boolean};
+type YouTubePlayer={mute():void;unMute():void;playVideo():void;destroy():void;isMuted():boolean};
 type YouTubeApi={Player:new (frame:HTMLIFrameElement,config:{events:{onReady:(e:{target:YouTubePlayer})=>void;onAutoplayBlocked:()=>void;onStateChange:(e:{target:YouTubePlayer;data:number})=>void;onError:()=>void}})=>YouTubePlayer};
 const ytWindow=window as Window&{YT?:YouTubeApi;onYouTubeIframeAPIReady?:()=>void};
 let apiPromise:Promise<YouTubeApi>|undefined;
@@ -24,17 +24,20 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  const corners=[[-1,-1],[-1,1],[1,-1],[1,1]].map(([x,y])=>new THREE.Vector3(V.x+x!*V.width/2,V.y+y!*V.height/2,V.z));
  const projected=corners.map(()=>new THREE.Vector3()),view=new THREE.Vector3();
  let iframe:HTMLIFrameElement|null=null,w=0,h=0,player:YouTubePlayer|null=null;
- const sound=document.createElement('button');sound.type='button';sound.textContent='Aktifkan suara videotron';sound.hidden=true;sound.style.cssText='position:absolute;top:84px;right:16px;z-index:5;border:1px solid #e5cf92;border-radius:9px;padding:12px;background:#174638;color:#fff4d7;font-weight:700;min-height:44px;';
- host.append(sound);
- sound.onclick=()=>{if(!player)return;try{player.unMute();player.playVideo();}catch{sound.hidden=false;}};
- function unload(){const old=player;player=null;const frame=iframe;iframe=null;sound.hidden=true;try{old?.destroy();}catch{}frame?.remove();css.domElement.hidden=true;}
+ let ready=false,retryAudio=true,mutedFallback=false;
+ // Retry only on real game interactions; never add a separate videotron control.
+ function resumeAudio(){if(!player||!ready||!retryAudio||document.hidden)return;mutedFallback=false;try{player.unMute();player.playVideo();}catch{retryAudio=true;}}
+ document.addEventListener('click',resumeAudio,true);
+ document.addEventListener('pointerup',resumeAudio,true);
+ document.addEventListener('keydown',resumeAudio,true);
+ function unload(){const old=player;player=null;ready=false;retryAudio=true;mutedFallback=false;const frame=iframe;iframe=null;try{old?.destroy();}catch{}frame?.remove();css.domElement.hidden=true;}
  function connect(frame:HTMLIFrameElement){void loadYouTubeApi().then(api=>{
   if(frame!==iframe||!frame.isConnected)return;
   player=new api.Player(frame,{events:{
-   onReady:({target})=>{if(frame!==iframe)return;player=target;try{target.unMute();target.playVideo();}catch{sound.hidden=false;}},
-   onAutoplayBlocked:()=>{if(frame===iframe)sound.hidden=false;},
-   onStateChange:({target,data})=>{if(frame===iframe&&data===1)sound.hidden=!target.isMuted();},
-   onError:()=>{if(frame===iframe)sound.hidden=true;}
+   onReady:({target})=>{if(frame!==iframe)return;player=target;ready=true;resumeAudio();},
+   onAutoplayBlocked:()=>{if(frame!==iframe||!player)return;retryAudio=true;if(!mutedFallback){mutedFallback=true;try{player.mute();player.playVideo();}catch{}}},
+   onStateChange:({target,data})=>{if(frame===iframe&&data===1)retryAudio=target.isMuted();},
+   onError:()=>{if(frame===iframe)ready=false;}
   }});
  }).catch(()=>{/* The standard iframe remains usable even if the API script is unavailable. */});}
  // Prepare the official API before character selection, so audible playback can start after player interaction.
@@ -63,6 +66,6 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
   css.domElement.hidden=false;css.render(scene,camera);
  }
  const hide=()=>{if(document.hidden)unload();};document.addEventListener('visibilitychange',hide);
- const dispose=()=>{document.removeEventListener('visibilitychange',hide);unload();sound.remove();css.domElement.remove();};window.addEventListener('pagehide',event=>{if(event.persisted)unload();else dispose();});
+ const dispose=()=>{document.removeEventListener('visibilitychange',hide);unload();document.removeEventListener('click',resumeAudio,true);document.removeEventListener('pointerup',resumeAudio,true);document.removeEventListener('keydown',resumeAudio,true);css.domElement.remove();};window.addEventListener('pagehide',event=>{if(event.persisted)unload();else dispose();});
  resize();unload();return {draw,resize,dispose};
 }
