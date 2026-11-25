@@ -51,7 +51,7 @@ const paint:Record<string,string>={
  '1a4839':'151515','1c5040':'202020','17634e':'242424','0e4739':'111111','193d31':'151515','173b32':'111111','263a36':'292929','35413e':'343434',
  '215847':'252525','173d32':'151515','203b34':'151515','234f47':'212121','14392e':'111111','316851':'6b5428','30483e':'303030','193d2f':'141414','37533c':'302719',
  '1c5141':'232323','164638':'151515','214e43':'252525','204d41':'111111','24533f':'151515','356f56':'484039','425747':'383838','52796b':'56504a',
- '53df76':'e8c76f','62e389':'e8c76f','63e88a':'e8c76f',
+ '244639':'252525','21352e':'151515','62ed89':'edcb76','67ef8b':'edcb76','e3ffe5':'fff1cf','4add77':'d6b46b','b4ffd0':'fff0c6','182a23':'171717','19372c':'151515','53df76':'e8c76f','62e389':'e8c76f','63e88a':'e8c76f',
  '12634e':'242424','124b3e':'151515','155341':'242424','c3d2c6':'d0cfca','667e65':'58524a','71877a':'5e5c55'
 };
 const sceneFiles=/(?:\/src\/(?:lobby|registrationHall|souvenirWorld|miqatRoom|hajjScenes|miniScenes|player|sai|salmaWelcome|gateRegistration|tawafAtmosphere)\.ts|\/src\/adventure\/(?:missionCity|districtWorld|cityLivePlazas|districtBoard|district|districtGuardTalk|cityMinimap|souvenirCelebration|tawafGame|saiGame|tahallulGame|hajjFieldExperience|muzdalifahExperience|aqabahExperience)\.(?:ts|js))$/;
@@ -62,7 +62,7 @@ export function hajjiBrand():Plugin{
  return {name:'hajji-black-gold-brand',enforce:'pre',
   transform(code,id){const path=id.split('?')[0]!.replace(/\\/g,'/');if(!path.includes('/src/')||path.includes('/node_modules/'))return;
    if(path.endsWith('.css'))return {code:brandCSS(code),map:null};
-   if(sceneFiles.test(path)||path.endsWith('/src/pwa.ts'))return {code:sceneColors(code).replace(/pwa-icon-(?:192|512)\.png/g,'pwa-icon.svg').replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL'),map:null};
+   if(sceneFiles.test(path)||path.endsWith('/src/pwa.ts'))return {code:sceneColors(code).replace(/pwa-icon-(?:192|512)\.png/g,'pwa-icon.svg').replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/tujuan hijau/g,'tujuan emas'),map:null};
   },
   transformIndexHtml:{order:'pre',handler(html){
    let next=html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi,(_,attrs:string,css:string)=>'<style'+attrs+'>'+brandCSS(css)+'</style>');
