@@ -219,7 +219,7 @@ function boot(): void {
     else {const a=1-Math.exp(-elapsed*9);camera.position.lerp(desiredCamera,a);smoothLook.lerp(desiredLook,a);}
     camera.lookAt(smoothLook);camera.updateMatrixWorld();
     if(exiting&&exitDoor){const p=exitDoor.target,near=Math.hypot(x-p.x,z-p.z)<1.5;publishWorldAction(camera,p.x,2.3,p.z,near);if(exitControl){const v=new THREE.Vector3(p.x,2.3,p.z).project(camera);exitControl.hidden=!near||v.z< -1||v.z>1||Math.abs(v.x)>1||Math.abs(v.y)>1;exitControl.style.left=Math.max(70,Math.min(innerWidth-70,(v.x*.5+.5)*innerWidth))+'px';exitControl.style.top=Math.max(65,Math.min(innerHeight-60,(.5-v.y*.5)*innerHeight))+'px';exitControl.style.bottom='auto';}}
-    else publishWorldAction(camera,x,1.9,z,finished);
+    else publishWorldAction(camera,x,1.9,z,false);
 
     const active=hero();
     male.group.visible=active===male&&cameraMode.value!=='first';
