@@ -242,8 +242,14 @@ function frame(now:number){
  }
  const normalFov=guideMode?(touchMode?65:cam.aspect<.85?69:64):(touchMode?57:cam.aspect<.85?66:60);
  const targetFov=clerk?(cam.aspect<1.2?62:58):normalFov;
- if(Math.abs(cam.fov-targetFov)>.02){cam.fov=THREE.MathUtils.lerp(cam.fov,targetFov,1-Math.exp(-dt*6));cam.updateProjectionMatrix();}
- else if(cam.fov!==targetFov){cam.fov=targetFov;cam.updateProjectionMatrix();}
+ // On short landscape screens reserve the right side for the complete invoice.
+ // Lens shift preserves the player's eye position and gaze direction.
+ const billVisible=!!clerk&&innerHeight<=650&&innerWidth>=600&&innerWidth<=1200&&!!document.querySelector('.gateClerkDialogue[data-line=bill]');
+ const targetFilm=billVisible?.64*cam.getFilmWidth()*Math.tan(THREE.MathUtils.degToRad(targetFov*.5))*cam.aspect:0;
+ const blend=1-Math.exp(-dt*6);
+ const nextFov=Math.abs(cam.fov-targetFov)>.02?THREE.MathUtils.lerp(cam.fov,targetFov,blend):targetFov;
+ const nextFilm=Math.abs(cam.filmOffset-targetFilm)>.02?THREE.MathUtils.lerp(cam.filmOffset,targetFilm,blend):targetFilm;
+ if(nextFov!==cam.fov||nextFilm!==cam.filmOffset){cam.fov=nextFov;cam.filmOffset=nextFilm;cam.updateProjectionMatrix();}
  document.documentElement.dataset.gateCamera=clerk?'clerk':'free';
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
