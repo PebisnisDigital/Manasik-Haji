@@ -65,3 +65,24 @@
 .gateGuideName input{flex:1;min-width:0;min-height:48px;padding:9px 11px;border:1px solid #c8a65b;border-radius:9px;background:#fff9eb;color:#193b30;font-size:16px}
 .gateGuideName .travelPrimary{flex:none;min-width:76px}
 .gateGuideDialogue .gateWorldPanel{max-height:40dvh}
+
+/* Registration HUD: twin sticks, no permanent action buttons. */
+.guideMode #lobby .chooser,.guideMode #lobby .cameraControls{display:none!important}
+.guideMode #lobby .gateCameraPad{left:auto;right:max(23px,env(safe-area-inset-right));bottom:0;opacity:.85;touch-action:none;user-select:none;pointer-events:auto}
+.guideMode #lobby .gateCameraPad:hover,.guideMode #lobby .gateCameraPad:active{opacity:1}
+.guideMode #lobby .gateCameraPad:after{content:"";position:absolute;inset:12%;border:1px solid #fff4;border-radius:50%;pointer-events:none}
+.gateDialogueActive #lobby .gateCameraPad{visibility:visible}
+.gateDialogueActive:has(.gateWorldDialogue[data-line=form]) #lobby .gateCameraPad{visibility:hidden}
+.gateContextPrompt{position:absolute;z-index:8;width:max-content;max-width:min(280px,calc(100vw - 24px));padding:10px 12px;background:#fff9eb;color:#193b30;border:1.5px solid #c8a65b;border-radius:14px;font:14px/1.35 system-ui,sans-serif;text-shadow:none!important;filter:none!important;pointer-events:auto}
+.gateContextPrompt strong{display:block;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#8b622b}
+.gateContextPrompt p{margin:5px 0 8px;font-size:13px;font-weight:600}
+.gateContextPrompt:after{content:"";position:absolute;bottom:-7px;left:calc(var(--gate-tail,50%) - 6px);width:12px;height:12px;background:#fff9eb;border-right:1.5px solid #c8a65b;border-bottom:1.5px solid #c8a65b;transform:rotate(45deg);pointer-events:none}
+.gateContextPrompt.detached:after{display:none}
+.gateContextActions{display:flex;gap:6px;position:relative;z-index:1}
+.gateContextActions button{min-height:44px;padding:8px 13px;border:0;border-radius:9px;background:#efd08b;color:#18382d;font:800 12px/1.2 system-ui,sans-serif;text-shadow:none!important;touch-action:manipulation;white-space:normal}
+.gateContextActions button:first-child{flex:1}
+.gateContextActions button+button{background:#e7e9dc;color:#294b3d}
+.gateDialogueActive .gateContextPrompt,.portraitBlocked .gateContextPrompt{display:none!important}
+.portraitBlocked #lobby .gateCameraPad{visibility:hidden!important}
+@media(orientation:landscape) and (max-height:520px){.guideMode #lobby .gateCameraPad{right:max(20px,env(safe-area-inset-right));bottom:4px}.gateContextPrompt{max-width:min(235px,45vw);padding:8px 10px}.gateContextPrompt p{font-size:12px}}
+@media(max-width:600px){.guideMode #lobby .gateCameraPad{right:max(14px,env(safe-area-inset-right))}}
