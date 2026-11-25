@@ -1,38 +1,56 @@
 import {readSetup} from './frontSettings.ts';
 import {gateGuide,gateGreeting} from './gateGuide.ts';
 import {mountGateRegistration} from './gateRegistration.ts';
-import {tenantUrl} from './tenant.ts';
-import {loadCampaign} from './adventure/campaignProgress.ts';
-import {readCore} from './coreProgress.ts';
+import {slug} from './tenant.ts';
 import {localPreview,demoMagicUrl,showMagicLinkPopup} from './magicAccess.ts';
-import {loadProgress,QUEST_KEYS,decodeRoute,decodeTahallul} from './adventure/questProgress.ts';
 import './travelEntrance.css';
-const LINES=[
- {id:'welcome',title:'Selamat datang di HAJJI.DIGITAL.',text:'Sudah siap berpetualang menuju Baitullah? Sebelum berangkat, saya bantu cek tiket dulu, ya. Kalau sudah punya tiket, tidak perlu bayar lagi.',reply:'Saya ingin daftar manasik →'},
- {id:'goals',title:'Satu tujuan, satu langkah.',text:'Ini petualangan Haji atau Umroh. Ikuti tujuan di layar, dekati tokoh atau penanda, lalu tekan E atau tombol Interaksi. Selesaikan misi untuk membuka level berikutnya. Kamu juga bisa menolong jemaah di sepanjang perjalanan.',reply:'Bagaimana cara bergeraknya? →'},
- {id:'controls',title:'Jalan, lihat sekitar, dan berinteraksi.',text:'Di komputer: WASD atau tombol arah untuk jalan, geser layar untuk kamera. Di HP: gunakan posisi landscape, joystick kiri dan tombol Interaksi. Bus bisa kamu kemudikan: W/S maju-mundur, A/D belok, Spasi rem. Di HP gunakan joystick dan Rem.',reply:'Apa saja yang perlu dijaga? →'},
- {id:'care',title:'Jaga diri dan rombongan.',text:'Panas, lelah, lapar, haus, dan debu menjadi tantangan perjalanan. Buka Tas untuk makan atau minum. Gunakan pos istirahat, mandi / bersih diri, dan isi bekal. Checkpoint tersimpan di browser ini. Ini game pembelajaran; ikuti pembimbing saat beribadah sungguhan.',reply:'Bagaimana cara daftarnya? →'},
- {id:'registration',title:'Daftar, bayar, lalu berangkat.',text:'Saya cek nama, email, dan WA dulu, ya. Kalau belum punya tiket, kita lanjut ke pembayaran.',reply:'Buka formulir pendaftaran →'},
-] as const;
-/** Export retained for existing callers; the speaker follows the character choice. */
+
+type ChatProgress={stage:'welcome'|'form';startedAt:number;replyAt?:number};
+function readChat(key:string):ChatProgress{
+ try{const v=JSON.parse(localStorage.getItem(key)??'null');if(v&&(v.stage==='welcome'||v.stage==='form')&&Number.isFinite(v.startedAt))return {stage:v.stage,startedAt:v.startedAt,replyAt:Number.isFinite(v.replyAt)?v.replyAt:undefined};}catch{}
+ return {stage:'welcome',startedAt:Date.now()};
+}
+function saveChat(key:string,value:ChatProgress){try{localStorage.setItem(key,JSON.stringify(value));}catch{/* Storage can be unavailable. Server registration remains authoritative. */}}
+function chatBubble(side:'guide'|'player',message:string,at:number){
+ const row=document.createElement('div');row.className='gateChatRow '+side;
+ const bubble=document.createElement('div');bubble.className='gateChatBubble';bubble.textContent=message;
+ const stamp=document.createElement('time');stamp.dateTime=new Date(at).toISOString();stamp.textContent=new Date(at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+ if(side==='player'){const tick=document.createElement('span');tick.className='gateChatTick';tick.textContent=' ✓';tick.setAttribute('aria-label','Tersimpan di obrolan');stamp.append(tick);}
+ bubble.append(stamp);row.append(bubble);return row;
+}
+/** Existing ticket lookup and checkout are mounted inside the chat, never simulated by saved UI state. */
 export function openSalmaWelcome(onClose:()=>void){
- const avatar=readSetup()?.avatar??'male';
- const guide=gateGuide(avatar).name,sapaan=gateGreeting(avatar);
- const dialog=document.createElement('dialog');dialog.className='salmaWelcome';dialog.setAttribute('aria-labelledby','salmaWelcomeTitle');dialog.dataset.guide=guide;let index=0,disposeRegistration:(()=>void)|undefined;
- const top=document.createElement('div');top.className='travelKicker';top.textContent=guide.toUpperCase()+' · PENJAGA GERBANG & PENDAMPING';
- const heading=document.createElement('h2');heading.id='salmaWelcomeTitle';const body=document.createElement('p'),count=document.createElement('small'),notice=document.createElement('p');notice.setAttribute('role','status');
- const content=document.createElement('div');content.className='gateConversation';
- const actions=document.createElement('div');actions.className='travelActions';const back=document.createElement('button'),next=document.createElement('button'),later=document.createElement('button');back.textContent='← Sebelumnya';next.className='travelPrimary';later.textContent='Kembali ke gerbang';
- function paint(){disposeRegistration?.();disposeRegistration=undefined;content.replaceChildren();actions.hidden=false;heading.hidden=false;top.hidden=false;body.hidden=false;count.hidden=false;notice.textContent='';const line=LINES[index];dialog.dataset.line=line.id;heading.textContent=line.title;body.textContent=index===0?'Assalamualaikum, '+sapaan+'. Saya '+guide+'. '+line.text:line.text;count.textContent='Obrolan '+(index+1)+' / '+LINES.length;back.hidden=index===0;help.hidden=index!==0;next.textContent=index===0?'CEK DATA SAYA →':line.reply;dialog.scrollTop=0;next.focus();}
- let disposeDemo:(()=>void)|undefined;
- function close(){disposeDemo?.();disposeRegistration?.();dialog.close();dialog.remove();onClose();}
- back.onclick=()=>{index=Math.max(0,index-1);paint();};later.onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
- function register(){dialog.dataset.line='form';heading.hidden=true;body.hidden=true;count.hidden=true;top.hidden=true;actions.hidden=true;disposeRegistration=mountGateRegistration(content,notice,paint);dialog.scrollTop=0;}
- next.onclick=()=>{if(index===0||index===LINES.length-1){register();return;}index++;paint();};const help=document.createElement('button');help.textContent='Panduan bermain';help.onclick=()=>{index=1;paint();};
- actions.append(back,next,help,later);dialog.append(top,heading,body,count,content,notice,actions);
- if(localPreview()){const demo=document.createElement('button');demo.type='button';demo.className='gateDemoAccess';demo.textContent='Coba akses setelah pembayaran · DEMO';demo.onclick=()=>{disposeDemo?.();disposeDemo=showMagicLinkPopup(demoMagicUrl(),guide,true);};dialog.append(demo);}
- // Preserve genuine pre-existing runs; registration never replaces their save records.
- const campaign=loadCampaign(),oldRitual=loadProgress(QUEST_KEYS.tawaf,r=>decodeRoute(r,'tawaf'))||loadProgress(QUEST_KEYS.sai,r=>decodeRoute(r,'sai'))||loadProgress(QUEST_KEYS.tahallul,decodeTahallul);
- if(campaign.chapters.some(c=>c.save)||oldRitual||readCore('umrah')||readCore('hajj')){const resume=document.createElement('a');resume.className='gateResume';resume.href=tenantUrl('./adventure-map.html?journey='+(readSetup()?.program??'hajj'));resume.textContent='Lanjutkan checkpoint yang sudah ada →';dialog.append(resume);}
- document.body.append(dialog);dialog.showModal();paint();
+ const avatar=readSetup()?.avatar??'male',guide=gateGuide(avatar).name,sapaan=gateGreeting(avatar);
+ const key='hajji-gate-chat-v2:'+String(slug??'')+':'+avatar;let progress=readChat(key),closed=false;
+ let disposeRegistration:(()=>void)|undefined,disposeDemo:(()=>void)|undefined,timer:ReturnType<typeof setTimeout>|undefined;
+ const dialog=document.createElement('dialog');dialog.className='salmaWelcome gateChatDialog';dialog.dataset.guide=guide;dialog.setAttribute('aria-labelledby','salmaWelcomeTitle');
+ const header=document.createElement('header');header.className='gateChatHeader';
+ const icon=document.createElement('div');icon.className='gateChatAvatar';icon.textContent=avatar==='female'?'BS':'PH';icon.setAttribute('aria-hidden','true');
+ const names=document.createElement('div');names.className='gateChatNames';const title=document.createElement('strong');title.id='salmaWelcomeTitle';title.textContent=guide;
+ const subtitle=document.createElement('small');subtitle.textContent='Petugas pendaftaran';names.append(title,subtitle);
+ const x=document.createElement('button');x.type='button';x.className='gateChatClose';x.textContent='×';x.setAttribute('aria-label','Tutup obrolan');header.append(icon,names,x);
+ const thread=document.createElement('section');thread.className='gateChatThread';thread.setAttribute('aria-label','Riwayat obrolan');
+ const messages=document.createElement('div');messages.className='gateChatMessages';messages.setAttribute('aria-live','polite');
+ const content=document.createElement('div');content.className='gateConversation gateChatForm';
+ const notice=document.createElement('p');notice.className='gateChatNotice';notice.setAttribute('role','status');
+ const actions=document.createElement('div');actions.className='travelActions gateChatActions';const next=document.createElement('button');next.type='button';next.className='travelPrimary';next.textContent='Cek data saya';actions.append(next);
+ thread.append(messages,content,notice);dialog.append(header,thread,actions);
+ function scrollEnd(){thread.scrollTop=thread.scrollHeight;}
+ function opening(){
+  messages.replaceChildren(chatBubble('guide','Assalamualaikum, '+sapaan+'! Saya '+guide+'.',progress.startedAt),chatBubble('guide','Sudah siap menuju Baitullah? Saya bantu cek tiket dulu, ya. Kalau sudah punya tiket, tidak perlu bayar lagi.',progress.startedAt));
+ }
+ function close(){if(closed)return;closed=true;clearTimeout(timer);saveChat(key,progress);disposeDemo?.();disposeRegistration?.();dialog.close();dialog.remove();onClose();}
+ function welcome(){
+  clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'welcome',startedAt:progress.startedAt};saveChat(key,progress);
+  dialog.dataset.line='welcome';opening();content.replaceChildren();content.hidden=true;notice.textContent='';actions.hidden=false;subtitle.textContent='Petugas pendaftaran';next.disabled=false;next.focus();scrollEnd();
+ }
+ function register(animate=false){
+  clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'form',startedAt:progress.startedAt,replyAt:progress.replyAt??Date.now()};saveChat(key,progress);
+  dialog.dataset.line='form';opening();messages.append(chatBubble('player','Baik, cek data saya dulu.',progress.replyAt!));actions.hidden=true;content.hidden=true;notice.textContent='';
+  const reveal=()=>{if(closed)return;subtitle.textContent='Petugas pendaftaran';messages.append(chatBubble('guide','Baik, '+sapaan+'. Kita cek data pendaftaran dulu, ya.',progress.replyAt!));content.hidden=false;disposeRegistration=mountGateRegistration(content,notice,welcome);scrollEnd();};
+  if(animate){subtitle.textContent='sedang mengetik…';const typing=document.createElement('div');typing.className='gateChatTyping';typing.setAttribute('role','status');typing.textContent='•••';messages.append(typing);scrollEnd();timer=setTimeout(()=>{typing.remove();reveal();},550);}else reveal();
+ }
+ x.onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});next.onclick=()=>{next.disabled=true;register(true);};
+ if(localPreview()){const demo=document.createElement('button');demo.type='button';demo.className='gateDemoAccess';demo.textContent='Coba akses setelah pembayaran · DEMO';demo.onclick=()=>{disposeDemo?.();disposeDemo=showMagicLinkPopup(demoMagicUrl(),guide,true);};thread.append(demo);}
+ document.body.append(dialog);dialog.showModal();if(progress.stage==='form')register();else welcome();
 }
