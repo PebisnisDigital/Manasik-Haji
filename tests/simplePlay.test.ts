@@ -16,3 +16,11 @@ describe('world proximity HUD',()=>{
  it('distinguishes optional navigation from real interaction',()=>{expect(isNavigationAction('Jalan ke lokasi')).toBe(true);expect(isNavigationAction('Dekati penanda')).toBe(true);expect(isNavigationAction('Ikuti jalur otomatis')).toBe(true);expect(isNavigationAction('Kenali Maqam Ibrahim')).toBe(false);expect(isNavigationAction('Lontar kerikil')).toBe(false);expect(isNavigationAction('Buka tas kelas')).toBe(false);});
  it('projects the actual checkpoint and preserves proximity independently of visibility',()=>{vi.stubGlobal('innerWidth',1000);vi.stubGlobal('innerHeight',500);const cam=new THREE.PerspectiveCamera(60,2,.1,100);cam.position.set(0,0,5);cam.lookAt(0,0,0);cam.updateMatrixWorld();publishWorldAction(cam,0,0,0,true);expect(worldActionAnchor()).toMatchObject({x:500,y:250,near:true,visible:true});publishWorldAction(cam,0,0,10,false);expect(worldActionAnchor()).toMatchObject({near:false,visible:false});clearWorldActionAnchor();expect(worldActionAnchor()).toBeNull();});
 });
+
+import {sweepGround,bodyClear} from '../src/sim/GroundCollision.ts';
+describe('ground collision',()=>{
+ it('stops fast motion before crossing an NPC',()=>{const moved=sweepGround({x:-2,z:0},{x:2,z:0},[{x:0,z:0}]);expect(moved.hit).toBe(true);expect(moved.x).toBeLessThanOrEqual(-.639);});
+ it('slides along solid boundaries',()=>{const moved=sweepGround({x:0,z:0},{x:2,z:2},[],x=>x<=.5);expect(moved.hit).toBe(true);expect(moved.x).toBeLessThanOrEqual(.5);expect(moved.z).toBeCloseTo(2);});
+ it('permits retreat from an existing overlap but not deeper contact',()=>{const bodies=[{x:0,z:0}];expect(bodyClear({x:.3,z:0},{x:.35,z:0},bodies)).toBe(true);expect(bodyClear({x:.3,z:0},{x:.25,z:0},bodies)).toBe(false);});
+ it('preserves a clear route and stationary actors',()=>{expect(sweepGround({x:0,z:0},{x:1,z:0},[{x:0,z:2}])).toMatchObject({hit:false});expect(sweepGround({x:0,z:0},{x:0,z:0},[])).toEqual({x:0,z:0,hit:false});});
+});
