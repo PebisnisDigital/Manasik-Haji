@@ -1,3 +1,4 @@
+import {GATE_OFFICE as O,GATE_VIDEOTRON as V} from './gateVideotronModel.ts';
 import {joinQueue,serveQueue,type QueueTicket} from './queueTicket.ts';
 import * as THREE from 'three';
 import {humanActor} from './characters/HumanActors.ts';
@@ -160,32 +161,45 @@ function createGrandOffice(scene:THREE.Scene){
   const moon=new THREE.Shape();moon.absarc(0,0,.20,.65,5.63,false);moon.quadraticCurveTo(-.07,-.12,-.07,0);moon.quadraticCurveTo(-.07,.12,.159,.121);
   const c=new THREE.Mesh(new THREE.ExtrudeGeometry(moon,{depth:.035,bevelEnabled:false,curveSegments:16}),gold);c.position.set(x,y+h+.53,z);scene.add(c);
  }
- // Deep building body and roof above the existing 3.7 m ground-floor facade.
- box(scene,18,3.0,4.5,0,5.40,-8.7,stone);
- box(scene,18.5,.18,4.85,0,3.94,-8.7,trim);
- box(scene,18.6,.17,4.95,0,6.96,-8.7,trim);
- box(scene,18.6,.12,4.95,0,6.77,-8.7,gold);
- for(const x of [-6.9,-4.6,4.6,6.9]){
-  box(scene,1.45,1.52,.07,x,5.21,-6.42,deep);
-  const arch=new THREE.Mesh(new THREE.CircleGeometry(.72,24,0,Math.PI),deep);arch.position.set(x,5.96,-6.36);scene.add(arch);
-  const frame=new THREE.Mesh(new THREE.TorusGeometry(.72,.057,7,24,Math.PI),gold);frame.position.set(x,5.96,-6.29);scene.add(frame);
-  for(const dx of [-.65,.65])box(scene,.10,1.57,.12,x+dx,5.21,-6.30,trim);
-  box(scene,1.26,1.29,.065,x,5.24,-6.29,windowMat);
-  box(scene,.055,1.45,.09,x,5.24,-6.22,gold);box(scene,1.28,.055,.09,x,5.25,-6.22,gold);
+ // Four-storey headquarters: original ground level plus three taller upper floors.
+ const roof=O.groundTop+(O.floors-1)*O.floorHeight;
+ const front=O.z+O.depth/2;
+ // Extend side wings without changing the two ground-floor departure tunnels.
+ for(const side of [-1,1]){box(scene,2,3.7,4.5,side*10,1.85,O.z,stone);box(scene,2.12,.18,4.85,side*10,3.75,O.z,trim);}
+ box(scene,O.width,roof-O.groundTop,O.depth,0,(roof+O.groundTop)/2,O.z,stone);
+ // Cornices along the sides preserve the uninterrupted central two-floor video wall.
+ for(let f=0;f<=3;f++){
+  const y=O.groundTop+f*O.floorHeight;
+  if(f===1){for(const side of [-1,1]){box(scene,5.75,.17,4.86,side*8.38,y,O.z,trim);box(scene,5.75,.075,4.94,side*8.38,y-.12,O.z,gold);}}
+  else{box(scene,O.width+.5,.18,4.86,0,y,O.z,trim);box(scene,O.width+.56,.09,4.94,0,y-.13,O.z,gold);}
  }
- sign(scene,'HAJJI.DIGITAL','LATIHAN MENUJU HAJI MABRUR',0,5.52,-6.23,6.9,1.97);
- cylinder(scene,2.4,2.4,.65,0,7.34,-8.25,stone,40);
- dome(0,7.65,-8.25,2.65,2.65);
+ for(let floor=0;floor<3;floor++){
+  const y=O.groundTop+floor*O.floorHeight+1.49;
+  for(const x of [-9,-6.7,6.7,9]){
+   box(scene,1.50,1.68,.08,x,y,front+.06,deep);
+   const arch=new THREE.Mesh(new THREE.CircleGeometry(.75,24,0,Math.PI),deep);arch.position.set(x,y+.83,front+.115);scene.add(arch);
+   const frame=new THREE.Mesh(new THREE.TorusGeometry(.75,.060,7,24,Math.PI),gold);frame.position.set(x,y+.83,front+.17);scene.add(frame);
+   for(const dx of [-.70,.70])box(scene,.11,1.68,.12,x+dx,y,front+.15,trim);
+   box(scene,1.27,1.42,.06,x,y,front+.16,windowMat);box(scene,.052,1.49,.08,x,y,front+.22,gold);box(scene,1.30,.052,.08,x,y,front+.22,gold);
+  }
+ }
+ // Actual 16:9 screen with gold frame; dark panel remains when YouTube cannot be displayed.
+ const frame=box(scene,V.width+.38,V.height+.38,.19,V.x,V.y,V.z-.17,gold);frame.name='hajji-videotron-frame';
+ const screen=box(scene,V.width,V.height,.065,V.x,V.y,V.z-.075,new THREE.MeshBasicMaterial({color:0x101b1d}));screen.name='hajji-videotron-screen';
+ sign(scene,'HAJJI.DIGITAL','PUSAT PENGARAHAN & PENDAFTARAN',0,roof-1.55,front+.22,10.6,2.10);
+ cylinder(scene,2.5,2.5,.55,0,roof+.35,-8.25,stone,40);
+ dome(0,roof+.64,-8.25,2.65,2.65);
  for(const side of [-1,1]){
-  const x=side*8.65,z=-7.65;
-  box(scene,1.48,.32,1.48,x,.16,z,trim);
-  cylinder(scene,.64,.78,6.55,x,3.51,z,stone,12);
-  for(const y of [3.8,6.75]){cylinder(scene,.88,.88,.20,x,y,z,gold,20);cylinder(scene,.93,.93,.15,x,y+.15,z,trim,20);}
-  cylinder(scene,.48,.48,1.55,x,7.66,z,emerald,16);
-  for(let i=0;i<8;i++){const angle=i*Math.PI/4;box(scene,.10,.82,.10,x+Math.cos(angle)*.50,7.70,z+Math.sin(angle)*.50,trim);}
-  cylinder(scene,.66,.66,.15,x,8.51,z,gold,20);
-  dome(x,8.59,z,.65,1.42);
+  const x=side*10.75,z=-7.65;
+  box(scene,1.65,.32,1.65,x,.16,z,trim);
+  cylinder(scene,.65,.86,roof-.25,x,(roof+.25)/2,z,stone,16);
+  for(const y of [3.8,7.24,10.64,roof]){cylinder(scene,.9,.9,.20,x,y,z,gold,20);cylinder(scene,.96,.96,.15,x,y+.15,z,trim,20);}
+  cylinder(scene,.48,.48,1.45,x,roof+.86,z,emerald,16);
+  for(let i=0;i<8;i++){const angle=i*Math.PI/4;box(scene,.10,.82,.10,x+Math.cos(angle)*.50,roof+.89,z+Math.sin(angle)*.50,trim);}
+  cylinder(scene,.67,.67,.15,x,roof+1.65,z,gold,20);
+  dome(x,roof+1.73,z,.66,1.42);
  }
+
 }
 type SnackActor={arm:THREE.Group;head:THREE.Group;phase:number;vendor:boolean};
 function createFoodCourt(scene:THREE.Scene){

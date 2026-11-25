@@ -10,3 +10,7 @@ it('prepares a distinct proof-of-transfer WhatsApp draft and receipt without cla
 
 import {gateGreeting} from '../src/gateGuide.ts';
 it('uses Akhi and Ukhti according to player character',()=>{expect(gateGreeting('male')).toBe('Akhi');expect(gateGreeting('female')).toBe('Ukhti');});
+
+import {GATE_OFFICE,GATE_VIDEOTRON,youtubeGateEmbed} from '../src/gateVideotronModel.ts';
+it('reserves a 16:9 facade spanning the second and third storeys of a four-storey building',()=>{const o=GATE_OFFICE,v=GATE_VIDEOTRON;expect(o.floors).toBe(4);expect(v.width/v.height).toBeCloseTo(16/9);expect(v.y-v.height/2).toBeGreaterThan(o.groundTop);expect(v.y+v.height/2).toBeLessThan(o.groundTop+2*o.floorHeight);expect(v.y-v.height/2).toBeLessThan(o.groundTop+o.floorHeight);expect(v.y+v.height/2).toBeGreaterThan(o.groundTop+o.floorHeight);});
+it('embeds the requested YouTube video with single-video loop, autoplay, mute and hidden player controls',()=>{const u=new URL(youtubeGateEmbed());expect(u.hostname).toBe('www.youtube.com');expect(u.pathname).toBe('/embed/vj8Utj9HGPA');for(const [k,v] of Object.entries({autoplay:'1',mute:'1',loop:'1',playlist:'vj8Utj9HGPA',controls:'0',playsinline:'1'}))expect(u.searchParams.get(k)).toBe(v);expect(()=>youtubeGateEmbed('bad')).toThrow();});

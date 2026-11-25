@@ -1,3 +1,4 @@
+import {mountGateVideotron} from './gateVideotron.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
@@ -34,6 +35,7 @@ let introPlaying=false;
 let chosenProgram:Program='umrah';let avatar:Avatar='male',selected=false,modal=true,encounter=false,target:Program|null=null,dialogueTimer=0,sceneReady=false,paused=false;
 type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:ReturnType<typeof createRenderBudget>;let r:THREE.WebGLRenderer,s:THREE.Scene,cam:THREE.PerspectiveCamera,hero:Actor;const guides={} as Record<Program,Actor>;const keys=new Set<string>();let joy=new THREE.Vector2(),last=0,walkPhase=0;const start=new THREE.Vector3(0,0,4.1);const placements={hajj:new THREE.Vector3(-2.5,0,-1.8),umrah:new THREE.Vector3(2.5,0,-1.8)};
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
+let videotron:ReturnType<typeof mountGateVideotron>|undefined;
 let queueJoining=false,queueStage=0,queueAuthorized=false;
 function leaveRegistrationQueue(){if(registrationHall&&queueJoining)registrationHall.leave(avatar==='female');queueJoining=false;queueStage=0;queueAuthorized=false;stopMotion();}
 function registrationAction(){if(!selected||modal||encounter||portraitBlocked)return;if(queueJoining){leaveRegistrationQueue();$('instruction').textContent='Keluar dari antrean. Pilih MASUK ANTREAN untuk ikut kembali.';return;}if(!sceneReady||!registrationHall){$('instruction').textContent='Arena antrean belum tersedia. Muat ulang halaman.';return;}target=null;stopMotion();queueJoining=true;queueStage=0;registrationHall.join(avatar==='female');dismissGuideCall();$('instruction').textContent='Menuju bagian belakang antrean';}
@@ -109,9 +111,9 @@ for(const x of [-6,-3,0,3,6]){const arc=mesh(new THREE.TorusGeometry(1.24,.15,10
 placa(guideMode?'PUSAT MANASIK':'UMROH.DIGITAL',guideMode?'PENDAFTARAN PESERTA':'',0,-5.67);
 for(const p of ['hajj','umrah'] as const){const pos=placements[p];const ring=new THREE.Mesh(new THREE.RingGeometry(.79,.91,64).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd4bb83,side:THREE.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));ring.position.set(pos.x,.012,pos.z);s.add(ring);guideRings[p]=ring;const actor=person(p==='umrah',p==='umrah'?0x52796b:0xeae2cc);actor.root.position.copy(pos);actor.root.position.y=0;guides[p]=actor;if(!guideMode)placa(p==='hajj'?'MANASIK HAJI':'MANASIK UMROH','',pos.x,-3.65);}
 for(const x of (guideMode?[-8.3,8.3]:[-6.5,6.5]))for(const z of [-2.6,3.5]){mesh(new THREE.CylinderGeometry(.55,.38,.49,12),sand,x,.245,z,s);box(.18,2,.18,mat(0x967c55),x,1.25,z,s);for(let k=0;k<9;k++){const o=ball(.3,teal,x+Math.cos(k*2.4)*.55,2.5+Math.sin(k)*.25,z+Math.sin(k*2.4)*.55,s);o.scale.set(1.4,.55,1.8);}}
-if(guideMode)registrationHall=createRegistrationHall(s);
+if(guideMode){registrationHall=createRegistrationHall(s);videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
 hero=person(false,0xf4ead6,true);hero.root.position.copy(start);hero.root.rotation.y=Math.PI;heading=Math.PI;sceneReady=true;resize();requestAnimationFrame(frame);}
-function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.fov=guideMode?(touchMode?65:w/h<.85?69:64):(touchMode?57:w/h<.85?66:60);cam.updateProjectionMatrix();}
+function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.fov=guideMode?(touchMode?65:w/h<.85?69:64):(touchMode?57:w/h<.85?66:60);cam.updateProjectionMatrix();videotron?.resize();}
 function syncOrientation(){const was=portraitBlocked;portraitBlocked=!gateMode&&touchMode&&matchMedia('(orientation: portrait)').matches;lobbySound.setPaused(portraitBlocked||introPlaying);const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){if(portraitBlocked&&guideMode)dismissGuideCall();stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
 async function landscapeFullscreen(){if(!touchMode)return;try{if(!document.fullscreenElement){const el=document.documentElement;if(typeof el.requestFullscreen==='function')await el.requestFullscreen();else throw Error('Fullscreen unsupported');}const o=screen.orientation as ScreenOrientation&{lock?:(orientation:'landscape')=>Promise<void>};if(o?.lock)await o.lock('landscape');}catch{if(portraitBlocked)$('rotateHint').textContent='Putar HP secara manual. Aktifkan rotasi otomatis.';}finally{syncOrientation();}}
 btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exitFullscreen().catch(()=>{});}else void landscapeFullscreen();};btn('rotateFullscreen').onclick=()=>void landscapeFullscreen();btn('cameraReset').onclick=()=>resetCamera();
@@ -145,11 +147,11 @@ function frame(now:number){
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
  // Chase the character during auto-walk, keep manual orbit stable while steering, and re-center gently at rest.
  if(cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
- const narrow=cam.aspect<.85,radius=cameraRadius+(narrow?.35:touchMode?.12:0);const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
+ const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const plazaFactor=guideMode&&!encounter?THREE.MathUtils.clamp((pos.z+1)/5,0,1)*Math.max(0,-fz):0;const radius=cameraRadius+(narrow?.35:touchMode?.12:0)+plazaFactor*3.0;const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
  // The rear arcade is solid. Shorten the camera boom rather than letting it cross the wall.
  if(cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
- const plazaView=guideMode&&!encounter?THREE.MathUtils.clamp((pos.z+1)/5,0,1)*.78:0;
+ const plazaView=plazaFactor*2.25;
  const look=pivot.clone().add(new THREE.Vector3(fx*.82+rx*.34,.13+plazaView,fz*.82+rz*.34));
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*11);cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,1-Math.exp(-dt*12));}
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
@@ -202,7 +204,7 @@ function frame(now:number){
  registrationHall?.update(dt);
  if(guideMode){const meet=document.querySelector<HTMLElement>('.guideMeet');const ahead=registrationHall?.ahead(avatar==='female');if(meet){const label=queueJoining?'KELUAR ANTREAN':'MASUK ANTREAN';if(meet.textContent!==label)meet.textContent=label;meet.setAttribute('aria-label',label);}if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
- updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);
+ updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!encounter&&!portraitBlocked&&!budget.lost());
  // Present the character picker only after the first rendered registration scene has been painted.
  if(entranceMode&&!entranceFramePresented){entranceFramePresented=true;requestAnimationFrame(()=>{if(!sceneReady||budget.lost()){entranceFramePresented=false;return;}document.documentElement.dataset.gateWorldReady='true';$('avatarModal').hidden=false;$('lobby').inert=false;document.documentElement.classList.remove('gatePreparing');document.documentElement.dataset.guideReady='true';if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else btn(readSetup()?.avatar??'male').focus({preventScroll:true});});}
 }
