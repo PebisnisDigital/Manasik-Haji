@@ -24,7 +24,7 @@ export function mountAdventureHud(){
   return {
     update(s:Snapshot){const text=[s.stage,s.count,s.gate,s.reward,Math.ceil(s.distance),s.nearGuide,s.complete].join('|');if(text===signature)return;signature=text;
       reward.textContent='◆ '+s.reward+' koin petualangan'+(s.complete?' · Lencana level diraih':'');
-      hint.textContent=s.complete?'Level tuntas · buka peta perjalanan':s.nearGuide?'Pembimbing: tekan E / Interaksi':Math.ceil(s.distance)+' m menuju tujuan'+(s.stage===1&&s.gate!==undefined?' · checkpoint '+s.gate:'');
+      hint.textContent=s.complete?'Level tuntas · buka peta perjalanan':s.nearGuide?'Pembimbing: laporkan hasil':Math.ceil(s.distance)+' m menuju tujuan'+(s.stage===1&&s.gate!==undefined?' · checkpoint '+s.gate:'');
     },
     saved(ok:boolean){save.textContent=ok?'✓ Checkpoint tersimpan':'Checkpoint belum tersimpan · penyimpanan penuh atau tidak tersedia';save.classList.toggle('saveFailed',!ok);},
     dispose(){document.removeEventListener('click',onDeparture);observer.disconnect();companion.dispose();root.remove();returnLinks.forEach(a=>a.remove());},

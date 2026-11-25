@@ -159,7 +159,7 @@ function boot(): void {
     target.submit(lod,px,0,pz,heading,h,1,frameState.f0,frameState.f1,frameState.frac,frameState.f0,0,palette,1);
   }
   if(exitDoor){cameraMode.value='free';orbit=Math.atan2(x,z);yaw=Math.atan2(-x,-z);}
-  function startExit(){if(!exitDoor)return;exiting=true;exitDoor.highlight();nextSai.hidden=true;exitControl??=exitButton(()=>{if(Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z)<1.5){const url=districtReturnUrl();if(url)location.assign(url);}});status.textContent='Kembali ke pintu masuk, lalu tekan AKSI.';}
+  function startExit(){if(!exitDoor)return;exiting=true;exitDoor.highlight();nextSai.hidden=true;exitControl??=exitButton(()=>{if(Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z)<1.5){const url=districtReturnUrl();if(url)location.assign(url);}});status.textContent='Kembali ke pintu masuk, lalu pilih KELUAR GEDUNG.';}
   if(exitOnly&&exitDoor){const a=START+.20;x=Math.cos(a)*38;z=Math.sin(a)*38;orbit=Math.atan2(x,z);startExit();}
   if(level===12&&exitDoor&&core){nextSai.textContent='Kembali ke pintu masuk';nextSai.addEventListener('click',e=>{e.preventDefault();if(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep)){status.textContent='Checkpoint belum tersimpan.';return;}startExit();});}
   function frame(now:number):void {
@@ -193,7 +193,7 @@ function boot(): void {
       else if(delta< -0.0004)status.textContent="Arah terbalik. Jaga Ka'bah di sebelah kiri.";
       else if(delta>0.0004)status.textContent=auto?"Ikuti jalur latihan otomatis. Ka'bah di sebelah kiri.":"Arah benar. Kembali ke garis awal untuk menyelesaikan putaran.";
     }
-    if(exiting&&exitDoor){x+=dx*dt;z+=dz*dt;const r=Math.hypot(x,z),bounded=THREE.MathUtils.clamp(r,MIN_RADIUS,MAX_RADIUS);if(r>0){x*=bounded/r;z*=bounded/r;}const d=Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z);if(exitControl)exitControl.textContent=d<1.5?'AKSI · Keluar gedung':'Pintu masuk · '+Math.ceil(d)+' m';}
+    if(exiting&&exitDoor){x+=dx*dt;z+=dz*dt;const r=Math.hypot(x,z),bounded=THREE.MathUtils.clamp(r,MIN_RADIUS,MAX_RADIUS);if(r>0){x*=bounded/r;z*=bounded/r;}const d=Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z);if(exitControl)exitControl.textContent=d<1.5?'KELUAR GEDUNG':'Pintu masuk · '+Math.ceil(d)+' m';}
     life.tick(dt,{x,z},!stopped&&!finished);
     const dist=Math.hypot(x-oldX,z-oldZ);sound?.walk(dist);if(dt>0)tutorial?.event({type:'walk',amount:dist});tutorial?.paint();
     if(dist>0.0001){const desired=Math.atan2(x-oldX,z-oldZ);yaw+=wrap(desired-yaw)*Math.min(1,dt*12);walkPhase=(walkPhase+dist/1.42)%1;}

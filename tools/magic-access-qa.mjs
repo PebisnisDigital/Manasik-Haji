@@ -30,8 +30,8 @@ async function travelToLevelOne(){
   await page.keyboard.down('a');
   try{await page.waitForFunction(()=>{const t=document.getElementById('mapPlayer').getAttribute('transform');const m=t.match(/translate\(([-.\d]+)/);return m&&Number(m[1])<54;},{},{timeout:25000});}finally{await page.keyboard.up('a');}
   await page.keyboard.down('s');
-  try{await page.getByRole('button',{name:'AKSI · Ikut antrean',exact:true}).waitFor({timeout:50000});}finally{await page.keyboard.up('s');}
-  await page.getByRole('button',{name:'AKSI · Ikut antrean',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.playerQueue!=='idle');await page.getByRole('button',{name:'AKSI · Keluar antrean',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.playerQueue==='idle');await page.getByRole('button',{name:'AKSI · Ikut antrean',exact:true}).click();await page.locator('[data-choice="guardCheck"]').waitFor({timeout:180000});
+  try{await page.getByRole('button',{name:'MASUK ANTREAN',exact:true}).waitFor({timeout:50000});}finally{await page.keyboard.up('s');}
+  await page.getByRole('button',{name:'MASUK ANTREAN',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.playerQueue!=='idle');await page.getByRole('button',{name:'KELUAR ANTREAN',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.playerQueue==='idle');await page.getByRole('button',{name:'MASUK ANTREAN',exact:true}).click();await page.locator('[data-choice="guardCheck"]').waitFor({timeout:180000});
   assert.match(page.url(),/district\.html/);await page.locator('[data-choice="guardCheck"]').click();await page.locator('[data-choice="guardEnter"]').click();await page.waitForFunction(()=>['approach','open','walk','launch'].includes(document.documentElement.dataset.cityEntry));await page.waitForURL(/play=miqat/,{timeout:30000});
  }finally{await page.keyboard.up('Shift');}
 }

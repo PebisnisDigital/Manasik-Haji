@@ -60,7 +60,7 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
   box(cream,-3.7,.035,13.0,12.2,.07,4.4);
   for(const z of [12.35,13.75]){for(let i=0;i<6;i++)box(gold,-9.65+i*1.48,.49,z,.08,.95,.08);box(gold,-5.95,.88,z,7.6,.045,.045);}
   sign(g,'ANTREAN PESERTA','SIMULASI',-7.6,2.25,12.0,3.4,.85);
-  sign(g,'MULAI ANTREAN','TEKAN AKSI',-9.3,1.30,14.2,2.1,.58);box(light,-9.3,.09,13,.92,.035,.92);
+  sign(g,'MULAI ANTREAN','MASUK ANTREAN',-9.3,1.30,14.2,2.1,.58);box(light,-9.3,.09,13,.92,.035,.92);
   // Side parking: not in the roadway or the guard approach.
   box(road,15.5,.015,0,8.3,.06,21);for(let i=0;i<4;i++)box(stripe,15.5,.052,-9.7+i*5.5,7.8,.018,.08);
   sign(g,'PARKIR','MOBIL & MOTOR',15.4,2.85,9.8,3.6,.9);
