@@ -10,7 +10,7 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  css.domElement.className='gateVideotronLayer';css.domElement.style.cssText='position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;visibility:hidden;';
  canvas.after(css.domElement);
  const panel=document.createElement('div');panel.style.cssText='width:640px;height:360px;background:#111b1b;pointer-events:none;';
- const object=new CSS3DObject(panel);object.position.set(V.x,V.y,V.z);object.scale.setScalar(V.width/V.iframeWidth);scene.add(object);
+ const object=new CSS3DObject(panel);panel.style.pointerEvents='none';object.position.set(V.x,V.y,V.z);object.scale.setScalar(V.width/V.iframeWidth);scene.add(object);
  const video=document.createElement('video');
  video.id='gateVideotronVideo';video.title='Videotron HAJJI.DIGITAL — Bacaan talbiyah';
  video.loop=true;video.autoplay=true;video.playsInline=true;video.controls=false;video.disablePictureInPicture=true;
