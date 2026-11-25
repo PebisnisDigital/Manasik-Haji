@@ -6,7 +6,7 @@ import {surfaceDetail,staticShadows} from '../env/GraphicsDetail.ts';
 import {graphicsTier} from '../graphicsQuality.ts';
 import {BUS_WHEEL_RADIUS} from './districtPresentation.ts';
 
-export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false){
+export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,missionCity=false){
   const scene=new THREE.Scene();scene.background=new THREE.Color(night?0x172b43:0xadbfc3);scene.fog=new THREE.Fog(night?0x25354c:0xc6c4b6,75,175);
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment(),environment=pmrem.fromScene(room,.04);
   scene.environment=environment.texture;scene.environmentIntensity=night?.25:.32;room.dispose();pmrem.dispose();
@@ -82,7 +82,10 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false){
   box(23,5,14,mat(0xc8c2b1),-22,2.5,-66);
   mesh(new THREE.SphereGeometry(6,24,12,0,Math.PI*2,0,Math.PI/2),mat(0x71877a,.5),-22,5,-66);
   mesh(new THREE.CylinderGeometry(.8,1.2,19,12),stone,-37,9.5,-64);mesh(new THREE.ConeGeometry(1.4,3,12),gold,-37,20,-64);
-  for(let i=0;i<9;i++){
+  // The legacy transfer map ends at z=-57. Its mountain silhouettes at z=-98
+  // intersect the expanded mission city (z=-128..128), including buildings 6–9.
+  // Do not create these meshes in the mission hub at all, even before static batching.
+  if(!missionCity)for(let i=0;i<9;i++){
     const mountain=mesh(new THREE.ConeGeometry(20+(i%3)*8,20+(i%4)*9,5),mat(0x9f9f91),-100+i*25,6,-98,scene,false);mountain.rotation.y=i*.6;
   }
   // A visible bus stop and a marked destination parking bay.
