@@ -219,10 +219,13 @@ if(!gateMode&&!guideMode){$('avatarModal').hidden=false;mountCinematicIntro({can
 if(gateMode){$('avatarModal').hidden=true;$('cinematicIntro').remove();document.documentElement.dataset.entranceReady='true';}
 if(guideMode){
  $('bubble').classList.add('guideCallBubble');
+ // Keep projected guide anchors for interaction, but remove their floating nameplates from the registration HUD.
+ for(const id of ['hajjLabel','umrahLabel']){const tag=$(id);tag.style.setProperty('opacity','0','important');tag.style.pointerEvents='none';tag.setAttribute('aria-hidden','true');}
+ $('movementHint').style.setProperty('display','none','important');
  $('cinematicIntro').remove();$('hajjLabel').textContent='PAK HUSEN · PENDAFTARAN';$('umrahLabel').textContent='BU SALMA · PENDAFTARAN';document.querySelector('#lobby .brand')!.textContent='HAJJI.DIGITAL';
- const npcNotice=document.createElement('small');npcNotice.textContent='Antrean NPC · simulasi';npcNotice.style.cssText='display:block;color:#f0dcad;font-size:11px;margin-top:4px;letter-spacing:.02em';document.querySelector('#lobby .brand')!.after(npcNotice);
+ const npcNotice=document.createElement('small');npcNotice.textContent='Antrean NPC · simulasi';npcNotice.style.cssText='display:block;color:#f0dcad;font-size:11px;margin-top:4px;letter-spacing:.02em';document.querySelector('.menu nav')!.append(npcNotice);
  const meet=document.createElement('a');meet.className='guideMeet';meet.href='#';meet.onclick=e=>{e.preventDefault();registrationAction();};document.querySelector('.chooser')!.prepend(meet);
- const settingsLink=document.createElement('a');settingsLink.className='gateSettings';settingsLink.href=tenantUrl('./index.html?setup=1');settingsLink.textContent='⚙ Perjalanan, suara & grafis';document.querySelector('.chooser')!.append(settingsLink);
+ const settingsLink=document.createElement('a');settingsLink.className='gateSettings';settingsLink.href=tenantUrl('./index.html?setup=1');settingsLink.textContent='⚙ Perjalanan, suara & grafis';document.querySelector('.menu nav')!.append(settingsLink);
  document.querySelector('#avatarModal h1')!.textContent='Pilih karakter';
  // Keep the entrance character picker minimal. Comfort settings and account access remain in the main menu.
  for(const element of document.querySelectorAll('#avatarModal #comfortIntro, #avatarModal .fine, #avatarModal .pwaInstall, #avatarModal .accountLink'))element.remove();
