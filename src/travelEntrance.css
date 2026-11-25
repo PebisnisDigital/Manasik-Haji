@@ -56,3 +56,12 @@
 @media(max-width:600px){.gateWorldDialogue[data-line=form] .gateWorldPanel{width:min(350px,calc(100vw - 28px));max-height:65dvh}.gateWorldBubble{max-width:min(240px,calc(100vw - 24px));padding:8px 11px}.gateWorldBubble p{font-size:12px}}
 @media(orientation:landscape) and (max-height:520px){.gateWorldDialogue[data-line=form] .gateWorldPanel{width:min(350px,48vw);max-height:calc(100dvh - 68px);bottom:8px;right:12px;padding:10px}.gateWorldBubble{max-width:min(230px,43vw);padding:8px 10px}.gateWorldBubble p{font-size:12px}.gateWorldPanel{bottom:10px}.gateWorldClose{top:8px;right:12px}}
 .portraitBlocked .gateWorldDialogue{visibility:hidden}
+
+/* Guide invitation controls use the same compact, shadow-free world dialogue. */
+.guideMode .chooser .gateTalk{display:block;width:100%;min-height:44px;margin:0 0 8px;padding:8px 12px;border:1px solid #d7c087;border-radius:10px;background:#183e32;color:#fff4d7;font-size:12px;font-weight:750;text-shadow:none!important}
+.guideMode .chooser .gateTalk[hidden],.gateDialogueActive #lobby .gateTalk{display:none!important}
+.gateGuideActions:has(> :only-child){grid-template-columns:1fr}
+.gateGuideName{display:flex;gap:8px;min-width:0;width:100%;align-items:center}
+.gateGuideName input{flex:1;min-width:0;min-height:48px;padding:9px 11px;border:1px solid #c8a65b;border-radius:9px;background:#fff9eb;color:#193b30;font-size:16px}
+.gateGuideName .travelPrimary{flex:none;min-width:76px}
+.gateGuideDialogue .gateWorldPanel{max-height:40dvh}
