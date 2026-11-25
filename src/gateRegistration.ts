@@ -12,7 +12,7 @@ async function request(action='',body?:unknown):Promise<ResponseData>{
 }
 /** Approval always comes from the server; browser storage cannot approve a transfer. */
 export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack:()=>void){
- let disposed=false,busy=false,poll:ReturnType<typeof setTimeout>|undefined,lastState='',watch=false,disposePopup:(()=>void)|undefined;
+ let qrisPending=false;let disposed=false,busy=false,poll:ReturnType<typeof setTimeout>|undefined,lastState='',watch=false,disposePopup:(()=>void)|undefined;
  const status=document.createElement('p');status.setAttribute('role','status');host.replaceChildren(status);
  function message(error:unknown){notice.textContent=error instanceof Error&&error.name!=='SyntaxError'?error.message:'Layanan pendaftaran belum tersambung. Data belum dikirim. Coba lagi atau kembali ke gerbang.';}
  function button(text:string,run:()=>void,primary=false){const b=document.createElement('button');b.type='button';b.textContent=text;if(primary)b.className='travelPrimary';b.onclick=run;return b;}
@@ -57,9 +57,9 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
  }
  function stateKey(d:ResponseData){return [d.registration?.id,d.registration?.status,d.qris?.status,d.qris?.transaction_id,d.ticket.qris_enabled].join(':');}
  function schedule(){clearTimeout(poll);if(watch&&!disposed)poll=setTimeout(()=>void load(false),22000);}
- async function load(force=true){if(busy||disposed){schedule();return;}if(!force&&document.hidden){schedule();return;}busy=true;if(force){status.textContent='Memeriksa pendaftaran…';notice.textContent='';}try{const data=await request();if(!disposed&&(force||lastState!==stateKey(data)))paint(data);}catch(error){if(!disposed){message(error);if(force){host.replaceChildren(status);status.textContent='Pendaftaran belum tersedia.';host.append(button('Coba sambungkan lagi',()=>void load(),true),button('Coba formulir preview',preview),back());if(!['localhost','127.0.0.1'].includes(location.hostname))preview();}}}finally{busy=false;schedule();}}
+ async function load(force=true){if(busy||disposed){schedule();return;}if(!force&&document.hidden){schedule();return;}busy=true;if(force){status.textContent='Memeriksa pendaftaran…';notice.textContent='';}try{const data=await request(!force&&qrisPending?'/qris-check':'',!force&&qrisPending?{}:undefined);if(!disposed&&(force||lastState!==stateKey(data)))paint(data);}catch(error){if(!disposed){message(error);if(force){host.replaceChildren(status);status.textContent='Pendaftaran belum tersedia.';host.append(button('Coba sambungkan lagi',()=>void load(),true),button('Coba formulir preview',preview),back());if(!['localhost','127.0.0.1'].includes(location.hostname))preview();}}}finally{busy=false;schedule();}}
  function paint(data:ResponseData){
-  host.replaceChildren();notice.textContent='';const r=data.registration,guide=gateGuide(r?.avatar??readSetup()?.avatar??'male').name;lastState=stateKey(data);watch=!!r&&r.status!=='approved';schedule();
+  host.replaceChildren();notice.textContent='';const r=data.registration,guide=gateGuide(r?.avatar??readSetup()?.avatar??'male').name;lastState=stateKey(data);qrisPending=data.qris?.status==='pending';watch=!!r&&r.status!=='approved';schedule();
   const heading=document.createElement('h3');heading.textContent=r?'Pendaftaran '+r.id:'Formulir pendaftaran';host.append(heading);
   if(['localhost','127.0.0.1'].includes(location.hostname)){const test=document.createElement('p');test.className='gateTestNotice';test.textContent='Pengujian lokal — jangan transfer uang untuk mencoba alur ini.';host.append(test);}
   const price=document.createElement('p');price.textContent='Tiket petualangan · Rp100.000 / peserta. Haji 12 level atau Umroh 5 level, bus, misi, bekal, dan checkpoint.';host.append(price);
