@@ -145,7 +145,7 @@ function createParking(scene:THREE.Scene){
 
 /** Upper floors are built over the original arcade; both departure tunnels stay open. */
 function createGrandOffice(scene:THREE.Scene){
- const stone=material(0xe9dfc8),trim=material(0xf4e9cc),emerald=material(0x145a43),deep=material(0x143d35),windowMat=material(0x355b60);
+ const stone=material(0x202020),trim=material(0xf4f0e6),emerald=material(0x111111),deep=material(0x141414),windowMat=material(0x42474e);
  gold.metalness=.35;
  function cylinder(parent:THREE.Object3D,rt:number,rb:number,h:number,x:number,y:number,z:number,m:THREE.Material,segments=24){
   const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;
@@ -188,12 +188,14 @@ function createGrandOffice(scene:THREE.Scene){
  const frame=box(scene,V.width+.38,V.height+.38,.19,V.x,V.y,V.z-.17,gold);frame.name='hajji-videotron-frame';
  const screen=box(scene,V.width,V.height,.065,V.x,V.y,V.z-.075,new THREE.MeshBasicMaterial({color:0x101b1d}));screen.name='hajji-videotron-screen';
  sign(scene,'HAJJI.DIGITAL','PUSAT PENGARAHAN & PENDAFTARAN',0,roof-1.55,front+.22,10.6,2.10);
+ const emblemTex=new THREE.TextureLoader().load('./pwa-icon.svg');emblemTex.colorSpace=THREE.SRGBColorSpace;
+ const emblem=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.8),new THREE.MeshBasicMaterial({map:emblemTex,transparent:true,toneMapped:false}));emblem.position.set(7.35,roof-1.55,front+.28);scene.add(emblem);
  cylinder(scene,2.5,2.5,.55,0,roof+.35,-8.25,stone,40);
  dome(0,roof+.64,-8.25,2.65,2.65);
  for(const side of [-1,1]){
   const x=side*10.75,z=-7.65;
   box(scene,1.65,.32,1.65,x,.16,z,trim);
-  cylinder(scene,.65,.86,roof-.25,x,(roof+.25)/2,z,stone,16);
+  cylinder(scene,.65,.86,roof-.25,x,(roof+.25)/2,z,trim,16);
   for(const y of [3.8,7.24,10.64,roof]){cylinder(scene,.9,.9,.20,x,y,z,gold,20);cylinder(scene,.96,.96,.15,x,y+.15,z,trim,20);}
   cylinder(scene,.48,.48,1.45,x,roof+.86,z,emerald,16);
   for(let i=0;i<8;i++){const angle=i*Math.PI/4;box(scene,.10,.82,.10,x+Math.cos(angle)*.50,roof+.89,z+Math.sin(angle)*.50,trim);}
