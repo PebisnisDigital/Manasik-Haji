@@ -39,18 +39,12 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side|'desk')=>Ga
   const desk=project('desk'),pw=panel.offsetWidth,ph=panel.offsetHeight,bill=root.dataset.line==='bill';
   if(pw&&ph){
    let left:number,top:number;
-   if(bill){
-    // Use the side with more room, away from the two faces when possible.
-    const roomRight=w-desk.x,roomLeft=desk.x;
-    left=roomRight>=roomLeft?desk.x+48:desk.x-pw-48;
-    top=desk.y-ph*.55;
-   }else{
-    left=desk.x-pw/2;
-    top=desk.y+18;
-   }
+   // First-person: the desk is the only UI anchor. Keep the clerk's face clear.
+   left=desk.x-pw/2;
+   top=bill?desk.y-ph*.42:desk.y+8;
    if(!desk.visible){left=(w-pw)/2;top=h-ph-16;}
    panel.style.left=Math.round(clamp(left,12,w-pw-12))+'px';
-   panel.style.top=Math.round(clamp(top,64,h-ph-12))+'px';
+   panel.style.top=Math.round(clamp(top,Math.max(64,h*.46),h-ph-12))+'px';
    panel.style.right='auto';panel.style.bottom='auto';panel.style.transform='none';
    panel.dataset.anchor=desk.visible?'desk':'fallback';
   }
@@ -62,7 +56,11 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side|'desk')=>Ga
    else y=clamp(p.top-bh-16,12,h-bh-12);
    detached=true;
   }
-  if(!a.visible){x=clamp((w-bw)/2,12,w-bw-12);y=64;detached=true;}
+  if(!a.visible){
+   x=clamp((w-bw)/2,12,w-bw-12);
+   y=side==='player'?clamp((pw&&ph?p.top:h*.8)-bh-14,64,h-bh-12):64;
+   detached=true;
+  }
   // In a very short viewport prioritize the actual form over an overlapping detached label.
   const overlaps=x<p.right&&x+bw>p.left&&y<p.bottom&&y+bh>p.top;
   bubble.style.visibility=overlaps?'hidden':'visible';
