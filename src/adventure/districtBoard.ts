@@ -59,7 +59,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  const dialog=elem('dialog','overlay boardReadDialog');dialog.hidden=true;dialog.setAttribute('aria-label','Peta perjalanan');
  const sheet=elem('section','districtJourneyBoard'),top=elem('header','boardHeader'),brand=elem('span','boardBrand','HAJJI.DIGITAL'),count=elem('span','boardProgress'),heading=elem('h1','','Peta Perjalanan'),subtitle=elem('p','boardSubtitle'),grid=elem('div','boardLevels'),foot=elem('footer','boardFooter'),close=elem('button','boardBack','Kembali ke kawasan');close.type='button';
  top.append(brand,count);sheet.append(top,heading,subtitle,grid,foot);dialog.append(sheet);document.body.append(dialog);
- let list:Level[]=[],launching=false;
+ let list:Level[]=[],launching=false,cachedBonusReady=false;
  const hitZones:{x:number;y:number;w:number;h:number;number:number}[]=[];
  const closeMap=()=>{dialog.hidden=true;if(dialog.open)dialog.close();};close.onclick=closeMap;dialog.addEventListener('cancel',e=>{e.preventDefault();closeMap();});
  function check(number:number){const fresh=levels(program),result=checkGateProgress(fresh,number);return {...result,preview,example,done:fresh.some(l=>l.number===number&&l.done),starred:readStars(fresh).includes(number),title:fresh.find(l=>l.number===number)?.title??'Level '+number,previousTitle:fresh.find(l=>l.number===number-1)?.title??'',total:fresh.length};}
@@ -81,7 +81,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function bonusMessage(){return example?'Mode CONTOH tidak menerbitkan hadiah peserta berbayar.':preview?'Pratinjau gedung oleh-oleh.': 'Kumpulkan seluruh 12 bintang untuk membuka oleh-oleh.';}
  function bonus(){if(onSelect){closeMap();onSelect(SOUVENIR_NUMBER);return;}if(!bonusReady()){toast(bonusMessage());return;}location.assign(tenantUrl('./oleh-oleh.html'));}
  function draw(){
-  list=levels(program);const completed=list.filter(l=>l.done).length,stars=program==='hajj'?readStars(list):[];
+  list=levels(program);const completed=list.filter(l=>l.done).length,stars=program==='hajj'?readStars(list):[];cachedBonusReady=program==='hajj'&&canOpenSouvenir(completed===12,stars,example,preview);
   const w=c.width,h=c.height;ctx.fillStyle='#14392e';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#c9ac6c';ctx.lineWidth=8;ctx.strokeRect(16,16,w-32,h-32);
   ctx.textAlign='left';ctx.fillStyle='#e9cb89';ctx.font='bold 31px system-ui';ctx.fillText('HAJJI.DIGITAL',66,70);
   ctx.fillStyle='#fff5dc';ctx.font='bold 66px system-ui';ctx.fillText(program==='hajj'?'PETA PERJALANAN HAJI':'PETA PERJALANAN UMROH',66,151);
@@ -121,5 +121,5 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function open(){draw();dialog.hidden=false;if(!dialog.open)dialog.showModal();close.focus();}
  draw();group.updateMatrixWorld(true);window.addEventListener('storage',draw);window.addEventListener('pageshow',e=>{if(e.persisted){launching=false;draw();}});
  document.documentElement.dataset.districtBoardReady='true';
- return {tap,open,launch,check,bonusReady,bonusMessage,refresh:draw,stars:()=>program==='hajj'&&!preview?readStars(levels(program)):[],claim:(n:number)=>{if(preview||program!=='hajj')return {stars:[],awarded:false,stored:false};const result=claimStar(levels(program),n);draw();return result;},available:()=>[...list.filter(l=>l.available).map(l=>l.number),...(bonusReady()?[SOUVENIR_NUMBER]:[])],next:()=>program==='hajj'&&!preview&&readStars(levels(program)).length===12?SOUVENIR_NUMBER:list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
+ return {tap,open,launch,check,bonusReady,bonusMessage,refresh:draw,stars:()=>program==='hajj'&&!preview?readStars(levels(program)):[],claim:(n:number)=>{if(preview||program!=='hajj')return {stars:[],awarded:false,stored:false};const result=claimStar(levels(program),n);draw();return result;},available:()=>[...list.filter(l=>l.available).map(l=>l.number),...(cachedBonusReady?[SOUVENIR_NUMBER]:[])],next:()=>program==='hajj'&&!preview&&readStars(levels(program)).length===12?SOUVENIR_NUMBER:list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
 }
