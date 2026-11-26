@@ -27,7 +27,7 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
  const materials:THREE.Material[]=[],textures:THREE.Texture[]=[],geometries:THREE.BufferGeometry[]=[],groups:THREE.Group[]=[];
  const solids:Rect[]=[];
  const material=(color:number,glow=0)=>{const m=new THREE.MeshStandardMaterial({color,roughness:.72,emissive:color,emissiveIntensity:glow});materials.push(m);return m;};
- const cream=material(0xf1dfbe),gold=material(0xb99a58,.18),light=material(0xffd88d,1.9),emerald=material(0x215847),dark=material(0x263133),road=material(0x505b59),stripe=material(0xe4d8bb),glass=material(0x527a83,.20),rubber=material(0x24282a),silver=material(0xc9cfcb),red=material(0xb43c36),blue=material(0x3f6995),wood=material(0x97623b),snack=material(0xe5ba77),skin=material(0xb98b68),hair=material(0x2d2724);
+ const cream=material(0xfffaf0),gold=material(0xd6b46b,.18),light=material(0xffd88d,1.9),domeIvory=material(0xe1d0aa),emerald=material(0x215847),dark=material(0x263133),road=material(0x505b59),stripe=material(0xe4d8bb),glass=material(0x527a83,.20),rubber=material(0x24282a),silver=material(0xc9cfcb),red=material(0xb43c36),blue=material(0x3f6995),wood=material(0x97623b),snack=material(0xe5ba77),skin=material(0xb98b68),hair=material(0x2d2724);
  const colors=[red,blue,emerald,cream,dark,silver];
  const cube=new THREE.BoxGeometry(1,1,1),wheelGeo=new THREE.CylinderGeometry(1,1,1,12),sphere=new THREE.SphereGeometry(1,12,8),domeGeo=new THREE.SphereGeometry(1,24,12,0,Math.PI*2,0,Math.PI/2);geometries.push(cube,wheelGeo,sphere,domeGeo);
  const logo=new THREE.TextureLoader().load(tenantUrl('./pwa-icon.svg'));logo.colorSpace=THREE.SRGBColorSpace;textures.push(logo);
@@ -52,10 +52,10 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
   const box=(m:THREE.Material,x:number,y:number,z:number,w:number,h:number,d:number,ry=0)=>shape(cube,m,x,y,z,w,h,d,0,ry);
   const tire=(x:number,y:number,z:number,r:number,w:number)=>shape(wheelGeo,rubber,x,y,z,r,w,r,0,0,Math.PI/2);
   // Premium illuminated facade, roof crown, pilasters, illuminated brand.
-  for(const x of [-9.5,9.5]){box(cream,x,p.height/2,10.20,.48,p.height,.48);box(light,x,p.height/2,10.48,.085,p.height-.5,.055);box(gold,x,p.height+1.1,9.2,1.02,2.2,1.02);shape(domeGeo,emerald,x,p.height+2.2,9.2,.86,1.3,.86);box(light,x,p.height+2.3,10.05,.15,.4,.13);}
+  for(const x of [-9.5,9.5]){box(cream,x,p.height/2,10.20,.48,p.height,.48);box(light,x,p.height/2,10.48,.085,p.height-.5,.055);box(gold,x,p.height+1.1,9.2,1.02,2.2,1.02);shape(domeGeo,domeIvory,x,p.height+2.2,9.2,.86,1.3,.86);box(light,x,p.height+2.3,10.05,.15,.4,.13);}
   for(const y of [8.8,p.height-1.1]){box(gold,0,y,10.22,19.6,.18,.48);box(light,0,y+.08,10.49,19.3,.065,.06);}
   for(const x of [-6.1,-2.1,2.1,6.1]){box(glass,x,p.height-4.3,10.16,2.6,3.5,.12);box(light,x,p.height-4.3,10.26,.065,3.5,.055);}
-  box(emerald,0,p.height+.3,0,7,.52,7);shape(domeGeo,emerald,0,p.height+.56,0,3.8,3.1,3.8);box(gold,0,p.height+4.0,0,.15,.9,.15);
+  box(domeIvory,0,p.height+.3,0,7,.52,7);shape(domeGeo,domeIvory,0,p.height+.56,0,3.8,3.1,3.8);box(gold,0,p.height+4.0,0,.15,.9,.15);
   sign(g,'HAJJI.DIGITAL','PUSAT LATIHAN MANASIK',0,p.height-1.7,10.49,11,2.75);
   const emblem=new THREE.Mesh(logoGeo,logoMaterial);emblem.position.set(7.75,p.height-2.0,10.55);g.add(emblem);
   box(cream,-3.7,.035,13.0,12.2,.07,4.4);
