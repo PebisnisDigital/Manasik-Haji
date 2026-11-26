@@ -36,7 +36,7 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  document.addEventListener('keydown',interaction,true);
  document.addEventListener('visibilitychange',resume);
  window.addEventListener('focus',resume);
- window.addEventListener('umroh-comfort-change',volume);
+ window.addEventListener('umroh-comfort-change',volume);window.addEventListener('hajji-game-audio-change',volume);
  const corners=[[-1,-1],[-1,1],[1,-1],[1,1]].map(([x,y])=>new THREE.Vector3(V.x+x!*V.width/2,V.y+y!*V.height/2,V.z));
  const projected=corners.map(()=>new THREE.Vector3()),view=new THREE.Vector3();
  function resize(){w=Math.max(1,canvas.clientWidth);h=Math.max(1,canvas.clientHeight);css.setSize(w,h);}
@@ -60,7 +60,7 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  function dispose(){
   if(disposed)return;disposed=true;attempt++;video.pause();video.removeAttribute('src');video.load();
   document.removeEventListener('click',interaction,true);document.removeEventListener('pointerup',interaction,true);document.removeEventListener('keydown',interaction,true);
-  document.removeEventListener('visibilitychange',resume);window.removeEventListener('focus',resume);window.removeEventListener('umroh-comfort-change',volume);
+  document.removeEventListener('visibilitychange',resume);window.removeEventListener('focus',resume);window.removeEventListener('umroh-comfort-change',volume);window.removeEventListener('hajji-game-audio-change',volume);
   window.removeEventListener('pagehide',pageHide);window.removeEventListener('pageshow',pageShow);css.domElement.remove();
  }
  window.addEventListener('pagehide',pageHide);window.addEventListener('pageshow',pageShow);
