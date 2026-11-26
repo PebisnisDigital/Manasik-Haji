@@ -44,22 +44,26 @@ const sales=loadSales();let salesHold:THREE.Group|null=null;
 function salesHud(){if(sales.job)$('instruction').textContent=sales.claimed?'Hadiah MAUHAJJI sudah diklaim · menuju loket':sales.accepted.length>=10?'Target tercapai! Kembali ke pemilik '+salesNames[sales.job]:'Sales '+salesNames[sales.job]+' · '+sales.accepted.length+'/10 pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[sales.job]).toLocaleString('id-ID');}
 function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();});}
 function talkOwner(job:SalesJob){
- openSales(job==='bubur'?'Pemilik Bubur Ayam':'Pemilik KOKOSALAMA',(say,button,close)=>{
+ openSales(job==='bubur'?'Pemilik Bubur Ayam':'Pemilik KOKOSALAMA',(say,button,close,clear)=>{
   if(sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
-  else if(sales.job===job&&sales.accepted.length>=10){say('Alhamdulillah! Kamu berhasil membawa 10 pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}close();talkOwner(job);},true);}
-  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari 10 pembeli. Terus tawarkan dengan sopan; kalau ditolak, cari calon pembeli lain.');if(sales.rejected.length>6||sales.rejected.filter(id=>id%4!==3).length>2)button('Coba misi dari awal',()=>{sales.accepted=[];sales.rejected=[];saveSales(sales);close();});}
+  else if(sales.job===job&&sales.accepted.length>=10){say('Alhamdulillah! Kamu berhasil membawa 10 pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{clear();sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}say('Terima kasih, Pak/Bu!','player');say('Kode kupon: '+SALES_COUPON+' · Diskon Rp25.000','system');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);button('Kembali',close);},true);}
+  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari 10 pembeli. Terus tawarkan dengan sopan.');if(sales.rejected.length>6||sales.rejected.filter(id=>id%4!==3).length>2)button('Coba misi dari awal',()=>{sales.accepted=[];sales.rejected=[];buburMarket?.resetPurchases();saveSales(sales);close();});}
   else if(sales.job){say('Selesaikan dulu misi '+salesNames[sales.job]+'.');}
-  else{say('Pemain: Pak/Bu, boleh saya bantu menawarkan dagangan untuk menabung biaya haji?');say('Pemilik: Boleh! Setiap pembeli yang setuju, kamu dapat komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+'. Bawa 10 pembeli, lalu kembali ke sini untuk mengambil hadiah.');button('Sepakat, siap jualan',()=>{sales.job=job;saveSales(sales);close();},true);}
+  else{
+   say('Assalamualaikum! Ada yang bisa saya bantu?');
+   button('Boleh saya bantu jualan?',()=>{clear();say('Saya ingin menabung untuk persiapan haji. Boleh saya bantu menawarkan dagangan?','player');say('Boleh! Komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+' per pembeli. Bawa 10 pembeli, nanti ada hadiah.');button('Sepakat, siap jualan',()=>{clear();sales.job=job;saveSales(sales);say('Siap! Saya akan cari pembeli.','player');say('Semangat, ya! Tawarkan dengan sopan.');button('Mulai mencari pembeli',close,true);},true);button('Pikir-pikir dulu',close);},true);
+  }
   button('Kembali',close);
  });
 }
 function offerProspect(p:{id:number;name:string;actor:THREE.Group}){
  const job=sales.job;if(!job||sales.accepted.length>=10||sales.claimed||sales.accepted.includes(p.id)||sales.rejected.includes(p.id))return;
- openSales('Tawarkan ke '+p.name,(say,button,close)=>{
-  say('Pilih cara menawarkan '+salesNames[job]+'.');
+ const dx=hero.root.position.x-p.actor.position.x,dz=hero.root.position.z-p.actor.position.z;if(Math.hypot(dx,dz)>.01)p.actor.rotation.y=Math.atan2(dx,dz);
+ openSales(p.name,(say,button,close,clear)=>{
+  say('Iya, ada apa ya?');
   const pitches=job==='bubur'?['Permisi, mau bubur ayam hangat?','Sudah sarapan? Ada bubur ayam di depan Alfamart.','Pokoknya harus beli bubur saya!']:['Permisi, sedang mencari hijab?','Boleh lihat koleksi hijab KOKOSALAMA?','Pokoknya harus beli hijab saya!'];
   let answered=false;
-  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;const result=salesResponse(p.id,i,job);(result.ok?sales.accepted:sales.rejected).push(p.id);saveSales(sales);close();openSales(p.name,(say,button,close)=>{say(result.line);say(result.ok?'Deal! Komisi virtual +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/10 pembeli':'Tidak apa-apa. Hormati jawaban mereka, lanjut cari calon pembeli.');button('Lanjut',close,true);},p.actor);}));
+  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;clear();say(pitch,'player');const result=salesResponse(p.id,i,job);(result.ok?sales.accepted:sales.rejected).push(p.id);saveSales(sales);if(result.ok)buburMarket?.purchase(p.id,job);say(result.line);say(result.ok?'Deal! Komisi virtual +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/10 pembeli':'Tetap semangat. Hormati keputusan calon pembeli.','system');button(result.ok?'Terima kasih!':'Baik, terima kasih.',()=>{clear();say(result.ok?'Terima kasih!':'Baik, terima kasih waktunya.','player');button('Lanjut mencari pembeli',close,true);},true);}));
   button('Batal',close);
  },p.actor);
 }
@@ -169,7 +173,7 @@ for(const x of [-6,-3,0,3,6]){const arc=mesh(new THREE.TorusGeometry(1.24,.15,10
 placa(guideMode?'PUSAT MANASIK':'UMROH.DIGITAL',guideMode?'PENDAFTARAN PESERTA':'',0,-5.67);
 for(const p of ['hajj','umrah'] as const){const pos=placements[p];const ring=new THREE.Mesh(new THREE.RingGeometry(.79,.91,64).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd4bb83,side:THREE.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));ring.position.set(pos.x,.012,pos.z);s.add(ring);guideRings[p]=ring;const actor=person(p==='umrah',p==='umrah'?0x52796b:0xeae2cc);actor.root.position.copy(pos);actor.root.position.y=0;guides[p]=actor;if(!guideMode)placa(p==='hajj'?'MANASIK HAJI':'MANASIK UMROH','',pos.x,-3.65);}
 for(const x of (guideMode?[-8.3,8.3]:[-6.5,6.5]))for(const z of [-2.6,3.5]){mesh(new THREE.CylinderGeometry(.55,.38,.49,12),sand,x,.245,z,s);box(.18,2,.18,mat(0x967c55),x,1.25,z,s);for(let k=0;k<9;k++){const o=ball(.3,teal,x+Math.cos(k*2.4)*.55,2.5+Math.sin(k)*.25,z+Math.sin(k*2.4)*.55,s);o.scale.set(1.4,.55,1.8);}}
-if(guideMode){registrationHall=createRegistrationHall(s);buburMarket=createBuburMarket(s);videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
+if(guideMode){registrationHall=createRegistrationHall(s);buburMarket=createBuburMarket(s);if(sales.job)for(const id of sales.accepted)buburMarket.purchase(id,sales.job,true);videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
 hero=person(false,0xf4ead6,true);hero.root.position.copy(start);hero.root.rotation.y=Math.PI;heading=Math.PI;sceneReady=true;resize();requestAnimationFrame(frame);}
 function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.fov=guideMode?(touchMode?65:w/h<.85?69:64):(touchMode?57:w/h<.85?66:60);cam.updateProjectionMatrix();videotron?.resize();}
 function syncOrientation(){const was=portraitBlocked;portraitBlocked=!gateMode&&touchMode&&matchMedia('(orientation: portrait)').matches;lobbySound.setPaused(portraitBlocked||introPlaying);const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){if(portraitBlocked&&guideMode)dismissGuideCall();stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
