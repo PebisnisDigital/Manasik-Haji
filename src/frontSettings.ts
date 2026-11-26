@@ -15,6 +15,20 @@ export function saveSetup(s:JourneySetup):boolean{
  }catch{return false;}
 }
 export const journeyAvatar=(fallback:Avatar):Avatar=>readSetup()?.avatar??fallback;
-export const journeyVolume=()=>{const v=readSetup();return v?(v.volume/100)**2:1;};
-export const journeyVoice=()=>readSetup()?.voice??false;
-export const journeyAmbience=()=>readSetup()?.ambience??false;
+const AUDIO_KEY='hajji-game-audio-v1';
+type GameAudio={enabled:boolean;volume:number};
+let audioOverride:GameAudio|null=null;
+export function gameAudioPreferences():GameAudio{
+ if(audioOverride)return {...audioOverride};
+ try{const p=JSON.parse(localStorage.getItem(AUDIO_KEY)??'null');if(typeof p?.enabled==='boolean'&&Number.isInteger(p.volume)&&p.volume>=0&&p.volume<=100)return p;}catch{}
+ const s=readSetup();return {enabled:s? s.voice||s.ambience:true,volume:s?.volume??70};
+}
+export function setGameAudioPreferences(p:GameAudio){
+ audioOverride={enabled:p.enabled,volume:Math.max(0,Math.min(100,Math.round(p.volume)))};
+ try{localStorage.setItem(AUDIO_KEY,JSON.stringify(audioOverride));for(const key of ['manasik-voice-v1','umroh-digital-ambience-v1','umroh-human-voice-v1'])localStorage.setItem(key,p.enabled?'on':'off');}catch{}
+ if(!p.enabled||p.volume===0){try{window.speechSynthesis?.cancel();}catch{}}
+ window.dispatchEvent(new CustomEvent('hajji-game-audio-change',{detail:{...audioOverride}}));
+}
+export const journeyVolume=()=>{const p=gameAudioPreferences();return p.enabled?(p.volume/100)**2:0;};
+export const journeyVoice=()=>gameAudioPreferences().enabled;
+export const journeyAmbience=()=>gameAudioPreferences().enabled;
