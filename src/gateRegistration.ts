@@ -1,4 +1,4 @@
-import {ADMIN_WHATSAPP,manualConfirmationUrl,registrationSummary} from './registrationHandoff.ts';
+import {manualConfirmationUrl,registrationSummary} from './registrationHandoff.ts';
 import {readSetup,saveSetup} from './frontSettings.ts';
 import {defaultSetup} from './frontModel.ts';
 import {gateGuide,gateGreeting} from './gateGuide.ts';
