@@ -20,7 +20,7 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  let disposed=false,suspended=false,attempt=0,w=0,h=0;
  function start(withAudio=false){
   if(disposed||suspended)return;
-  if(withAudio)video.muted=false;
+  if(withAudio)video.muted=journeyVolume()<=0;
   const token=++attempt;
   void video.play().catch(()=>{
    if(disposed||suspended||token!==attempt||video.muted)return;
@@ -28,9 +28,9 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
    video.muted=true;void video.play().catch(()=>{});
   });
  }
- function interaction(e:Event){if(!e.isTrusted||disposed||suspended)return;if(video.muted||video.paused)start(true);}
+ function interaction(e:Event){if(!e.isTrusted||disposed||suspended)return;if(video.paused||(video.muted&&journeyVolume()>0))start(true);}
  function resume(){if(!document.hidden&&video.paused&&!suspended)start();}
- function volume(){video.volume=.75*journeyVolume();}
+ function volume(){const level=journeyVolume();video.muted=level<=0;video.volume=.75*level;if(level>0&&video.paused)start(true);}
  document.addEventListener('click',interaction,true);
  document.addEventListener('pointerup',interaction,true);
  document.addEventListener('keydown',interaction,true);
@@ -66,5 +66,5 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  window.addEventListener('pagehide',pageHide);window.addEventListener('pageshow',pageShow);
  // CSS3DRenderer attaches objects on render; mount the panel now so media can load before first view.
  css.domElement.append(panel);
- resize();start();return {draw,resize,dispose};
+ resize();volume();start();return {draw,resize,dispose};
 }
