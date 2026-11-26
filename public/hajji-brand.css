@@ -152,3 +152,51 @@ body .magicAccessCard a:not(.travelPrimary){color:var(--hajji-gold-deep)!importa
 body .districtJourneyBoard{background:#151515!important;color:#f8f7f4;outline-color:#282828;border-color:#d6b46b}
 body .boardLevel.done{background:#554323!important;color:#fff5dd;border-color:#d6b46b}
 body .boardLevel.locked{background:#292929!important;color:#bdb9af}
+
+/* Ivory-first gameplay: scoped to game entry points, independent of the dark admin theme. */
+html[data-hajji-game=ivory]{color-scheme:light;background:#fffdf8}
+html[data-hajji-game=ivory] body{background-color:#fffdf8;color:#25211b;font-family:var(--hajji-font)}
+html[data-hajji-game=ivory] body :is(.simpleTop>div,.simpleGuide,#simpleGear,.missionCard,.rewardCard,.miniMap,.notification,.routeCue,.busGuide,.miqatObjective,.miqatReading,.tawafRadio,.miqatGuideTag,.guidePanel,.missionGuide,.cutControls,.districtContextPrompt,.voice-guide,.hud .panel,.right-hud .panel,.hudRight .card,.hudRight .panel,.top>.card,.top>.panel,.travelEntrance,.frontSetup,.frontChoice,.menu nav,.program,.guide,.districtJourneyBoard,.errorPanel,.rotateCover,.rotateScreen,.coreRotate,.pwaDialog,.loading){
+ background:#fffdf8!important;color:#25211b!important;border-color:#d6b46b!important;
+ border-radius:12px;box-shadow:none;text-shadow:none!important;color-scheme:light;
+}
+html[data-hajji-game=ivory] body :is(.simpleTop>div,.simpleGuide,.missionCard,.rewardCard,.miniMap,.notification,.routeCue,.busGuide,.miqatObjective,.miqatReading,.tawafRadio,.guidePanel,.missionGuide,.cutControls,.districtContextPrompt,.voice-guide,.hud .panel,.right-hud .panel,.hudRight .card,.hudRight .panel,.top>.card,.top>.panel,.travelEntrance,.frontSetup,.frontChoice,.menu nav,.program,.guide,.districtJourneyBoard,.errorPanel,.rotateCover,.rotateScreen,.coreRotate,.pwaDialog) :is(h1,h2,h3,h4,p,strong,b,span,small,label,legend,.eyebrow,.fine,.caption,.status,.kicker,.counter,.label,.voice-state,.voice-title,.voice-caption){color:#25211b!important;text-shadow:none!important}
+html[data-hajji-game=ivory] body :is(.simpleTop,.missionCard,.rewardCard,.miniMap,.miqatObjective,.travelEntrance,.frontSetup,.districtJourneyBoard) :is(.eyebrow,.caption,.kicker,.boardBrand,.boardProgress,.cityStarCounter){color:#805c22!important}
+html[data-hajji-game=ivory] body :is(.missionMeter,.miqatProgress,.progress){background:#e7e0d4!important}
+html[data-hajji-game=ivory] body :is(.missionMeter span,.miqatProgress span,.progress>div){background:#c09b50!important}
+html[data-hajji-game=ivory] body :is(#simpleSettings,.pwaDialog) header{background:#fffdf8!important;color:#25211b!important}
+html[data-hajji-game=ivory] body :is(#simpleContext,.frontFooter,#frontSaved,#frontSummary,.frontBrand small,.frontHero>p,.frontSetup>p,.frontChoice small,.frontLinks a,.frontBadges span,.frontSetup legend,.frontTest,.frontInstallButton){color:#5e564c!important}
+html[data-hajji-game=ivory] body :is(#gameFront,.frontMode #gameFront){background:#f8f5ee!important;color:#25211b!important}
+html[data-hajji-game=ivory] body :is(.frontBrand,.frontHero h1,.frontHero h1 em,.frontEyebrow,.frontSetup legend b){color:#25211b!important}
+html[data-hajji-game=ivory] body .frontChoice:has(input:checked){background:#f7e9c9!important;border-color:#b88b2e!important;box-shadow:inset 0 0 0 1px #d6b46b}
+html[data-hajji-game=ivory] body :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){background:#fff!important;color:#25211b!important;border-color:#d8ccb4!important;color-scheme:light}
+html[data-hajji-game=ivory] body option{background:#fff!important;color:#25211b!important}
+html[data-hajji-game=ivory] body :is(.primary,.travelPrimary,.frontStart,.miqatPrimary,#simpleResume,#simpleAction,.boardLevel.available,.boardBonus){background:#d6b46b!important;color:#17130d!important;border-color:#b88b2e!important}
+html[data-hajji-game=ivory] body :is(.secondary,.ghost,.roundControl,.menu summary,#simpleGear,#simpleOptions button,#simpleOptions a,.boardBack,.frontInstallButton,.miqatHeader button,.miqatHeader a,.coreFull,.voice-controls button){background:#fffdf8!important;color:#25211b!important;border-color:#d6b46b!important;text-shadow:none!important}
+html[data-hajji-game=ivory] body :is(.menu nav a,.menu nav button){color:#25211b!important;background:transparent!important}
+html[data-hajji-game=ivory] body :is(.menu nav a,.menu nav button):hover{background:#f8f5ee!important}
+html[data-hajji-game=ivory] body :is(.simpleButtons button,#simpleRun){background:#252525!important;color:#fff!important;border-color:#d6b46b!important;box-shadow:none}
+html[data-hajji-game=ivory] body #simpleRun[aria-pressed=true]{background:#d6b46b!important;color:#17130d!important}
+html[data-hajji-game=ivory] body :is(.joy,.walkJoy,.joystick,.districtJoy,.gateCameraPad,.arenaLookPad,.districtLookStick){background:#25252566!important;border-color:#c9aa67!important;box-shadow:none}
+html[data-hajji-game=ivory] body :is(.joy>div,.walkJoy span,.joystick .knob,#knob,.districtLookStick>span,.arenaLookPad>span,.gateCameraPad>span){background:#d6b46bcf!important;border-color:#fff1cb!important}
+html[data-hajji-game=ivory] body :is(.shade,.cinemaShade){background:linear-gradient(180deg,#00000018,transparent 23%,transparent 80%,#00000014)!important}
+html[data-hajji-game=ivory] body .miqatHeader{background:linear-gradient(#fffdf8de,transparent)!important;color:#25211b!important}
+html[data-hajji-game=ivory] body .miqatHeader b{color:#25211b!important;text-shadow:none}
+html[data-hajji-game=ivory] body .miqatHeader b span{color:#805c22!important}
+html[data-hajji-game=ivory] body #lobby header .brand{background-color:#fffdf8;color:#25211b!important;border-radius:10px;padding-right:12px;text-shadow:none}
+html[data-hajji-game=ivory] body #lobby header .brand span{color:#805c22!important}
+html[data-hajji-game=ivory] body #lobby header .sub{color:#5e564c!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard{outline-color:#d6b46b!important}
+html[data-hajji-game=ivory] body .boardLevel{background:#f8f5ee!important;color:#25211b!important;border-color:#d8ccb4!important;box-shadow:none}
+html[data-hajji-game=ivory] body .boardLevel.available{background:#e8c77e!important;border-color:#b88b2e!important}
+html[data-hajji-game=ivory] body .boardLevel.done{background:#fff1ce!important;border-color:#b88b2e!important}
+html[data-hajji-game=ivory] body .boardLevel.locked{background:#f0eeea!important;color:#635e55!important}
+html[data-hajji-game=ivory] body :is(.boardLevelStatus,.boardLegend,.boardSubtitle,.boardStatus){color:#5e564c!important}
+html[data-hajji-game=ivory] body .boardLevel.done .boardLevelStatus{color:#805c22!important}
+html[data-hajji-game=ivory] body .miqatGuideTag{background:linear-gradient(135deg,#fff,#ead3a0)!important;font-weight:750}
+html[data-hajji-game=ivory] body :is(.travelEntrance,.frontSetup,.pwaDialog) :is(a:not(.travelPrimary):not(.frontStart),.notice){color:#805c22!important}
+html[data-hajji-game=ivory] body .avatar{background:#f8f5ee!important;border-color:#d6b46b!important;color:#25211b!important}
+html[data-hajji-game=ivory] body .avatar strong{color:#25211b!important}
+html[data-hajji-game=ivory] body .modal .levels span{background:#f8f5ee!important;color:#25211b!important;border-color:#d8ccb4!important}
+html[data-hajji-game=ivory] body :is(.rotateCover,.rotateScreen,.coreRotate){border-radius:0}
+@media print{html[data-hajji-game=ivory] body{background:#fff!important}}
