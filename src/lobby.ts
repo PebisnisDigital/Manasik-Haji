@@ -47,7 +47,7 @@ function talkOwner(job:SalesJob){
  openSales(job==='bubur'?'Pemilik Bubur Ayam':'Pemilik KOKOSALAMA',(say,button,close)=>{
   if(sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
   else if(sales.job===job&&sales.accepted.length>=10){say('Alhamdulillah! Kamu berhasil membawa 10 pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}close();talkOwner(job);},true);}
-  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari 10 pembeli. Terus tawarkan dengan sopan; kalau ditolak, cari calon pembeli lain.');}
+  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari 10 pembeli. Terus tawarkan dengan sopan; kalau ditolak, cari calon pembeli lain.');if(sales.rejected.length>6||sales.rejected.filter(id=>id%4!==3).length>2)button('Coba misi dari awal',()=>{sales.accepted=[];sales.rejected=[];saveSales(sales);close();});}
   else if(sales.job){say('Selesaikan dulu misi '+salesNames[sales.job]+'.');}
   else{say('Pemain: Pak/Bu, boleh saya bantu menawarkan dagangan untuk menabung biaya haji?');say('Pemilik: Boleh! Setiap pembeli yang setuju, kamu dapat komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+'. Bawa 10 pembeli, lalu kembali ke sini untuk mengambil hadiah.');button('Sepakat, siap jualan',()=>{sales.job=job;saveSales(sales);close();},true);}
   button('Kembali',close);
