@@ -49,7 +49,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  const {program,name}=access;
  const width=10,height=5.05,base=.75;
  const group=new THREE.Group();group.position.set(BOARD_POINT.x,base+height/2,BOARD_POINT.z);scene.add(group);
- const dark=new THREE.MeshStandardMaterial({color:0x173b32,roughness:.62}),gold=new THREE.MeshStandardMaterial({color:0xb5975b,roughness:.45,metalness:.32});
+ const dark=new THREE.MeshStandardMaterial({color:0xf8f5ee,roughness:.62}),gold=new THREE.MeshStandardMaterial({color:0xb5975b,roughness:.45,metalness:.32});
  function box(w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.Material){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);return mesh;}
  box(width+.32,height+.32,.30,0,0,0,gold);box(width+.10,height+.10,.34,0,0,0,dark);
  for(const x of [-4.45,4.45]){box(.28,base+.28,.34,x,-height/2-base/2,0,gold);box(.9,.14,.72,x,-height/2-base+.07,0,dark);}
@@ -82,10 +82,10 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function bonus(){if(onSelect){closeMap();onSelect(SOUVENIR_NUMBER);return;}if(!bonusReady()){toast(bonusMessage());return;}location.assign(tenantUrl('./oleh-oleh.html'));}
  function draw(){
   list=levels(program);const completed=list.filter(l=>l.done).length,stars=program==='hajj'?readStars(list):[];cachedBonusReady=program==='hajj'&&canOpenSouvenir(completed===12,stars,example,preview);
-  const w=c.width,h=c.height;ctx.fillStyle='#14392e';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#c9ac6c';ctx.lineWidth=8;ctx.strokeRect(16,16,w-32,h-32);
-  ctx.textAlign='left';ctx.fillStyle='#e9cb89';ctx.font='bold 31px system-ui';ctx.fillText('HAJJI.DIGITAL',66,70);
-  ctx.fillStyle='#fff5dc';ctx.font='bold 66px system-ui';ctx.fillText(program==='hajj'?'PETA PERJALANAN HAJI':'PETA PERJALANAN UMROH',66,151);
-  ctx.font='32px system-ui';ctx.fillStyle='#d2e2d4';ctx.fillText('Pilih tujuan gedung · '+(program==='hajj'?'★ '+stars.length+' / 12 bintang':completed+' / '+list.length+' selesai'),69,205);
+  const w=c.width,h=c.height;ctx.fillStyle='#fffdf8';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#c9ac6c';ctx.lineWidth=8;ctx.strokeRect(16,16,w-32,h-32);
+  ctx.textAlign='left';ctx.fillStyle='#805c22';ctx.font='bold 31px system-ui';ctx.fillText('HAJJI.DIGITAL',66,70);
+  ctx.fillStyle='#25211b';ctx.font='bold 66px system-ui';ctx.fillText(program==='hajj'?'PETA PERJALANAN HAJI':'PETA PERJALANAN UMROH',66,151);
+  ctx.font='32px system-ui';ctx.fillStyle='#5e564c';ctx.fillText('Pilih tujuan gedung · '+(program==='hajj'?'★ '+stars.length+' / 12 bintang':completed+' / '+list.length+' selesai'),69,205);
   const cols=4,gap=25,tw=(w-132-3*gap)/4,th=205,y0=262;
   hitZones.length=0;
   // A continuous route snakes through the numbered stops.
@@ -94,14 +94,14 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   for(let i=0;i<list.length;i++){
    const l=list[i],row=Math.floor(i/cols),col=row%2?cols-1-i%cols:i%cols,x=66+col*(tw+gap),y=y0+row*(th+gap);
    hitZones.push({x,y,w:tw,h:th,number:l.number});
-   ctx.fillStyle=l.done?'#316851':l.available?'#e9c77c':'#30483e';ctx.fillRect(x,y,tw,th);
-   ctx.strokeStyle=l.available?'#f8e3a9':'#697d69';ctx.lineWidth=3;ctx.strokeRect(x,y,tw,th);
-   ctx.fillStyle=l.available&&!l.done?'#193d2f':'#e4e9dc';ctx.font='bold 55px system-ui';ctx.fillText(String(l.number).padStart(2,'0'),x+22,y+63);
+   ctx.fillStyle=l.done?'#fff1ce':l.available?'#e9c77c':'#f0eeea';ctx.fillRect(x,y,tw,th);
+   ctx.strokeStyle=l.available||l.done?'#b88b2e':'#d8ccb4';ctx.lineWidth=3;ctx.strokeRect(x,y,tw,th);
+   ctx.fillStyle='#25211b';ctx.font='bold 55px system-ui';ctx.fillText(String(l.number).padStart(2,'0'),x+22,y+63);
    ctx.font='bold 32px system-ui';const words=l.title.split(' ');let line='',yy=y+108;
    for(const word of words){const next=line?line+' '+word:word;if(ctx.measureText(next).width>tw-42&&line){ctx.fillText(line,x+22,yy,tw-42);yy+=39;line=word;}else line=next;}ctx.fillText(line,x+22,yy,tw-42);
-   ctx.font='bold 25px system-ui';ctx.fillStyle=l.available&&!l.done?'#37533c':'#c1cec0';ctx.fillText(stars.includes(l.number)?'★ BINTANG DITERIMA':l.done?'SELESAI · CEK PENJAGA':l.available?'KUNJUNGI GEDUNG':'TERKUNCI',x+22,y+185,tw-42);
+   ctx.font='bold 25px system-ui';ctx.fillStyle=l.done?'#805c22':'#5e564c';ctx.fillText(stars.includes(l.number)?'★ BINTANG DITERIMA':l.done?'SELESAI · CEK PENJAGA':l.available?'KUNJUNGI GEDUNG':'TERKUNCI',x+22,y+185,tw-42);
   }
-  ctx.fillStyle='#e9cb89';ctx.font='bold 26px system-ui';ctx.fillText(program==='hajj'?'GEDUNG OLEH-OLEH · '+(bonusReady()?'TERBUKA':example?'MODE LATIHAN':'KUMPULKAN 12 BINTANG'):'JALUR LATIHAN UMROH',66,989);
+  ctx.fillStyle='#805c22';ctx.font='bold 26px system-ui';ctx.fillText(program==='hajj'?'GEDUNG OLEH-OLEH · '+(bonusReady()?'TERBUKA':example?'MODE LATIHAN':'KUMPULKAN 12 BINTANG'):'JALUR LATIHAN UMROH',66,989);
   if(program==='hajj')hitZones.push({x:66,y:936,w:1000,h:65,number:0});
   if(preview||example){ctx.textAlign='right';ctx.font='23px system-ui';ctx.fillText(example?'MODE CONTOH · GRATIS':'PRATINJAU DESAIN',w-66,989);ctx.textAlign='left';}
   texture.needsUpdate=true;
