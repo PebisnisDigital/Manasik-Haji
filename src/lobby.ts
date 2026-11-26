@@ -2,7 +2,9 @@ import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
-import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,escortDestination,planEscortRoute,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_COUPON,type SalesJob} from './buburMarket.ts';
+import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,escortDestination,planEscortRoute,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_TARGET,SALES_COUPON,type SalesJob} from './buburMarket.ts';
+import {insideAlfamart} from './alfamartStore.ts';
+import {ALFAMART_PRODUCTS,ALFAMART_SALES,alfamartOffers,alfamartResponse} from './alfamartProducts.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
@@ -41,9 +43,25 @@ type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:R
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
 let buburMarket:ReturnType<typeof createBuburMarket>|undefined;
 const sales=loadSales();let salesHold:THREE.Group|null=null;let escortRoute:THREE.Vector3[]|null=null,escortArrived=false,escortManual=false,escortStall=0,escortLastDistance=Infinity;
-function resetEscortRoute(){escortRoute=null;escortArrived=false;escortManual=false;escortStall=0;escortLastDistance=Infinity;}
-function salesHud(){if(sales.job)$('instruction').textContent=sales.serving!==null?'Pembeli sedang dilayani · komisi segera masuk':sales.pending!==null?(escortManual?'Antar manual ':escortArrived?'Tiba · laporkan ':'Mengantar otomatis ')+ (buburMarket?.prospects[sales.pending]?.name??'pembeli')+' ke '+(sales.job==='hijab'?'kasir KOKOSALAMA':'gerobak bubur')+' · lalu lapor ke penjual':sales.claimed?'Hadiah MAUHAJJI sudah diklaim · menuju loket':sales.accepted.length>=10?'Target tercapai! Kembali ke pemilik '+salesNames[sales.job]:'Sales '+salesNames[sales.job]+' · '+sales.accepted.length+'/10 pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[sales.job]).toLocaleString('id-ID');}
-function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();},side=>{const actor=side==='player'?hero.root:hold;return actor?projectGatePoint(actor.position.clone().add(new THREE.Vector3(0,1.95,0))):{x:innerWidth/2,y:innerHeight*.43,visible:false};});}
+function resetEscortRoute(){escortRoute=null;escortArrived=false;escortManual=sales.job==='alfamart'&&sales.pending!==null;escortStall=0;escortLastDistance=Infinity;}
+const ownerNames={bubur:'Pemilik Bubur Ayam',hijab:'Kasir KOKOSALAMA',alfamart:'Kasir Alfamart'} as const;
+const salesDestination={bubur:'gerobak bubur',hijab:'kasir KOKOSALAMA',alfamart:'kasir Alfamart'} as const;
+function inSalesShop(job:SalesJob,pos:THREE.Vector3){
+ return job==='alfamart'?insideAlfamart(pos.x,pos.z):job==='hijab'?insideHijab(pos.x,pos.z):true;
+}
+function facePlayer(actor:THREE.Group){
+ const dx=hero.root.position.x-actor.position.x,dz=hero.root.position.z-actor.position.z;
+ if(Math.hypot(dx,dz)>.01)actor.rotation.y=Math.atan2(dx,dz);
+}
+function salesHud(){
+ const job=sales.job;if(!job)return;
+ $('instruction').textContent=sales.serving!==null?'Pembeli sedang dilayani · komisi segera masuk':
+  sales.pending!==null?(escortManual?'Antar ':escortArrived?'Tiba · laporkan ':'Mengantar otomatis ')+(buburMarket?.prospects[sales.pending]?.name??'pembeli')+' ke '+salesDestination[job]+' · lalu lapor ke penjual':
+  sales.claimed?'Hadiah '+SALES_COUPON+' sudah diklaim · menuju loket':
+  sales.accepted.length>=SALES_TARGET?'Target tercapai! Kembali ke '+ownerNames[job]:
+  'Sales '+salesNames[job]+' · '+sales.accepted.length+'/'+SALES_TARGET+' pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[job]).toLocaleString('id-ID');
+}
+function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;if(hold)facePlayer(hold);salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();},side=>{const actor=side==='player'?hero.root:hold;return actor?projectGatePoint(actor.position.clone().add(new THREE.Vector3(0,1.95,0))):{x:innerWidth/2,y:innerHeight*.43,visible:false};});}
 let marketSpeech:HTMLElement|undefined;
 function paintMarketSpeech(){
  const m=buburMarket?.speech();
@@ -59,44 +77,75 @@ function settleMarketSales(){
  if(!buburMarket)return;
  for(const id of buburMarket.drainServed()){
   if(sales.serving!==id||!sales.job||sales.accepted.includes(id))continue;
-  const job=sales.job;sales.accepted.push(id);sales.serving=null;saveSales(sales);lobbySound.pickup();salesHud();
-  const text='Komisi virtual +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/10 pembeli';
+  const job=sales.job;sales.accepted.push(id);sales.serving=null;sales.product=null;saveSales(sales);lobbySound.pickup();salesHud();
+  const text='Komisi virtual +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/'+SALES_TARGET+' pembeli';
   const badge=document.createElement('div');badge.className='gateWorldBubble detached';badge.style.cssText='position:fixed;z-index:15;left:50%;top:55px;transform:translateX(-50%);pointer-events:none';badge.setAttribute('role','status');const title=document.createElement('strong');title.textContent='KOMISI DITERIMA';const detail=document.createElement('p');detail.textContent=text;badge.append(title,detail);document.body.append(badge);setTimeout(()=>badge.remove(),3500);
-  if(sales.accepted.length>=10){$('instruction').textContent='Target tercapai! Ambil voucher MAUHAJJI ke penjual.';}
+  if(sales.accepted.length>=SALES_TARGET){$('instruction').textContent='Target tercapai! Ambil voucher MAUHAJJI ke penjual.';}
  }
 }
 function talkOwner(job:SalesJob){
- openSales(job==='bubur'?'Pemilik Bubur Ayam':'Kasir KOKOSALAMA',(say,button,close,clear)=>{
+ openSales(ownerNames[job],(say,button,close,clear)=>{
   if(sales.serving!==null){say('Pembelimu sedang dilayani, tunggu sebentar ya.');button('Baik',close,true);}
   else if(sales.pending!==null){
    if(sales.job!==job){say('Antar pembelimu ke penjual yang sesuai dulu.');}
    else{const id=sales.pending,customer=buburMarket?.prospects[id];
     say('Ada yang bisa saya bantu?');
-    if(customer&&buburMarket?.escortReady(id,hero.root.position)&&(job!=='hijab'||insideHijab(customer.actor.position.x,customer.actor.position.z))){
-     button('Saya membawa pembeli',()=>{clear();say('Pak/Bu, saya membawa '+customer.name+'. Beliau ingin membeli '+salesNames[job]+'.','player');say('Terima kasih! Silakan, kami layani pembelinya.');if(buburMarket?.handoff(id,job,hero.root.position)){sales.serving=id;sales.pending=null;resetEscortRoute();saveSales(sales);say(job==='bubur'?'Silakan duduk dulu. Saya antar buburnya ke meja.':'Sebentar, saya siapkan tas belanjaannya.');close();}else{say('Pembeli belum sampai. Tunggu sebentar lalu laporkan lagi.');button('Kembali',close,true);}},true);
+    if(customer&&buburMarket?.escortReady(id,hero.root.position)&&inSalesShop(job,customer.actor.position)){
+     button('Saya membawa pembeli',()=>{clear();say('Pak/Bu, saya membawa '+customer.name+'. Beliau ingin membeli '+(job==='alfamart'&&sales.product!==null?ALFAMART_PRODUCTS[sales.product]?.name:salesNames[job])+'.','player');say('Terima kasih! Silakan, kami layani pembelinya.');if(buburMarket?.handoff(id,job,hero.root.position,sales.product)){sales.serving=id;sales.pending=null;resetEscortRoute();saveSales(sales);say(job==='bubur'?'Silakan duduk dulu. Saya antar buburnya ke meja.':'Sebentar, saya siapkan tas belanjaannya.');close();}else{say('Pembeli belum sampai. Tunggu sebentar lalu laporkan lagi.');button('Kembali',close,true);}},true);
     }else{say('Tunggu pembeli sampai di dekatmu, lalu laporkan kepada saya.');}
-    button('Batalkan antar pembeli',()=>{clear();say('Baik, saya batalkan dulu.','player');buburMarket?.cancelEscort();sales.pending=null;resetEscortRoute();saveSales(sales);button('Kembali',close,true);});
+    button('Batalkan antar pembeli',()=>{clear();say('Baik, saya batalkan dulu.','player');buburMarket?.cancelEscort();sales.pending=null;sales.product=null;resetEscortRoute();saveSales(sales);button('Kembali',close,true);});
    }
   }
-  else if(sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
-  else if(sales.job===job&&sales.accepted.length>=10){say('Alhamdulillah! Kamu berhasil membawa 10 pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{clear();sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}say('Terima kasih, Pak/Bu!','player');say('Kode kupon: '+SALES_COUPON+' · Diskon Rp25.000','system');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);button('Kembali',close);},true);}
-  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari 10 pembeli. Terus tawarkan dengan sopan.');if(sales.rejected.length>6||sales.rejected.filter(id=>id%4!==3).length>2)button('Coba misi dari awal',()=>{sales.accepted=[];sales.rejected=[];buburMarket?.resetPurchases();saveSales(sales);close();});}
-  else if(sales.job){say('Selesaikan dulu misi '+salesNames[sales.job]+'.');}
+  else if(sales.job===job&&sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
+  else if(sales.job===job&&sales.accepted.length>=SALES_TARGET){say('Alhamdulillah! Kamu berhasil membawa '+SALES_TARGET+' pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{clear();sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}say('Terima kasih, Pak/Bu!','player');say('Kode kupon '+SALES_COUPON+' · Rp'+ALFAMART_SALES.voucher.toLocaleString('id-ID')+' · Tarif Rp'+(ALFAMART_SALES.registration-ALFAMART_SALES.voucher).toLocaleString('id-ID')+' setelah kupon tervalidasi di loket.','system');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);button('Kembali',close);},true);}
+  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari '+SALES_TARGET+' pembeli. Terus tawarkan dengan sopan.');if(sales.rejected.length>6||sales.rejected.filter(id=>id%4!==3).length>2)button('Coba misi dari awal',()=>{sales.accepted=[];sales.rejected=[];buburMarket?.resetPurchases();saveSales(sales);close();});}
+  else if(sales.job){
+   say('Misi '+salesNames[sales.job]+' masih tersimpan. Mau beralih ke '+salesNames[job]+'?');
+   button('Beralih misi',()=>{
+    clear();buburMarket?.resetPurchases();
+    Object.assign(sales,loadSales(job),{job});
+    for(const id of sales.accepted)buburMarket?.purchase(id,job,true);
+    saveSales(sales);say('Siap! Sekarang kamu bisa mencari pembeli untuk '+salesNames[job]+'.');button('Mulai mencari pembeli',close,true);
+   },true);
+  }
   else{
-   say('Assalamualaikum! Ada yang bisa saya bantu?');
-   button('Boleh saya bantu jualan?',()=>{clear();say('Saya ingin menabung untuk persiapan haji. Boleh saya bantu menawarkan dagangan?','player');say('Boleh! Komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+' per pembeli. Bawa 10 pembeli, nanti ada hadiah.');button('Sepakat, siap jualan',()=>{clear();sales.job=job;saveSales(sales);say('Siap! Saya akan cari pembeli.','player');say('Semangat, ya! Tawarkan dengan sopan.');button('Mulai mencari pembeli',close,true);},true);button('Pikir-pikir dulu',close);},true);
+   say(job==='alfamart'?'Selamat datang! Ada yang bisa saya bantu?':'Assalamualaikum! Ada yang bisa saya bantu?');
+   if(job==='alfamart')button('Saya mau lihat-lihat.',()=>{clear();say('Silakan. Harga pada katalog adalah harga simulasi.');button('Kembali',close,true);});
+   button('Boleh saya bantu jualan?',()=>{clear();say('Saya ingin menabung untuk persiapan haji. Boleh saya bantu menawarkan dagangan?','player');say(job==='alfamart'?'Boleh! Bantu tawarkan produk kami kepada pelanggan. Setiap pembeli yang berhasil kamu bawa, kamu akan mendapatkan komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+'.':'Boleh! Komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+' per pembeli. Bawa '+SALES_TARGET+' pembeli, nanti ada hadiah.');button(job==='alfamart'?'Siap, mulai jualan.':'Sepakat, siap jualan',()=>{clear();sales.job=job;saveSales(sales);say('Siap! Saya akan cari pembeli.','player');say('Semangat, ya! Tawarkan dengan sopan.');button('Mulai mencari pembeli',close,true);},true);button(job==='alfamart'?'Nanti dulu.':'Pikir-pikir dulu',close);},true);
   }
   button('Kembali',close);
  },buburMarket?.owners[job]??null);
 }
 function offerProspect(p:{id:number;name:string;actor:THREE.Group}){
- const job=sales.job;if(!job||sales.serving!==null||sales.pending!==null||sales.accepted.length>=10||sales.claimed||sales.accepted.includes(p.id)||sales.rejected.includes(p.id))return;
- const dx=hero.root.position.x-p.actor.position.x,dz=hero.root.position.z-p.actor.position.z;if(Math.hypot(dx,dz)>.01)p.actor.rotation.y=Math.atan2(dx,dz);
+ const job=sales.job;if(!job||sales.serving!==null||sales.pending!==null||sales.accepted.length>=SALES_TARGET||sales.claimed||sales.accepted.includes(p.id)||sales.rejected.includes(p.id))return;
+
  openSales(p.name,(say,button,close,clear)=>{
   say('Iya, ada apa ya?');
+  if(job==='alfamart'){
+   for(const product of alfamartOffers(p.id)){
+    const item=ALFAMART_PRODUCTS[product]!;
+    button(item.name+' · Rp'+item.price.toLocaleString('id-ID'),()=>{
+     clear();say(item.pitch,'player');
+     const result=alfamartResponse(p.id,product);say(result.line);
+     if(result.ok){
+      button('Ayo, saya antar.',()=>{
+       clear();sales.pending=p.id;sales.product=product;resetEscortRoute();
+       buburMarket?.startEscort(p.id,hero.root.position,job);saveSales(sales);
+       say('Mari, ikuti saya ke kasir.','player');close();
+      },true);
+      button('Nanti saja.',close);
+     }else{
+      if(p.id%4===3){sales.rejected.push(p.id);saveSales(sales);}
+      button('Baik, terima kasih.',close,true);
+     }
+    });
+   }
+   button('Kembali',close);
+   return;
+  }
   const pitches=job==='bubur'?['Permisi, mau bubur ayam hangat?','Sudah sarapan? Ada bubur ayam di depan Alfamart.','Pokoknya harus beli bubur saya!']:['Permisi, sedang mencari hijab?','Boleh lihat koleksi hijab KOKOSALAMA?','Pokoknya harus beli hijab saya!'];
   let answered=false;
-  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;clear();say(pitch,'player');const result=salesResponse(p.id,i,job);if(result.ok){sales.pending=p.id;resetEscortRoute();buburMarket?.startEscort(p.id,hero.root.position);}else sales.rejected.push(p.id);saveSales(sales);say(result.line);say(result.ok?'Antarkan pembeli ke penjual untuk mendapatkan komisi.':'Tetap semangat. Hormati keputusan calon pembeli.','system');button(result.ok?'Ayo, saya antar!':'Baik, terima kasih.',()=>{clear();say(result.ok?'Mari, ikuti saya.':'Baik, terima kasih waktunya.','player');close();},true);}));
+  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;clear();say(pitch,'player');const result=salesResponse(p.id,i,job);if(result.ok){sales.pending=p.id;resetEscortRoute();buburMarket?.startEscort(p.id,hero.root.position,job);}else sales.rejected.push(p.id);saveSales(sales);say(result.line);say(result.ok?'Antarkan pembeli ke penjual untuk mendapatkan komisi.':'Tetap semangat. Hormati keputusan calon pembeli.','system');button(result.ok?'Ayo, saya antar!':'Baik, terima kasih.',()=>{clear();say(result.ok?'Mari, ikuti saya.':'Baik, terima kasih waktunya.','player');close();},true);}));
   button('Batal',close);
  },p.actor);
 }
@@ -211,7 +260,7 @@ for(const x of [-6,-3,0,3,6]){const arc=mesh(new THREE.TorusGeometry(1.24,.15,10
 placa(guideMode?'PUSAT MANASIK':'UMROH.DIGITAL',guideMode?'PENDAFTARAN PESERTA':'',0,-5.67);
 for(const p of ['hajj','umrah'] as const){const pos=placements[p];const ring=new THREE.Mesh(new THREE.RingGeometry(.79,.91,64).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd4bb83,side:THREE.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));ring.position.set(pos.x,.012,pos.z);s.add(ring);guideRings[p]=ring;const actor=person(p==='umrah',p==='umrah'?0x52796b:0xeae2cc);actor.root.position.copy(pos);actor.root.position.y=0;guides[p]=actor;if(!guideMode)placa(p==='hajj'?'MANASIK HAJI':'MANASIK UMROH','',pos.x,-3.65);}
 for(const x of (guideMode?[-8.3,8.3]:[-6.5,6.5]))for(const z of [-2.6,3.5]){mesh(new THREE.CylinderGeometry(.55,.38,.49,12),sand,x,.245,z,s);box(.18,2,.18,mat(0x967c55),x,1.25,z,s);for(let k=0;k<9;k++){const o=ball(.3,teal,x+Math.cos(k*2.4)*.55,2.5+Math.sin(k)*.25,z+Math.sin(k*2.4)*.55,s);o.scale.set(1.4,.55,1.8);}}
-if(guideMode){registrationHall=createRegistrationHall(s);buburMarket=createBuburMarket(s);if(sales.job){for(const id of sales.accepted)buburMarket.purchase(id,sales.job,true);if(sales.serving!==null){const customer=buburMarket.prospects[sales.serving];if(customer){customer.actor.position.copy(escortDestination(sales.job));buburMarket.purchase(sales.serving,sales.job);}else{sales.serving=null;saveSales(sales);}}}videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
+if(guideMode){registrationHall=createRegistrationHall(s);buburMarket=createBuburMarket(s,tier,cue=>lobbySound.market(cue));if(sales.job){for(const id of sales.accepted)buburMarket.purchase(id,sales.job,true);if(sales.serving!==null){const customer=buburMarket.prospects[sales.serving];if(customer){customer.actor.position.copy(escortDestination(sales.job));buburMarket.purchase(sales.serving,sales.job,false,sales.product??0);}else{sales.serving=null;saveSales(sales);}}}videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
 hero=person(false,0xf4ead6,true);hero.root.position.copy(start);hero.root.rotation.y=Math.PI;heading=Math.PI;sceneReady=true;resize();requestAnimationFrame(frame);}
 function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.fov=guideMode?(touchMode?65:w/h<.85?69:64):(touchMode?57:w/h<.85?66:60);cam.updateProjectionMatrix();videotron?.resize();}
 function syncOrientation(){const was=portraitBlocked;portraitBlocked=!gateMode&&touchMode&&matchMedia('(orientation: portrait)').matches;lobbySound.setPaused(portraitBlocked||introPlaying);const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){if(portraitBlocked&&guideMode)dismissGuideCall();stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
@@ -289,7 +338,7 @@ j.addEventListener('pointermove',e=>{if(e.pointerId===pid){if(canWalk())jp(e);el
 function ju(e:PointerEvent){if(e.pointerId===pid)resetMove();}
 j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
 // One contextual interaction at a time, with the same range checks for touch, mouse and E.
-type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'bubur'|'hijab'|`prospect-${number}`;title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
+type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|SalesJob|`vendor-${number}`|`prospect-${number}`;title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
 let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gateQueueCancel:HTMLButtonElement|undefined;
 const cameraStick=new THREE.Vector2();let cameraStickPointer:number|null=null;let gateCameraPad:HTMLElement|undefined;
 function currentGateAction():GateAction|null{
@@ -301,10 +350,18 @@ function currentGateAction():GateAction|null{
  if(buburMarket){
   if(sales.pending!==null&&!escortArrived&&!escortManual)return null;
   const owners=buburMarket.owners;
-  for(const job of ['bubur','hijab'] as const){const owner=owners[job],point=job==='bubur'?BUBUR_POINT.clone():owner.position.clone().add(new THREE.Vector3(0,1.9,0));if((job==='bubur'||insideHijab(pos.x,pos.z))&&Math.hypot(pos.x-point.x,pos.z-point.z)<=(job==='bubur'?2.7:2.4))return {id:job,title:job==='hijab'?'KASIR KOKOSALAMA':salesNames[job],line:sales.job===job&&sales.pending!==null?'Laporkan pembeli yang kamu antar.':sales.job===job&&sales.accepted.length>=10?'Target tercapai! Ambil hadiah.':'Mau membantu menjual produk?',label:sales.job===job&&sales.pending!==null?'LAPOR PEMBELI':sales.job===job&&sales.accepted.length>=10?'AMBIL HADIAH':job==='hijab'?'BICARA KASIR':'BICARA PEMILIK',point,run:()=>talkOwner(job)};}
-  if(sales.job&&sales.serving===null&&sales.pending===null&&!sales.claimed&&sales.accepted.length<10){
+  for(const job of ['bubur','hijab','alfamart'] as const){
+   const owner=owners[job],point=job==='bubur'?BUBUR_POINT.clone():owner.position.clone().add(new THREE.Vector3(0,1.9,0));
+   const near=job==='alfamart'?pos.distanceTo(escortDestination(job))<1.6:Math.hypot(pos.x-point.x,pos.z-point.z)<=(job==='bubur'?2.7:2.4);
+   if(inSalesShop(job,pos)&&near)return {id:job,title:job==='bubur'?salesNames[job]:ownerNames[job],line:sales.job===job&&sales.pending!==null?'Laporkan pembeli yang kamu antar.':sales.job===job&&sales.accepted.length>=SALES_TARGET?'Target tercapai! Ambil hadiah.':'Mau membantu menjual produk?',label:job==='alfamart'?'AKSI':sales.job===job&&sales.pending!==null?'LAPOR PEMBELI':sales.job===job&&sales.accepted.length>=SALES_TARGET?'AMBIL HADIAH':job==='hijab'?'BICARA KASIR':'BICARA PEMILIK',point,run:()=>talkOwner(job)};
+  }
+  for(const [index,npc] of buburMarket.talkers.entries()){
+   if(npc.actor.position.distanceTo(pos)>1.95)continue;
+   return {id:`vendor-${index}`,title:npc.name,line:npc.line,label:'AKSI',point:npc.actor.position.clone().add(new THREE.Vector3(0,1.95,0)),run:()=>openSales(npc.name,(say,button,close)=>{say(npc.line);button('Terima kasih',close,true);},npc.actor)};
+  }
+  if(sales.job&&sales.serving===null&&sales.pending===null&&!sales.claimed&&sales.accepted.length<SALES_TARGET){
    const p=buburMarket.prospects.filter(p=>!sales.accepted.includes(p.id)&&!sales.rejected.includes(p.id)&&marketWalkable(p.actor.position.x,p.actor.position.z)).map(p=>({p,d:Math.hypot(pos.x-p.actor.position.x,pos.z-p.actor.position.z)})).filter(x=>x.d<=2.25).sort((a,b)=>a.d-b.d)[0]?.p;
-   if(p)return {id:`prospect-${p.id}`,title:p.name,line:'Calon pembeli · tawarkan '+salesNames[sales.job],label:'TAWARKAN',point:p.actor.position.clone().add(new THREE.Vector3(0,1.95,0)),run:()=>offerProspect(p)};
+   if(p)return {id:`prospect-${p.id}`,title:p.name,line:'Calon pembeli · tawarkan '+salesNames[sales.job],label:sales.job==='alfamart'?'AKSI':'TAWARKAN',point:p.actor.position.clone().add(new THREE.Vector3(0,1.95,0)),run:()=>offerProspect(p)};
   }
  }
  const g=placements[p],q=new THREE.Vector3(female?4.15:-4.15,0,5.34);
@@ -318,7 +375,7 @@ function paintGateAction(a:GateAction|null){
  if(!a){gatePrompt.hidden=true;delete document.documentElement.dataset.gateAction;return;}
  document.documentElement.dataset.gateAction=a.id;
  const pt=a.point.clone(),v=pt.clone().applyMatrix4(cam.matrixWorldInverse);pt.project(cam);
- const offscreen=v.z>=-cam.near||pt.z< -1||pt.z>1||Math.abs(pt.x)>1||Math.abs(pt.y)>1;if(offscreen&&a.id!=='door'&&a.id!=='clerk'&&a.id!=='leave'&&a.id!=='bubur'&&a.id!=='hijab'){gatePrompt.hidden=true;return;}
+ const offscreen=v.z>=-cam.near||pt.z< -1||pt.z>1||Math.abs(pt.x)>1||Math.abs(pt.y)>1;if(offscreen&&a.id!=='door'&&a.id!=='clerk'&&a.id!=='leave'&&a.id!=='bubur'&&a.id!=='hijab'&&a.id!=='alfamart'){gatePrompt.hidden=true;return;}
  if(gatePrompt.dataset.action!==a.id||gatePromptButton.textContent!==a.label||gatePromptLine.textContent!==a.line){gatePrompt.dataset.action=a.id;gatePromptTitle.textContent=a.title;gatePromptLine.textContent=a.line;gatePromptButton.textContent=a.label;gatePromptButton.hidden=!a.run;}
  gatePrompt.hidden=false;
  const rect=canvas.getBoundingClientRect(),x=rect.left+(pt.x*.5+.5)*rect.width,y=rect.top+(.5-pt.y*.5)*rect.height,w=gatePrompt.offsetWidth,h=gatePrompt.offsetHeight;
@@ -363,7 +420,7 @@ function frame(now:number){
  const n=Math.hypot(dx,dz),speed=(sales.pending!==null&&!escortManual?2.05:2.6)*walkFactor(automatic);const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
  if(modal||encounter||queueAuthorized)velocity.set(0,0);
  const moving=velocity.length()>.055;
- if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-30.1:-5.6,guideMode?21.0:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,departure?-6.6:guideMode&&Math.abs(pos.x+26)<1.2?-5.65:-3,guideMode?10.2:5.8);
+ if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-30.1:-5.6,guideMode?21.0:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,departure?-6.6:guideMode&&Math.abs(pos.x+26)<1.2?-5.65:guideMode&&nx>12.24&&nx<20.78?-10.44:-3,guideMode?10.2:5.8);
   if(guideMode&&!departure){const allowed=(x:number,z:number)=>(Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&(queueJoining||marketWalkable(x,z));if(!allowed(nx,nz)){if(allowed(pos.x,nz))nx=pos.x;else if(allowed(nx,pos.z))nz=pos.z;else{nx=pos.x;nz=pos.z;}}}
   if(!queueJoining&&!queueAuthorized&&!departure){const step=sweepGround(pos,{x:nx,z:nz},humanBodies(s),(x,z)=>!guideMode||((Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&marketWalkable(x,z)));nx=step.x;nz=step.z;}
   const moved=Math.hypot(nx-pos.x,nz-pos.z);lobbySound.walk(moved);tutorial.event({type:'walk',amount:moved});pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
@@ -373,7 +430,7 @@ function frame(now:number){
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
  // Free exploration orbit stays untouched; only the seated clerk has a temporary cinematic shot.
  if((!guideMode||sales.pending!==null&&automatic&&moving)&&cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
- const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const shopInterior=guideMode&&insideHijab(pos.x,pos.z),firstPerson=cameraPrefs.mode==='first',radius=(shopInterior&&cameraPrefs.indoor?Math.min(cameraRadius,2.85):cameraPrefs.mode==='near'?Math.min(cameraRadius,3.5):cameraRadius)+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
+ const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const shopInterior=guideMode&&(insideHijab(pos.x,pos.z)||insideAlfamart(pos.x,pos.z)),firstPerson=cameraPrefs.mode==='first',radius=(shopInterior&&cameraPrefs.indoor?Math.min(cameraRadius,2.85):cameraPrefs.mode==='near'?Math.min(cameraRadius,3.5):cameraRadius)+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
  // The rear arcade is solid. Shorten the camera boom rather than letting it cross the wall.
  if(!shopInterior&&cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
@@ -400,6 +457,7 @@ function frame(now:number){
  const nextFov=Math.abs(cam.fov-targetFov)>.02?THREE.MathUtils.lerp(cam.fov,targetFov,blend):targetFov;
  const nextFilm=Math.abs(cam.filmOffset-targetFilm)>.02?THREE.MathUtils.lerp(cam.filmOffset,targetFilm,blend):targetFilm;
  if(nextFov!==cam.fov||nextFilm!==cam.filmOffset){cam.fov=nextFov;cam.filmOffset=nextFilm;cam.updateProjectionMatrix();}
+ document.documentElement.dataset.alfamartInside=String(insideAlfamart(pos.x,pos.z));
  document.documentElement.dataset.gateCamera=clerk?'clerk':firstPerson?'first-person':shopInterior?'shop':cameraPrefs.mode;
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  if(!clerk&&!firstPerson&&guideMode&&buburMarket)keepMarketCameraClear(pivot,cam.position);
@@ -450,7 +508,7 @@ function frame(now:number){
  }
 
  if(guideMode){const a=currentGateAction();$('bubble').hidden=!showCallBubble||a?.id==='guide';paintGateAction(a);}
- registrationHall?.update(dt,pos);if(sales.pending!==null&&buburMarket&&!buburMarket.hasEscort(sales.pending))buburMarket.startEscort(sales.pending,pos);buburMarket?.update(dt,salesHold,pos);settleMarketSales();paintMarketSpeech();if(sales.job&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure)salesHud();
+ registrationHall?.update(dt,pos);if(sales.pending!==null&&sales.job&&buburMarket&&!buburMarket.hasEscort(sales.pending)){if(sales.job==='alfamart')escortManual=true;buburMarket.startEscort(sales.pending,pos,sales.job);}buburMarket?.update(dt,salesHold,pos);settleMarketSales();paintMarketSpeech();if(sales.job&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure)salesHud();
  if(guideMode){if(gateQueueCancel)gateQueueCancel.hidden=!(queueJoining||queueAuthorized);const ahead=registrationHall?.ahead(avatar==='female');if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=departure?'departing':gateEncounter==='clerk'?'serving':queueAuthorized?'ready':queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
  updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!portraitBlocked&&!budget.lost());

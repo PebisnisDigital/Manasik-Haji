@@ -95,11 +95,11 @@ interface LodResources {
   count: number;
 }
 
-const VERTEX_HEADER = /* glsl */ `
+const vertexHeader = (paletteSize: number) => /* glsl */ `
 uniform sampler2D uVatPos;
 uniform sampler2D uVatNrm;
 uniform vec2 uVatSize;
-uniform vec3 uPalette[${PALETTE_COUNT * 3}];
+uniform vec3 uPalette[${paletteSize}];
 
 attribute float aVatU;
 attribute float aZone;
@@ -257,7 +257,7 @@ export class CrowdRenderer {
       shader.uniforms.uPalette = { value: this.paletteUniform };
 
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\n${VERTEX_HEADER}`)
+        .replace('#include <common>', `#include <common>\n${vertexHeader(this.paletteUniform.length)}`)
         .replace(
           '#include <beginnormal_vertex>',
           `${VERTEX_BODY}\n  vec3 objectNormal = worldNrm;`,
@@ -287,7 +287,7 @@ export class CrowdRenderer {
         .replace('#include <common>', '#include <common>\nvarying vec3 vBaseColor;')
         .replace('#include <color_fragment>', '  diffuseColor.rgb *= vBaseColor;');
     };
-    material.customProgramCacheKey = () => `crowd-vat-${lod}`;
+    material.customProgramCacheKey = () => `crowd-vat-${lod}-${this.paletteUniform.length}`;
 
     const object = new THREE.Mesh(geometry, material);
     object.frustumCulled = false;

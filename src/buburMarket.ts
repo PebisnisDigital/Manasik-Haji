@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import {Clip} from './sim/States.ts';
 import {humanActor} from './characters/HumanActors.ts';
+import {alfamartSolids,createAlfamartStore,insideAlfamart,type MarketAudioCue} from './alfamartStore.ts';
+import {STORE_REPORT} from './alfamartInterior.ts';
+import {createAlfamartNPCs} from './alfamartNPC.ts';
+import {ALFAMART_PRODUCTS,ALFAMART_SALES} from './alfamartProducts.ts';
+import {createMarketStreet,streetSolids} from './marketStreet.ts';
 
 export const BUBUR_POINT = new THREE.Vector3(14.7, 1.9, 6.4);
 const colors = new Map<number,THREE.MeshStandardMaterial>();
@@ -11,9 +16,10 @@ function sign(parent:THREE.Object3D,title:string,sub:string,x:number,y:number,z:
  const c=document.createElement('canvas');c.width=768;c.height=192;const g=c.getContext('2d')!;g.fillStyle=bg;g.fillRect(0,0,768,192);g.fillStyle=fg;g.textAlign='center';g.font='bold 76px sans-serif';g.fillText(title,384,92,730);g.font='bold 29px sans-serif';g.fillText(sub,384,151,730);
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t}));m.position.set(x,y,z);parent.add(m);
 }
-const shops=[{x:16.5,name:'ALFAMART',sub:'MINIMARKET',bg:'#d52a28',fg:'#fff8d4',stripe:0xffd331},{x:-16.5,name:'INDOMARET',sub:'MINIMARKET',bg:'#ffffff',fg:'#204f9e',stripe:0xe63835},{x:-26,name:'KOKOSALAMA',sub:'TOKO HIJAB',bg:'#6f526a',fg:'#fff2df',stripe:0xd4a78b}];
+const shops=[{x:-16.5,name:'INDOMARET',sub:'MINIMARKET',bg:'#ffffff',fg:'#204f9e',stripe:0xe63835},{x:-26,name:'KOKOSALAMA',sub:'TOKO HIJAB',bg:'#6f526a',fg:'#fff2df',stripe:0xd4a78b}];
 // Shared static collision volumes for walking and camera obstruction, padded for body clearance.
 const marketSolids=[
+ ...alfamartSolids,...streetSolids,
  ...shops.map(shop=>new THREE.Box3(new THREE.Vector3(shop.x-4.32,0,-9.72),new THREE.Vector3(shop.x+4.32,4.2,-2.86))),
  new THREE.Box3(new THREE.Vector3(13.38,0,5.57),new THREE.Vector3(16.03,2.48,7.23)),
  ...[-19,19].map(x=>new THREE.Box3(new THREE.Vector3(x-1.05,0,-.82),new THREE.Vector3(x+1.05,1.49,3.42))),
@@ -27,10 +33,13 @@ export function marketWalkable(x:number,z:number){
  return !marketSolids.some(b=>x>b.min.x-pad&&x<b.max.x+pad&&z>b.min.z-pad&&z<b.max.z+pad);
 }
 // Player escort routes respect the same public paths as manual movement.
-export function escortDestination(job:SalesJob){return job==='bubur'?new THREE.Vector3(14.7,0,8.65):new THREE.Vector3(-26,0,-5.35);}
+export function escortDestination(job:SalesJob){return job==='alfamart'?new THREE.Vector3(STORE_REPORT.x,0,STORE_REPORT.z):job==='bubur'?new THREE.Vector3(14.7,0,8.65):new THREE.Vector3(-26,0,-5.35);}
 export function planEscortRoute(start:THREE.Vector3,job:SalesJob):THREE.Vector3[]{
- const goal=escortDestination(job),step=.4,ox=-30,oz=-5.6,nx=128,nz=40;
- const valid=(x:number,z:number)=>x>=-30.1&&x<=21&&z>=-5.65&&z<=10.2&&(Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&(z>=-3||Math.abs(x+26)<.79)&&marketWalkable(x,z);
+ return planMarketRoute(start,escortDestination(job));
+}
+function planMarketRoute(start:THREE.Vector3,goal:THREE.Vector3):THREE.Vector3[]{
+ const step=.4,ox=-30,oz=-10.45,nx=128,nz=52;
+ const valid=(x:number,z:number)=>x>=-30.1&&x<=21&&z>=-10.45&&z<=10.2&&(Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&(z>=-3||Math.abs(x+26)<.79&&z>=-5.65||x>12.25&&x<20.8)&&marketWalkable(x,z);
  const at=(id:number)=>new THREE.Vector3(ox+(id%nx)*step,0,oz+Math.floor(id/nx)*step);
  const segment=(a:THREE.Vector3,b:THREE.Vector3)=>{const n=Math.max(1,Math.ceil(a.distanceTo(b)/.12));for(let i=1;i<=n;i++){const t=i/n;if(!valid(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;}return true;};
  if(segment(start,goal))return [goal];
@@ -47,6 +56,7 @@ export function planEscortRoute(start:THREE.Vector3,job:SalesJob):THREE.Vector3[
 const cameraRay=new THREE.Ray(),cameraHit=new THREE.Vector3(),cameraDir=new THREE.Vector3();
 // Shorten the orbit before a solid object can hide the player or contain the camera.
 export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
+ if(insideAlfamart(pivot.x,pivot.z))goal.y=Math.min(goal.y,3.30);
  if(insideHijab(pivot.x,pivot.z)){goal.x=THREE.MathUtils.clamp(goal.x,-29.6,-22.4);goal.z=THREE.MathUtils.clamp(goal.z,-8.8,-3.3);goal.y=Math.min(goal.y,3.25);return goal;}
  cameraDir.subVectors(goal,pivot);const length=cameraDir.length();if(length<.001)return goal;
  cameraRay.set(pivot,cameraDir.multiplyScalar(1/length));let nearest=length;
@@ -54,17 +64,27 @@ export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
  if(nearest<length)goal.copy(pivot).addScaledVector(cameraDir,Math.max(.16,nearest-.23));
  return goal;
 }
-export type SalesJob='bubur'|'hijab';
-export const salesNames={bubur:'Bubur Ayam',hijab:'Hijab KOKOSALAMA'} as const;
-export const salesCommission={bubur:2000,hijab:5000} as const;
+export type SalesJob='bubur'|'hijab'|'alfamart';
+export const SALES_TARGET=ALFAMART_SALES.target;
+export const salesNames={bubur:'Bubur Ayam',hijab:'Hijab KOKOSALAMA',alfamart:'Alfamart'} as const;
+export const salesCommission={bubur:2000,hijab:5000,alfamart:ALFAMART_SALES.commission} as const;
 export const SALES_COUPON='MAUHAJJI';
 type Prospect={id:number;name:string;actor:THREE.Group};
 const names=['Asep','Siti','Dedi','Neneng','Budi','Yuni','Agus','Rina','Dian','Eko','Nining','Wawan','Titin','Rizky','Dewi','Ari','Fitri','Slamet','Rani','Ujang'];
-export function createBuburMarket(scene:THREE.Scene){
+export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:MarketAudioCue)=>void){
  const root=new THREE.Group();root.name='bubur-market';scene.add(root);
+ const parkedWalkers=new Map<THREE.Group,{points:THREE.Vector3[];position:THREE.Vector3;index:number;wait:number}>();
  const walkers:{actor:THREE.Group;points:THREE.Vector3[];index:number;wait:number}[]=[];
  const prospects:Prospect[]=[];
  const addProspect=(actor:THREE.Group,palette:number)=>{actor.userData.marketPalette=palette;const id=prospects.length;prospects.push({id,name:names[id%names.length]!,actor});};
+ const store=createAlfamartStore(root,audio);
+ for(let i=0;i<3;i++){
+  const actor=humanActor(scene,0x739385,i===1,undefined,undefined,{palette:i+3,build:1,brightness:1,cull:true,registration:true});
+  actor.userData.noCollision=true;addProspect(actor,i+3);
+  const lane=16.35+i*.49, z=4.28+i*.50;
+  const path=[new THREE.Vector3(lane,0,z),new THREE.Vector3(lane,0,-1.46-i*.18)];
+  actor.position.copy(path[0]!);walkers.push({actor,points:path,index:1,wait:i*.65});
+ }
  for(const shop of shops){
   const x=shop.x;const building=new THREE.Group();building.name=shop.name;root.add(building);
   box(building,8.5,.14,6.8,x,.04,-6.4,0xd5cbb9);box(building,8.5,3.9,.2,x,1.95,-9.6,0xeee7dc);
@@ -117,16 +137,20 @@ export function createBuburMarket(scene:THREE.Scene){
    seats.push({point:new THREE.Vector3(tx,0,sz),table:new THREE.Vector3(tx,.85,tz+side*.20),yaw:side===1?Math.PI:0,busy:null});
   }
  }
+ for(const walker of walkers)parkedWalkers.set(walker.actor,{points:walker.points,position:walker.actor.position.clone(),index:walker.index,wait:walker.wait});
  // A sale changes the actual NPC's activity; the normal pedestrian loop pauses until purchase finishes.
  type Purchase={job:SalesJob;stage:'approach'|'queue'|'seat-walk'|'seated'|'eat'|'thank'|'shop'|'shop-wait'|'bag-thank'|'exit'|'done';route:THREE.Vector3[];time:number;prop?:THREE.Group;seat?:number;paid?:boolean};
  const served:number[]=[];
+ const completedAlfamart=new Set<number>();
  let speech:{actor:THREE.Group;name:string;text:string;left:number}|null=null;
  const speak=(actor:THREE.Group,name:string,text:string)=>{speech={actor,name,text,left:2.7};};
+ const alfamart=createAlfamartNPCs(scene,root,tier==='low'?2:3,speak,audio,id=>{completedAlfamart.add(id);served.push(id);});
+ const street=createMarketStreet(scene,root,tier!=='low',speak,audio);
  const markServed=(id:number,b:Purchase)=>{if(!b.paid){b.paid=true;served.push(id);}};
  let service:{id:number;route:THREE.Vector3[];phase:'carry'|'return';prop?:THREE.Group;time:number}|null=null;
  const vendorHome=vendor.position.clone();
  const purchases=new Map<number,Purchase>(),line:number[]=[];
- let escort:{id:number;trail:THREE.Vector3[];last:THREE.Vector3}|null=null;
+ let escort:{id:number;job:SalesJob;trail:THREE.Vector3[];last:THREE.Vector3}|null=null;
  const v=(x:number,z:number)=>new THREE.Vector3(x,0,z);
  const fabric=[0x315e75,0xb28b51,0x687b63,0x8e5460,0x3d465c,0xb6a793,0x527d76,0x735f92,0xefe7d3,0x284c3f];
  const advance=(a:THREE.Group,t:THREE.Vector3,dt:number,speed=1.55)=>{const dx=t.x-a.position.x,dz=t.z-a.position.z,d=Math.hypot(dx,dz);if(d<.055){a.position.copy(t);return true;}const step=Math.min(d,dt*speed);a.position.x+=dx/d*step;a.position.z+=dz/d*step;a.rotation.y=Math.atan2(dx,dz);return d<=step;};
@@ -165,7 +189,13 @@ export function createBuburMarket(scene:THREE.Scene){
  }
  function removeProp(p:Purchase){if(p.prop){p.prop.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});p.prop.removeFromParent();p.prop=undefined;}}
  function complete(p:Prospect,buy:Purchase){removeProp(buy);buy.prop=propFor(p,buy.job==='bubur'?'belly':'bag');buy.stage='done';buy.time=0;p.actor.userData.marketPurchase='done';}
- function purchase(id:number,job:SalesJob,restored=false){
+ function purchase(id:number,job:SalesJob,restored=false,product=0){
+  if(job==='alfamart'){
+   const customer=prospects[id];
+   if(restored)completedAlfamart.add(id);
+   else if(customer&&!completedAlfamart.has(id))alfamart.handoff(id,customer.actor,customer.name,product);
+   return;
+  }
   const p=prospects[id];if(!p||purchases.has(id))return;
   const buy:Purchase={job,stage:'approach',route:[],time:0};purchases.set(id,buy);p.actor.userData.marketPurchase=job;
   if(restored){buy.paid=true;complete(p,buy);buy.time=1;if(buy.prop)buy.prop.scale.setScalar(1);return;}
@@ -173,12 +203,36 @@ export function createBuburMarket(scene:THREE.Scene){
   else if(insideHijab(p.actor.position.x,p.actor.position.z)){buy.stage='shop';buy.route=[v(-25.8,-5.15)];}
   else{buy.route=outsideRoute(p.actor.position,v(-25.8,-1.95));}
  }
- function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:clearSegment(p.actor.position,player)?[player.clone()]:outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
+ function startEscort(id:number,player:THREE.Vector3,job:SalesJob){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,job,trail:clearSegment(p.actor.position,player)?[player.clone()]:job==='alfamart'?planMarketRoute(p.actor.position,player.clone()):outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
  function cancelEscort(){if(escort){const p=prospects[escort.id];if(p)delete p.actor.userData.marketPurchase;}escort=null;}
  function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
- function updateEscort(dt:number,player:THREE.Vector3){if(!escort)return;const p=prospects[escort.id];if(!p)return;const a=p.actor;if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}const t=escort.trail[0];if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}}
- function handoff(id:number,job:SalesJob,player:THREE.Vector3){const p=prospects[id];if(!p||!escortReady(id,player)||player.distanceTo(escortDestination(job))>2.0||(job==='hijab'&&(!insideHijab(player.x,player.z)||!insideHijab(p.actor.position.x,p.actor.position.z))))return false;escort=null;purchase(id,job);return true;}
- function resetPurchases(){cancelEscort();if(service?.prop){service.prop.removeFromParent();}service=null;vendor.position.copy(vendorHome);delete vendor.userData.campPose;delete hijabOwner.userData.campPose;for(const seat of seats)seat.busy=null;for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;delete p.actor.userData.campPose;}}purchases.clear();line.length=0;served.length=0;speech=null;}
+ function updateEscort(dt:number,player:THREE.Vector3){
+  if(!escort)return;
+  const p=prospects[escort.id];if(!p)return;
+  const a=p.actor;
+  if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}
+  const t=escort.trail[0];
+  if(t&&escort.job==='alfamart'&&!clearSegment(a.position,t)){
+   // Repair a corner only when the movement sample is obstructed.
+   escort.trail=planMarketRoute(a.position,player.clone());
+   return;
+  }
+  if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();
+  if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}
+ }
+ function handoff(id:number,job:SalesJob,player:THREE.Vector3,product:number|null){const p=prospects[id];if(!p||!escortReady(id,player)||player.distanceTo(escortDestination(job))>2.0||(job==='hijab'&&(!insideHijab(player.x,player.z)||!insideHijab(p.actor.position.x,p.actor.position.z))))return false;if(job==='alfamart'){
+   if(product===null||!insideAlfamart(p.actor.position.x,p.actor.position.z)||!insideAlfamart(player.x,player.z)||!alfamart.handoff(id,p.actor,p.name,product))return false;
+  }else purchase(id,job);
+  escort=null;return true;}
+ function resetPurchases(){cancelEscort();alfamart.reset();for(const customer of prospects){delete customer.actor.userData.marketPurchase;delete customer.actor.userData.marketDeparture;}completedAlfamart.clear();if(service?.prop){service.prop.removeFromParent();}service=null;vendor.position.copy(vendorHome);delete vendor.userData.campPose;delete hijabOwner.userData.campPose;for(const seat of seats)seat.busy=null;for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;delete p.actor.userData.campPose;}}purchases.clear();
+  for(let i=walkers.length-1;i>=0;i--){
+   const walker=walkers[i]!, initial=parkedWalkers.get(walker.actor);
+   delete walker.actor.userData.marketDeparture;delete walker.actor.userData.marketPurchase;
+   if(initial){Object.assign(walker,{points:initial.points,index:initial.index,wait:initial.wait});walker.actor.position.copy(initial.position);}
+   else walkers.splice(i,1);
+  }
+  line.length=0;served.length=0;speech=null;}
+
  function vendorRoute(seatIndex:number){const seat=seats[seatIndex]!;return [v(14.7,4.78),v(16.65,4.78),v(16.65,8.35),v(seat.table.x-.85,8.35),v(seat.table.x-.85,5.95)];}
  function updateVendor(dt:number){
   if(!service){const next=Array.from(purchases.entries()).find(([,b])=>b.stage==='seated');if(!next)return;const [id,b]=next;if(b.seat===undefined)return;service={id,route:vendorRoute(b.seat),phase:'carry',time:0,prop:propFor({id:-1,name:'Penjual Bubur',actor:vendor},'bowl')};return;}
@@ -211,30 +265,53 @@ export function createBuburMarket(scene:THREE.Scene){
   else if(buy.stage==='exit'&&follow(a,buy,dt)){buy.stage='done';buy.time=1;a.userData.marketPurchase='done';}
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
- return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,startEscort,cancelEscort,escortReady,drainServed:()=>served.splice(0),speech:()=>speech,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
+ return {owners:{bubur:vendor,hijab:hijabOwner,alfamart:alfamart.cashier},talkers:street.talkers,prospects,purchase,startEscort,cancelEscort,escortReady,drainServed:()=>served.splice(0),speech:()=>speech,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
   if(player&&escort&&prospects[escort.id]?.actor!==hold)updateEscort(dt,player);
   if(speech){speech.left-=dt;if(speech.left<=0)speech=null;}
   for(const p of prospects){const buy=purchases.get(p.id);if(buy&&p.actor!==hold)updatePurchase(p,buy,dt);}
   updateVendor(dt);
-  for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&escort?.id===p.id)continue;if(buy&&buy.stage!=='done')continue;
-   if(buy?.stage==='done'&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...outsideRoute(w.actor.position,v(w.actor.position.x,9.65)),v(-29,9.65),v(21,9.65)];w.index=0;w.wait=.6;}
+  if(player){
+   const shoppers=alfamart.update(dt,hold,player);
+   const escorted=escort&&prospects[escort.id]?.actor;
+   if(escorted)shoppers.push(escorted);
+   store.update(dt,player,shoppers);
+   street.update(dt,player);
+   document.documentElement.dataset.alfamartDoor=store.root.userData.doorOpen?'open':'closed';
+  }
+  for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&(escort?.id===p.id||alfamart.has(p.id)))continue;if(buy&&buy.stage!=='done')continue;
+   if((buy?.stage==='done'||p&&completedAlfamart.has(p.id))&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...outsideRoute(w.actor.position,v(w.actor.position.x,9.65)),v(-29,9.65),v(21,9.65)];w.index=0;w.wait=.6;}
    if(w.wait>0){w.wait-=dt;continue;}const t=w.points[w.index]!;if(advance(w.actor,t,dt,1.1)){w.index=(w.index+1)%w.points.length;w.wait=.45;}
   }
   // Previously stationary customers join a visible departure loop after eating or shopping.
-  for(const p of prospects){const buy=purchases.get(p.id);if(buy?.stage==='done'&&!walkers.some(w=>w.actor===p.actor)){const points=[v(12,9.65),v(2,9.65),v(-12,9.65),v(20,9.65)];walkers.push({actor:p.actor,points,index:0,wait:1.5});}}
+  for(const p of prospects){const buy=purchases.get(p.id);if((buy?.stage==='done'||completedAlfamart.has(p.id))&&!alfamart.has(p.id)&&!walkers.some(w=>w.actor===p.actor)){const points=[v(12,9.65),v(2,9.65),v(-12,9.65),v(20,9.65)];walkers.push({actor:p.actor,points,index:0,wait:1.5});}}
   document.documentElement.dataset.marketQueue=String(line.length);
   document.documentElement.dataset.marketCompleted=String([...purchases.values()].filter(p=>p.stage==='done').length);
  }};
 }
 
 
-type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean;pending:number|null;serving:number|null};
+type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean;pending:number|null;serving:number|null;product:number|null};
 const storeKey='hajji-market-sales-v1';
-export function loadSales():SalesState{
- try{const s=JSON.parse(sessionStorage.getItem(storeKey)??'null');if(s&&(s.job==='bubur'||s.job==='hijab')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected))return {job:s.job,accepted:s.accepted,rejected:s.rejected,claimed:!!s.claimed,pending:Number.isInteger(s.pending)&&s.pending>=0&&s.pending<16?s.pending:null,serving:Number.isInteger(s.serving)&&s.serving>=0&&s.serving<16&&!s.accepted.includes(s.serving)?s.serving:null};}catch{}
- return {job:null,accepted:[],rejected:[],claimed:false,pending:null,serving:null};
+export function loadSales(job?:SalesJob):SalesState{
+ const validId=(value:unknown):value is number=>typeof value==='number'&&Number.isInteger(value)&&value>=0&&value<16;
+ try{
+  const s=JSON.parse(sessionStorage.getItem(job?storeKey+'-'+job:storeKey)??'null');
+  if(s&&(s.job==='bubur'||s.job==='hijab'||s.job==='alfamart')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected)){
+   const accepted=[...new Set<number>(s.accepted.filter(validId))],rejected=[...new Set<number>(s.rejected.filter(validId))];
+   const product=Number.isInteger(s.product)&&ALFAMART_PRODUCTS[s.product]?s.product as number:null;
+   const validTransaction=s.job!=='alfamart'||product!==null;
+   return {job:s.job,accepted,rejected,claimed:!!s.claimed,pending:validTransaction&&validId(s.pending)&&!accepted.includes(s.pending)?s.pending:null,serving:validTransaction&&validId(s.serving)&&!accepted.includes(s.serving)?s.serving:null,product};
+  }
+ }catch{}
+ return {job:null,accepted:[],rejected:[],claimed:false,pending:null,serving:null,product:null};
 }
-export function saveSales(s:SalesState){try{sessionStorage.setItem(storeKey,JSON.stringify(s));}catch{}}
+export function saveSales(s:SalesState){
+ try{
+  const json=JSON.stringify(s);
+  sessionStorage.setItem(storeKey,json);
+  if(s.job)sessionStorage.setItem(storeKey+'-'+s.job,json);
+ }catch{}
+}
 export function salesResponse(id:number,pitch:number,job:SalesJob){
  // Stable outcomes: four of sixteen prospects decline politely regardless of pitch.
  // Others accept if approached respectfully; all ten sales are attainable.

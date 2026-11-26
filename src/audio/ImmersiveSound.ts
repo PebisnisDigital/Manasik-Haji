@@ -62,6 +62,25 @@ export class ImmersiveSound{
  }
  impact(){this.effect(1450,.32,.07);this.effect(520,.26,.14,.018);}
  pickup(){this.effect(830,.15,.10);}
+ market(cue:'door'|'scan'|'fridge'|'ride'|'whistle'){
+  if(!this.audible())return;
+  const tones:Record<typeof cue,readonly [number,number,number,number][]>={
+   door:[[784,0,.18,.065],[1047,.09,.22,.045]],
+   scan:[[1900,0,.095,.047]],
+   fridge:[[63,0,1.85,.052],[117,0,1.85,.018]],
+   ride:[[523,0,.24,.055],[659,.22,.24,.05],[698,.44,.24,.05],[784,.67,.38,.047],[659,1.08,.25,.038]],
+   whistle:[[2350,0,.16,.045],[2040,.19,.13,.032]],
+  };
+  const c=this.ctx!;
+  for(const [hz,delay,duration,volume] of tones[cue]){
+   const t=c.currentTime+delay,osc=c.createOscillator(),gain=c.createGain();
+   osc.frequency.value=hz;gain.gain.setValueAtTime(.0001,t);
+   gain.gain.exponentialRampToValueAtTime(volume,t+(cue==='fridge'?.2:.012));
+   gain.gain.exponentialRampToValueAtTime(.0001,t+duration);
+   osc.connect(gain).connect(this.master!);osc.start(t);osc.stop(t+duration+.02);
+   osc.onended=()=>{osc.disconnect();gain.disconnect();};
+  }
+ }
  water(){this.effect(1250,.16,.24,0,'lowpass');this.effect(2200,.10,.16,.12);}
  dispose(){if(this.disposed)return;this.disposed=true;this.abort.abort();this.generation++;this.button.remove();for(const s of this.sources){try{s.stop();}catch{}s.disconnect();}if(this.ctx)void this.ctx.close().catch(()=>{});}
 }
