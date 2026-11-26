@@ -18,8 +18,10 @@ export default async function handler(req,res){
  const result=await response.json();
  if(!response.ok)return reply(response.status===403?503:400,{error:response.status>=500||response.status===403?'Layanan belum tersedia.':String(result.message??'Permintaan gagal.').slice(0,180)});
  if(result.error)return reply(429,{error:result.error});
+ const activeSecret=result.secret??secret;
  if(result.secret){res.setHeader('Set-Cookie','manasik_registration='+result.secret+'; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=31536000');delete result.secret;}
- if(qrisOp)result.qris=qris;else if((op==='get'||op==='lookup'&&result.lookup==='verified')&&result.registration?.status==='pending' ){try{result.qris=await handleQr('get',secret);}catch{}}
+ else if(op==='lookup'&&result.lookup==='new'){res.setHeader('Set-Cookie','manasik_registration=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0');}
+ if(qrisOp)result.qris=qris;else if((op==='get'||op==='lookup'&&result.lookup==='verified')&&result.registration?.status==='pending' ){try{result.qris=await handleQr('get',activeSecret);}catch{}}
  return reply(200,result);
  }catch(err){if(err instanceof QrisError)return reply(err.code==='rate_limited'?429:503,{error:err.message,code:err.code});console.warn('Registration request failed',{operation:op});return reply(503,{error:'Layanan pendaftaran belum tersambung.'});}
 }
