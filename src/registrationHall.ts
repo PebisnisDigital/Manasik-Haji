@@ -146,7 +146,7 @@ function createParking(scene:THREE.Scene){
 
 /** Upper floors are built over the original arcade; both departure tunnels stay open. */
 function createGrandOffice(scene:THREE.Scene){
- const stone=material(0x202020),trim=material(0xf4f0e6),emerald=material(0x111111),deep=material(0x141414),windowMat=material(0x42474e);
+ const stone=material(0xf2e9d9),trim=material(0xfffaf0),emerald=material(0xe1d0aa),deep=material(0x8c7049),windowMat=material(0x42474e);
  gold.metalness=.35;
  function cylinder(parent:THREE.Object3D,rt:number,rb:number,h:number,x:number,y:number,z:number,m:THREE.Material,segments=24){
   const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;
