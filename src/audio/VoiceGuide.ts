@@ -1,4 +1,4 @@
-import {journeyVolume} from '../frontSettings.ts';
+import {journeyVolume,journeyVoice} from '../frontSettings.ts';
 /** Local browser speech synthesis; text is always available without audio. */
 const PREF='manasik-voice-v1';
 export class VoiceGuide {
@@ -14,9 +14,10 @@ export class VoiceGuide {
   private lastSpoken=new Map<string,number>();
   constructor(initial:string){
     this.current=initial;this.caption.textContent=initial;
-    try{this.preferred=localStorage.getItem(PREF)==='on';}catch{/* preference optional */}
+    this.preferred=journeyVoice();
     if(!this.engine){this.toggle.disabled=true;this.replay.disabled=true;this.state.textContent='Audio tidak didukung. Panduan teks tetap tersedia.';return;}
     this.render();
+    window.addEventListener('hajji-game-audio-change',()=>{const on=journeyVoice();this.preferred=on;if(!on){this.enabled=false;this.stop();this.render();}else if(!this.enabled){this.enabled=true;this.render();this.speak();}else if(this.active)this.active.volume=journeyVolume();});
     this.toggle.addEventListener('click',()=>this.setEnabled(!this.enabled));
     this.replay.addEventListener('click',()=>{if(!this.enabled)this.setEnabled(true);else this.speak();});
     // Browsers often require a new user gesture after navigation.
@@ -42,7 +43,7 @@ export class VoiceGuide {
   }
   stop():void{if(this.active){this.active=null;this.engine?.cancel();document.dispatchEvent(new CustomEvent('manasik-voice-active',{detail:false}));}}
   private speak():void{
-    if(!this.enabled||!this.engine||!this.current||document.hidden||document.documentElement.classList.contains('readingSpeaking'))return;
+    if(!this.enabled||!journeyVoice()||journeyVolume()===0||!this.engine||!this.current||document.hidden||document.documentElement.classList.contains('readingSpeaking'))return;
     this.stop();
     const voices=this.engine.getVoices();
     const idVoice=voices.find(v=>v.lang.toLowerCase().replace('_','-')==='id-id')??voices.find(v=>/^id(?:[-_]|$)/i.test(v.lang));
