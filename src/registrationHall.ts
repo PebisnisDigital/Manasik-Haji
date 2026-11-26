@@ -42,7 +42,7 @@ function makeAdmin(scene:THREE.Scene,x:number,female:boolean){
  const admin=new THREE.Group();admin.position.set(x,0,-4.06);scene.add(admin);
  const uniform=material(female?0x191919:0x305e55),skin=material(female?0xc99d7b:0x9c7153);
  // A seated clerk behind the counter. Forearm and pencil move over the ledger.
- box(admin,.48,.46,.32,0,1.04,0,uniform);const faceRoot=new THREE.Group();faceRoot.position.set(0,1.50,.02);admin.add(faceRoot);sphere(faceRoot,.25,0,0,0,skin);
+ box(admin,.43,.53,.30,0,1.04,0,uniform);sphere(admin,.073,0,1.35,0,skin);const faceRoot=new THREE.Group();faceRoot.position.set(0,1.48,.02);faceRoot.scale.setScalar(.65);admin.add(faceRoot);sphere(faceRoot,.25,0,0,0,skin);
  if(female){sphere(faceRoot,.272,0,0,-.05,uniform);const face=sphere(faceRoot,.212,0,0,.10,skin);face.scale.set(.92,1,.75);sphere(faceRoot,.19,0,-.16,-.025,uniform);}
  else{const cap=sphere(faceRoot,.245,0,.15,-.02,cream);cap.scale.set(1,.48,.92);}
  for(const side of [-1,1]){sphere(faceRoot,.047,side*.089,.03,.237,paper);sphere(faceRoot,.029,side*.089,.03,.272,ink);sphere(faceRoot,.011,side*.089-.008,.047,.292,paper);}
@@ -218,16 +218,16 @@ function createFoodCourt(scene:THREE.Scene){
  function person(parent:THREE.Group,x:number,z:number,h:number,color:number,skinColor:number,hijab:boolean,vendor:boolean,phase:number,drink=false){
   const body=new THREE.Group();body.position.set(x,0,z);body.scale.setScalar(h);parent.add(body);
   const outfit=material(color),skin=material(skinColor),hair=material(0x29241e),pants=material(0x39484b);
-  for(const dx of [-.105,.105]){tube(body,.068,.053,.39,dx,.21,0,pants);box(body,.145,.075,.21,dx,.055,.04,rubber);}
-  tube(body,.19,.15,.30,0,.49,0,outfit);
-  const head=new THREE.Group();head.position.set(0,.76,0);head.scale.setScalar(1.70);body.add(head);
-  if(hijab){sphere(head,.154,0,0,-.025,outfit);tube(body,.15,.25,.19,0,.73,-.015,outfit);}
+  for(const dx of [-.105,.105]){tube(body,.056,.045,.46,dx,.27,0,pants);box(body,.145,.075,.21,dx,.055,.04,rubber);}
+  tube(body,.145,.12,.31,0,.585,0,outfit);
+  const head=new THREE.Group();head.position.set(0,.872,0);head.scale.setScalar(vendor?.77:.94);body.add(head);
+  if(hijab){sphere(head,.154,0,0,-.025,outfit);tube(body,.105,.16,.16,0,.76,-.015,outfit);}
   else sphere(head,.143,0,.035,-.025,hair);
   const face=sphere(head,.131,0,0,.045,skin);face.scale.set(.91,1.04,.88);
-  for(const dx of [-.048,.048]){sphere(head,.027,dx,.024,.145,paper);sphere(head,.017,dx,.024,.166,rubber);sphere(head,.006,dx-.004,.031,.179,paper);}
+  for(const dx of [-.048,.048]){sphere(head,.022,dx,.024,.145,paper);sphere(head,.014,dx,.024,.162,rubber);sphere(head,.005,dx-.004,.030,.174,paper);}
   const mouth=box(head,.038,.009,.008,0,-.052,.157,rubber);mouth.castShadow=false;
   for(const side of [-1,1]){
-   const arm=new THREE.Group();arm.position.set(side*.17,.69,0);body.add(arm);
+   const arm=new THREE.Group();arm.position.set(side*.139,.70,0);body.add(arm);
    tube(arm,.057,.048,.21,0,-.085,0,outfit);tube(arm,.045,.042,.16,0,-.24,0,skin);sphere(arm,.049,0,-.34,0,skin);
    if(side===1){
     if(vendor){const stick=box(arm,.017,.19,.017,0,-.36,.065,wood);stick.rotation.x=.75;}
