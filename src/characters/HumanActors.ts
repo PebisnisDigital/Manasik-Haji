@@ -29,19 +29,20 @@ function createChibi(root:THREE.Group,female:boolean,height:number,robe:number,p
  const body=new THREE.Group();body.scale.setScalar(height);root.add(body);
  const legs:THREE.Group[]=[],arms:THREE.Group[]=[];
  for(const sign of [-1,1]){
-  const leg=new THREE.Group();leg.position.set(sign*.083,.25,0);body.add(leg);legs.push(leg);
-  chibiPart(leg,0x44474a,0,-.105,0,.065,.13,.07);
-  chibiPart(leg,0x42382c,0,-.216,.032,.081,.035,.115);
+  const leg=new THREE.Group();leg.position.set(sign*.072,.445,0);body.add(leg);legs.push(leg);
+  chibiPart(leg,0x44474a,0,-.197,0,.059,.205,.064);
+  chibiPart(leg,0x42382c,0,-.410,.037,.072,.035,.105);
  }
- chibiPart(body,cloth,0,.365,0,.185,.30,.115,chibiDress);
- chibiPart(body,cloth,0,.51,0,.167,.14,.115);
- if(female){chibiPart(body,cloth,0,.30,0,.198,.45,.123,chibiDress);chibiPart(body,accent,0,.585,.023,.153,.125,.116);}
- else {chibiPart(body,accent,0,.515,.102,.09,.115,.025);}
+ chibiPart(body,cloth,0,.552,0,.145,.315,.096,chibiDress);
+ chibiPart(body,cloth,0,.678,0,.142,.105,.095);
+ if(female){chibiPart(body,cloth,0,.414,0,.158,.69,.104,chibiDress);chibiPart(body,accent,0,.744,.023,.109,.096,.09);}
+ else {chibiPart(body,accent,0,.652,.087,.072,.105,.018);}
  for(const sign of [-1,1]){
-  const arm=new THREE.Group();arm.position.set(sign*.16,.55,0);body.add(arm);arms.push(arm);arm.rotation.z=sign*.12;
-  chibiPart(arm,cloth,0,-.10,0,.060,.13,.065);chibiPart(arm,skin,0,-.212,.006,.058,.064,.056);
+  const arm=new THREE.Group();arm.position.set(sign*.136,.705,0);body.add(arm);arms.push(arm);arm.rotation.z=sign*.09;
+  chibiPart(arm,cloth,0,-.135,0,.045,.151,.047);chibiPart(arm,skin,0,-.304,.006,.041,.053,.039);
  }
- const head=new THREE.Group();head.position.set(0,.77,0);body.add(head);
+ const head=new THREE.Group();head.position.set(0,.881,0);head.scale.setScalar(.48);body.add(head);
+ chibiPart(body,skin,0,.793,0,.048,.055,.049);
  if(female){
   chibiPart(head,accent,0,.012,-.019,.235,.244,.184);
   chibiPart(head,accent,0,-.143,-.018,.19,.13,.126);
@@ -54,11 +55,11 @@ function createChibi(root:THREE.Group,female:boolean,height:number,robe:number,p
  }
  const front=female?.190:.148;
  for(const sign of [-1,1]){
-  chibiPart(head,0xfffaf1,sign*.078,.026,front,.052,.058,.026);
-  chibiPart(head,0x39271e,sign*.078,.025,front+.021,.032,.040,.015);
+  chibiPart(head,0xfffaf1,sign*.078,.026,front,.044,.046,.023);
+  chibiPart(head,0x39271e,sign*.078,.025,front+.019,.028,.033,.014);
   chibiPart(head,0xffffff,sign*.078-.009,.041,front+.033,.010,.011,.007);
   const brow=chibiPart(head,dark,sign*.078,.105,front-.012,.047,.012,.013);brow.rotation.z=sign*-.09;
-  chibiPart(head,0xd9927c,sign*.128,-.041,front-.006,.036,.019,.010);
+  chibiPart(head,0xd9927c,sign*.128,-.041,front-.006,.031,.015,.008);
  }
  chibiPart(head,skin,0,-.024,front+.017,.036,.033,.033);
  chibiPart(head,0x754638,0,-.079,front+.007,.046,.013,.012);
@@ -67,10 +68,10 @@ function createChibi(root:THREE.Group,female:boolean,height:number,robe:number,p
 function animateChibi(c:Chibi,dt:number,distance:number,active:boolean,guide:boolean){
  if(!active)return;
  const speed=Math.min(1,distance/Math.max(dt,.001)/1.5);c.phase+=dt*(speed>.08?8:2.2);
- const step=Math.sin(c.phase)*.62*speed;
- c.body.position.y=Math.abs(Math.sin(c.phase))*.035*speed;
+ const step=Math.sin(c.phase)*.42*speed;
+ c.body.position.y=Math.abs(Math.sin(c.phase))*.012*speed;
  c.legs[0]!.rotation.x=step;c.legs[1]!.rotation.x=-step;
- c.arms[0]!.rotation.x=-step*.7;c.arms[1]!.rotation.x=step*.7;
+ c.arms[0]!.rotation.x=-step*.7;c.arms[1]!.rotation.x=step*.7;c.arms[1]!.rotation.z=.09;
  c.head.rotation.y=Math.sin(c.phase*.28)*.065;
  if(guide&&speed<.08){c.arms[1]!.rotation.z=.85+Math.sin(c.phase*1.8)*.32;c.arms[1]!.rotation.x=-.70;}
 }
