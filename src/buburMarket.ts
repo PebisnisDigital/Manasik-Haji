@@ -31,9 +31,17 @@ export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
  if(nearest<length)goal.copy(pivot).addScaledVector(cameraDir,Math.max(.16,nearest-.23));
  return goal;
 }
+export type SalesJob='bubur'|'hijab';
+export const salesNames={bubur:'Bubur Ayam',hijab:'Hijab KOKOSALAMA'} as const;
+export const salesCommission={bubur:2000,hijab:5000} as const;
+export const SALES_COUPON='MAUHAJJI';
+type Prospect={id:number;name:string;actor:THREE.Group};
+const names=['Asep','Siti','Dedi','Neneng','Budi','Yuni','Agus','Rina','Dian','Eko','Nining','Wawan','Titin','Rizky','Dewi','Ari','Fitri','Slamet','Rani','Ujang'];
 export function createBuburMarket(scene:THREE.Scene){
  const root=new THREE.Group();root.name='bubur-market';scene.add(root);
  const walkers:{actor:THREE.Group;points:THREE.Vector3[];index:number;wait:number}[]=[];
+ const prospects:Prospect[]=[];
+ const addProspect=(actor:THREE.Group)=>{const id=prospects.length;prospects.push({id,name:names[id%names.length]!,actor});};
  for(const shop of shops){
   const x=shop.x;const building=new THREE.Group();building.name=shop.name;root.add(building);
   box(building,8.5,.14,6.8,x,.04,-6.4,0xd5cbb9);box(building,8.5,3.9,.2,x,1.95,-9.6,0xeee7dc);
@@ -52,7 +60,7 @@ export function createBuburMarket(scene:THREE.Scene){
   for(let i=0;i<3;i++){
    const female=shop.name==='KOKOSALAMA'||i%2===1;
    const actor=humanActor(scene,[0x739385,0xb28b84,0x9f9b75][i]!,female,undefined,undefined,{palette:i+3,build:1,brightness:1,cull:true,registration:true});
-   actor.userData.noCollision=true;
+   actor.userData.noCollision=true;addProspect(actor);
    const path=[new THREE.Vector3(x-3+i*.6,0,4.25+i*.36),new THREE.Vector3(x+.2,0,3.6),new THREE.Vector3(x+.2,0,-2.65),new THREE.Vector3(x+.2,0,-5.3),new THREE.Vector3(x+.2,0,-2.65),new THREE.Vector3(x+.2,0,3.6),new THREE.Vector3(x+3-i*.6,0,4.25+i*.36)];
    const index=i*2;actor.position.copy(path[index]!);walkers.push({actor,points:path,index:(index+1)%path.length,wait:i*.8});
   }
@@ -69,34 +77,32 @@ export function createBuburMarket(scene:THREE.Scene){
  for(let i=0;i<4;i++){cylinder(cart,.15,.075,x-.1+i*.28,1.18,z+.22,[0xffe5b3,0xb78851,0xf2cf92,0x8eac6d][i]!);}
  cylinder(cart,.21,.42,x+.85,1.37,z-.2,0xd0ae54);
  const vendor=humanActor(scene,0x547e64,false,undefined,undefined,{palette:8,build:1,brightness:1,registration:true});vendor.position.set(x,0,z-.92);vendor.rotation.y=0;
- for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x+.18+i*.7,0,z+1.3+i*.12);a.rotation.y=Math.PI;a.userData.noCollision=true;}
- for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});actor.userData.noCollision=true;const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
- return {update(dt:number){for(const w of walkers){if(w.wait>0){w.wait-=dt;continue;}const p=w.actor.position,t=w.points[w.index]!;const dx=t.x-p.x,dz=t.z-p.z,d=Math.hypot(dx,dz);if(d<.08){w.index=(w.index+1)%w.points.length;w.wait=.45;continue;}const step=Math.min(d,dt*1.1);p.x+=dx/d*step;p.z+=dz/d*step;w.actor.rotation.y=Math.atan2(dx,dz);}}};
+ for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x+.18+i*.7,0,z+1.3+i*.12);a.rotation.y=Math.PI;a.userData.noCollision=true;addProspect(a);}
+ for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});actor.userData.noCollision=true;addProspect(actor);const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
+ const hijabOwner=humanActor(scene,0x866b88,true,undefined,undefined,{palette:7,build:1,brightness:1,registration:true});
+ hijabOwner.position.set(-26,0,-1.8);hijabOwner.rotation.y=0;
+ return {owners:{bubur:vendor,hijab:hijabOwner},prospects,update(dt:number,hold:THREE.Group|null=null){for(const w of walkers){if(w.actor===hold)continue;if(w.wait>0){w.wait-=dt;continue;}const p=w.actor.position,t=w.points[w.index]!;const dx=t.x-p.x,dz=t.z-p.z,d=Math.hypot(dx,dz);if(d<.08){w.index=(w.index+1)%w.points.length;w.wait=.45;continue;}const step=Math.min(d,dt*1.1);p.x+=dx/d*step;p.z+=dz/d*step;w.actor.rotation.y=Math.atan2(dx,dz);}}};
 }
 
-const toppings=['Ayam','Cakwe','Bawang goreng','Kerupuk','Sambal','Kecap'];
-const orders=[[0,1,2,3],[0,2,3,5],[0,1,3,4],[0,2,4,5],[0,1,2,3,5],[0,3],[0,1,4,5],[0,2,3,4],[0,1,2,5],[0,1,2,3,4,5]];
-export function openBuburGame(onClose:()=>void,onQueue:()=>void){
- const dlg=document.createElement('dialog');dlg.setAttribute('aria-label','Dagang bubur ayam');dlg.style.cssText='width:min(540px,92vw);max-height:90dvh;overflow:auto;border:1px solid #d0b36d;border-radius:16px;background:#15382e;color:#fff5dd;padding:16px;font:16px system-ui;box-sizing:border-box';
- document.body.append(dlg);
- let sold=0,base=false,picked=new Set<number>(),message='Masukkan bubur lalu pilih topping sesuai pesanan.';
- const money=(n:number)=>'Rp'+n.toLocaleString('id-ID');
- function finish(queue=false){dlg.close();dlg.remove();onClose();if(queue)onQueue();}
- dlg.addEventListener('cancel',e=>{e.preventDefault();finish();});
- function paint(){
-  dlg.replaceChildren();
-  const add=(tag:string,value:string)=>{const el=document.createElement(tag);el.textContent=value;el.style.margin='8px 0';dlg.append(el);return el;};
-  const button=(label:string,fn:()=>void,active=false)=>{const b=document.createElement('button');b.type='button';b.textContent=label;b.style.cssText='padding:10px 13px;margin:4px;border-radius:9px;border:1px solid #d5bd7b;background:'+(active?'#e8c974':'#285343')+';color:'+(active?'#15382e':'#fff5dd')+';font:inherit;cursor:pointer';b.onclick=fn;dlg.append(b);return b;};
-  add('h2','Bubur Ayam • Tabungan Haji');
-  add('p',sold+' / 10 porsi  •  Tabungan virtual '+money(sold*5000)+' / '+money(50000));
-  const progress=document.createElement('progress');progress.max=10;progress.value=sold;progress.style.width='100%';dlg.append(progress);
-  if(sold===10){add('h3','Alhamdulillah, misi selesai!');add('p','Tabungan virtual terkumpul. Berhaji juga membutuhkan persiapan ilmu. Yuk belajar manasik bersama.');add('p','Preview hadiah: voucher pendaftaran Rp25.000. Voucher nyata belum diaktifkan pada versi uji ini.');button('Lanjut ke loket',()=>finish(true),true);button('Keluar',()=>finish());return;}
-  const order=orders[sold]!;add('h3','Pelanggan '+(sold+1)+': bubur + '+order.map(i=>toppings[i]).join(', '));
-  button(base?'Bubur sudah di mangkuk':'Ambil bubur',()=>{base=true;paint();},base);
-  toppings.forEach((t,i)=>button(t,()=>{if(!base){message='Ambil bubur dahulu.';}else if(picked.has(i)){picked.delete(i);}else{picked.add(i);}paint();},picked.has(i)));
-  add('p',message);
-  button('Sajikan pesanan',()=>{if(!base||picked.size!==order.length||!order.every(i=>picked.has(i))){message='Pesanan belum sesuai. Cek kembali toppingnya.';paint();return;}sold++;base=false;picked=new Set();message='Terjual! Keuntungan virtual Rp5.000 ditabung.';paint();},true);
-  button('Ulang mangkuk',()=>{base=false;picked.clear();message='Silakan racik ulang.';paint();});button('Keluar',()=>finish());
- }
- paint();dlg.showModal();
+
+type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean};
+const storeKey='hajji-market-sales-v1';
+export function loadSales():SalesState{
+ try{const s=JSON.parse(sessionStorage.getItem(storeKey)??'null');if(s&&(s.job==='bubur'||s.job==='hijab')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected))return {job:s.job,accepted:s.accepted,rejected:s.rejected,claimed:!!s.claimed};}catch{}
+ return {job:null,accepted:[],rejected:[],claimed:false};
+}
+export function saveSales(s:SalesState){try{sessionStorage.setItem(storeKey,JSON.stringify(s));}catch{}}
+export function salesResponse(id:number,pitch:number,job:SalesJob){
+ // Stable outcomes: four of sixteen prospects decline politely regardless of pitch.
+ // Others accept if approached respectfully; all ten sales are attainable.
+ if(id%4===3)return {ok:false,line:job==='bubur'?'Maaf, saya sudah makan.':'Maaf, saya belum membutuhkan hijab.'};
+ if(pitch===2)return {ok:false,line:'Maaf, saya kurang nyaman kalau ditawari seperti itu.'};
+ return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Nanti saya ke gerobaknya.':'Boleh, saya mau beli hijab. Saya ke toko sekarang.'};
+}
+export function salesDialog(title:string,build:(say:(s:string)=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void)=>void,onClose:()=>void){
+ const dlg=document.createElement('dialog');dlg.setAttribute('aria-label',title);dlg.style.cssText='width:min(420px,92vw);max-height:82dvh;overflow:auto;border:1px solid #d0b36d;border-radius:16px;background:#15382e;color:#fff5dd;padding:16px;font:16px system-ui;box-sizing:border-box;margin:auto';
+ let closed=false;const close=()=>{if(closed)return;closed=true;dlg.close();dlg.remove();onClose();};
+ const say=(s:string)=>{const p=document.createElement('p');p.textContent=s;p.style.margin='8px 0';p.setAttribute('aria-live','polite');dlg.append(p);};
+ const button=(s:string,fn:()=>void,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=s;b.style.cssText='display:block;width:100%;min-height:44px;padding:9px;margin:7px 0;border-radius:9px;border:1px solid #d5bd7b;background:'+(primary?'#e8c974':'#285343')+';color:'+(primary?'#15382e':'#fff5dd')+';font:inherit;cursor:pointer';b.onclick=()=>fn();dlg.append(b);};
+ const h=document.createElement('h3');h.textContent=title;h.style.margin='0 0 10px';dlg.append(h);build(say,button,close);dlg.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(dlg);dlg.showModal();
 }
