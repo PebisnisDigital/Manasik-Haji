@@ -132,7 +132,7 @@ const deltaAngle=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
 function resetCamera(){if(gateEncounter==='clerk')return;cameraYaw=heading;cameraPitch=cameraPrefs.pitch;cameraRadius=cameraPrefs.distance;cameraInitialized=false;}
 btn('recenter').onclick=()=>{resetCamera();document.querySelector<HTMLDetailsElement>('.menu')!.open=false;};
 function resetPosition(preserveOrbit=false){if(sceneReady){hero.root.position.copy(start);heading=Math.PI;hero.root.rotation.y=heading;velocity.set(0,0);if(preserveOrbit){cameraInitialized=false;}else resetCamera();}}
-function stopMotion(){keys.clear();joy.set(0,0);velocity.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}
+function stopMotion(){keys.clear();velocity.set(0,0);resetTouchControls();}
 
 function applyProgramSetting(p:Program){const open=newSessionAllowed(settings,p);btn('startTraining').disabled=!open||starting;if(!open)$('payNotice').textContent='Sesi baru sedang dijeda. Latihan lama tetap bisa dilanjutkan.';}
 function openRegistration(p:Program){chosenProgram=p;clearTimeout(dialogueTimer);encounter=false;encounterProgram=null;modal=true;target=null;stopMotion();$('bubble').hidden=true;$('programTitle').textContent=programs[p].title;$('programDesc').textContent=programs[p].desc;$('levelList').replaceChildren(...programs[p].levels.map((v,i)=>{const el=document.createElement('span');el.textContent=String(i+1).padStart(2,'0')+' · '+v;return el;}));$<HTMLFormElement>('registerForm').reset();const previous=readCore(p);btn('resumeTraining').hidden=!previous;btn('resumeTraining').textContent=previous?(isComplete(previous)?'Lihat sertifikat':'Lanjut level '+levelNumber(previous.step)):'Lanjutkan progress';btn('startTraining').textContent=previous?'Mulai ulang':'Mulai manasik';if(previous)$<HTMLInputElement>('fullName').value=previous.name;$('payNotice').textContent=accountId()?'Akses gratis • progress disinkronkan ke akun.':'Akses tamu • progress hanya di perangkat.';$('registerModal').hidden=false;$('instruction').textContent='Mulai manasik';applyProgramSetting(p);void loadSettings().then(()=>{if(chosenProgram===p&&!$('registerModal').hidden)applyProgramSetting(p);});if(!portraitBlocked)btn('closeRegister').focus({preventScroll:true});}
@@ -196,14 +196,75 @@ async function landscapeFullscreen(){if(!touchMode)return;try{if(!document.fulls
 btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exitFullscreen().catch(()=>{});}else void landscapeFullscreen();};btn('rotateFullscreen').onclick=()=>void landscapeFullscreen();btn('cameraReset').onclick=()=>resetCamera();
 window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);document.addEventListener('fullscreenchange',()=>{btn('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Keluar layar penuh':'Layar penuh');syncOrientation();});
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();ray.layers.enable(1);const canvas=$<HTMLCanvasElement>('world');let cameraPointer:number|null=null,downX=0,downY=0,prevX=0,prevY=0,dragged=false;
-canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(!sceneReady||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor()*cameraPrefs.sensitivity;cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor()*cameraPrefs.sensitivity,.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
-canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
-canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
+// Assign a touch to one role at touch-down; crossing the centre never changes its role.
+const touchInput=(e:PointerEvent)=>e.pointerType==='touch'||e.pointerType==='pen';
+const menuOpen=()=>!!document.querySelector('.menu[open]');
+const canLook=()=>sceneReady&&selected&&!modal&&gateEncounter!=='clerk'&&(!encounter||guideMode)&&!portraitBlocked&&!introPlaying&&!paused&&!menuOpen();
+const canWalk=()=>sceneReady&&selected&&!modal&&!encounter&&!portraitBlocked&&!queueJoining&&!queueAuthorized&&!departure&&!introPlaying&&!paused&&!menuOpen();
+canvas.addEventListener('pointerdown',e=>{
+ if(e.button!==0)return;
+ if(touchInput(e)){
+  if(e.cancelable)e.preventDefault();
+  const bounds=canvas.getBoundingClientRect();
+  if(e.clientX<bounds.left+bounds.width*.5){if(canWalk())beginMove(e,canvas,true);return;}
+ }
+ if(!canLook()||cameraPointer!==null)return;
+ cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove',e=>{
+ if(e.pointerId===pid){if(canWalk())jp(e);else resetMove();return;}
+ if(e.pointerId!==cameraPointer||!canLook())return;
+ if(touchInput(e)&&e.cancelable)e.preventDefault();
+ const dx=e.clientX-prevX,dy=e.clientY-prevY;
+ if(Math.hypot(e.clientX-downX,e.clientY-downY)>3)dragged=true;
+ if(dragged){
+  const sensitivity=lookFactor()*cameraPrefs.sensitivity;
+  tutorial.event({type:'look',amount:Math.hypot(dx,dy)});
+  cameraYaw-=dx*.005*sensitivity;
+  cameraPitch=THREE.MathUtils.clamp(cameraPitch+dy*.0035*sensitivity,.045,.75);lookedAt=performance.now();
+ }
+ prevX=e.clientX;prevY=e.clientY;
+});
+canvas.addEventListener('pointerup',e=>{
+ if(e.pointerId===pid){resetMove();return;}
+ if(e.pointerId!==cameraPointer)return;cameraPointer=null;
+ if(touchInput(e)||dragged||modal||encounter||portraitBlocked)return;
+ const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}
+});
+const cancelCanvas=(e:PointerEvent)=>{if(e.pointerId===pid)resetMove();if(e.pointerId===cameraPointer)cameraPointer=null;};
+canvas.addEventListener('pointercancel',cancelCanvas);canvas.addEventListener('lostpointercapture',cancelCanvas);
 canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();if(touchMode||e.ctrlKey||cameraPrefs.mode==='first')return;cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.target as HTMLElement)?.closest('.minimalGameMenu')||document.querySelector('.menu[open]'))return;if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter&&!portraitBlocked){e.preventDefault();currentGateAction()?.run?.();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',stopGuideVoice);
-let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
-j.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
+window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.target as HTMLElement)?.closest('.minimalGameMenu')||document.querySelector('.menu[open]'))return;if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter&&!portraitBlocked){e.preventDefault();currentGateAction()?.run?.();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',()=>{resetTouchControls();stopGuideVoice();});
+let pid:number|null=null;const j=$('joystick');let moveTarget:HTMLElement|null=null,originX=0,originY=0,moveRadius=36;
+const floating=document.createElement('div');floating.className='joy floatingMoveStick';floating.setAttribute('aria-hidden','true');floating.hidden=true;const floatingKnob=document.createElement('div');floating.append(floatingKnob);$('lobby').append(floating);
+function beginMove(e:PointerEvent,owner:HTMLElement,free:boolean){
+ if(!canWalk()||pid!==null)return;
+ if(e.cancelable)e.preventDefault();pid=e.pointerId;moveTarget=owner;owner.setPointerCapture(e.pointerId);
+ const b=j.getBoundingClientRect(),size=Math.max(84,Math.min(119,innerHeight*.27));
+ moveRadius=free?size*.34:Math.max(22,b.width*.34);
+ originX=free?e.clientX:b.left+b.width/2;originY=free?e.clientY:b.top+b.height/2;
+ if(free){
+  const bounds=$('lobby').getBoundingClientRect();floating.style.width=size+'px';floating.style.height=size+'px';
+  floating.style.left=originX-bounds.left+'px';floating.style.top=originY-bounds.top+'px';floating.hidden=false;j.classList.add('floatingMoveActive');
+ }
+ jp(e);
+}
+function jp(e:PointerEvent){
+ const dx=(e.clientX-originX)/moveRadius,dy=(e.clientY-originY)/moveRadius,length=Math.hypot(dx,dy),dead=.12;
+ if(length<=dead)joy.set(0,0);else{const strength=Math.min(1,(length-dead)/(1-dead));joy.set(dx/length*strength,dy/length*strength);}
+ const knob=floating.hidden?$('knob'):floatingKnob;
+ knob.style.transform='translate(calc(-50% + '+joy.x*moveRadius*.82+'px),calc(-50% + '+joy.y*moveRadius*.82+'px))';target=null;
+}
+function resetMove(){
+ const id=pid,owner=moveTarget;pid=null;moveTarget=null;joy.set(0,0);
+ $('knob').style.transform='translate(-50%,-50%)';floatingKnob.style.transform='translate(-50%,-50%)';floating.hidden=true;j.classList.remove('floatingMoveActive');
+ if(id!==null&&owner?.hasPointerCapture(id))owner.releasePointerCapture(id);
+}
+function resetTouchControls(){resetMove();const id=cameraPointer;cameraPointer=null;if(id!==null&&canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);resetCameraStick();}
+j.addEventListener('pointerdown',e=>{if(e.button===0)beginMove(e,j,false);});
+j.addEventListener('pointermove',e=>{if(e.pointerId===pid){if(canWalk())jp(e);else resetMove();}});
+function ju(e:PointerEvent){if(e.pointerId===pid)resetMove();}
+j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
 // One contextual interaction at a time, with the same range checks for touch, mouse and E.
 type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'bubur'|'hijab'|`prospect-${number}`;title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
 let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gateQueueCancel:HTMLButtonElement|undefined;
@@ -243,13 +304,13 @@ function paintGateAction(a:GateAction|null){
 }
 function resetCameraStick(){cameraStickPointer=null;cameraStick.set(0,0);const knob=gateCameraPad?.firstElementChild as HTMLElement|undefined;if(knob)knob.style.transform='translate(-50%,-50%)';}
 function mountGateControls(){
- const pad=document.createElement('div');pad.className='gateCameraPad joy';pad.setAttribute('aria-label','Joystick kamera');pad.title='Geser untuk memutar kamera';pad.append(document.createElement('div'));document.querySelector('.bottom')!.append(pad);gateCameraPad=pad;
+ const pad=document.createElement('div');pad.className='gateCameraPad joy';pad.setAttribute('aria-label','Joystick kamera');pad.title='Geser untuk memutar kamera';pad.append(document.createElement('div'));document.querySelector('.bottom')!.append(pad);gateCameraPad=pad;if(touchMode){pad.classList.add('swipeLookHint');pad.setAttribute('aria-hidden','true');pad.title='';pad.replaceChildren();const mark=document.createElement('span');mark.textContent='↔';pad.append(mark);const note=document.createElement('small');note.textContent='KAMERA';pad.append(note);}
  function move(e:PointerEvent){const b=pad.getBoundingClientRect();cameraStick.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(cameraStick.length()>1)cameraStick.normalize();(pad.firstElementChild as HTMLElement).style.transform='translate(calc(-50% + '+cameraStick.x*b.width*.28+'px),calc(-50% + '+cameraStick.y*b.height*.28+'px))';}
- pad.addEventListener('pointerdown',e=>{if(!selected||modal||gateEncounter==='clerk'||portraitBlocked||cameraStickPointer!==null||e.button!==0)return;e.preventDefault();cameraStickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);move(e);});
+ pad.addEventListener('pointerdown',e=>{if(touchMode||!selected||modal||gateEncounter==='clerk'||portraitBlocked||cameraStickPointer!==null||e.button!==0)return;e.preventDefault();cameraStickPointer=e.pointerId;pad.setPointerCapture(e.pointerId);move(e);});
  pad.addEventListener('pointermove',e=>{if(e.pointerId===cameraStickPointer)move(e);});
  const release=(e:PointerEvent)=>{if(e.pointerId===cameraStickPointer)resetCameraStick();};
  pad.addEventListener('pointerup',release);pad.addEventListener('pointercancel',release);pad.addEventListener('lostpointercapture',release);
- window.addEventListener('blur',resetCameraStick);document.addEventListener('visibilitychange',resetCameraStick);window.addEventListener('orientationchange',resetCameraStick);
+ window.addEventListener('blur',resetCameraStick);document.addEventListener('visibilitychange',resetCameraStick);window.addEventListener('orientationchange',resetTouchControls);
  const prompt=document.createElement('section');prompt.className='gateContextPrompt';prompt.hidden=true;
  const title=document.createElement('strong'),line=document.createElement('p'),row=document.createElement('div'),action=document.createElement('button');
  row.className='gateContextActions';action.type='button';
@@ -260,6 +321,7 @@ function mountGateControls(){
 }
 function frame(now:number){
  requestAnimationFrame(frame);const dt=Math.min(.05,last?(now-last)/1000:0);last=now;if(paused||document.querySelector('.menu[open]')||document.hidden||(portraitBlocked&&(!entranceMode||entranceFramePresented))||introPlaying||budget.lost()){videotron?.draw(cam,false);return;}tutorial.paint();
+ if(pid!==null&&!canWalk())resetMove();if(cameraPointer!==null&&!canLook()){const id=cameraPointer;cameraPointer=null;if(canvas.hasPointerCapture(id))canvas.releasePointerCapture(id);}
  if(guideMode&&gateCameraPad){gateCameraPad.hidden=!selected||modal||portraitBlocked||gateEncounter==='clerk';if(modal||portraitBlocked||gateEncounter==='clerk')resetCameraStick();if(cameraStick.lengthSq()>.006){cameraYaw-=cameraStick.x*dt*2.15*lookFactor()*cameraPrefs.sensitivity;cameraPitch=THREE.MathUtils.clamp(cameraPitch+cameraStick.y*dt*1.35*lookFactor()*cameraPrefs.sensitivity,.045,.75);lookedAt=now;tutorial.event({type:'look',amount:cameraStick.length()*dt*90});}}
  const pos=hero.root.position;let dx=0,dz=0;let automatic=false;
  if(selected&&!modal&&!encounter&&!queueAuthorized){
