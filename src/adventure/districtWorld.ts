@@ -39,7 +39,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
   for(let x=-8;x<=4;x+=1.5)box(.7,.025,7.5,white,x,.11,24,scene,false);
   for(let z=-16;z<=-8;z+=1.5)box(7.5,.025,.7,white,38,.11,z,scene,false);
   for(const b of BUILDINGS){
-    const facade=mat(missionCity?0x242424:b.color);box(b.w,b.height,b.d,facade,b.x,b.height/2,b.z);
+    const facade=mat(missionCity?0xf0e8d9:b.color);box(b.w,b.height,b.d,facade,b.x,b.height/2,b.z);
     box(b.w+.5,.45,b.d+.5,stone,b.x,b.height+.1,b.z);box(b.w+.7,.28,.8,gold,b.x,3.4,b.z+b.d/2+.3);
     for(let y=4.8;y<b.height-1;y+=3.1)for(let x=-b.w/2+2;x<b.w/2-1;x+=3.4){
       box(1.65,1.9,.12,glass,b.x+x,y,b.z+b.d/2+.07);
@@ -79,7 +79,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     box(1.2,.12,.5,dark,x+.45,6.6,z);box(.9,.04,.32,mat(0xf6ddb0,.3),x+.45,6.5,z,scene,false);
   }
   for(let i=0;i<5;i++){const x=-30+i*5;const awning=box(4,.13,2.8,mat(i%2?0x667e65:0xa96e54),x,3,-36);awning.rotation.x=.14;box(3.5,1.1,1,mat(0x89735c),x,.55,-36.3);}
-  box(23,5,14,mat(missionCity?0x242424:0xc8c2b1),-22,2.5,-66);
+  box(23,5,14,mat(missionCity?0xf0e8d9:0xc8c2b1),-22,2.5,-66);
   mesh(new THREE.SphereGeometry(6,24,12,0,Math.PI*2,0,Math.PI/2),mat(0x71877a,.5),-22,5,-66);
   mesh(new THREE.CylinderGeometry(.8,1.2,19,12),stone,-37,9.5,-64);mesh(new THREE.ConeGeometry(1.4,3,12),gold,-37,20,-64);
   // The legacy transfer map ends at z=-57. Its mountain silhouettes at z=-98
