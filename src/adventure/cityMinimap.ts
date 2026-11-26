@@ -9,21 +9,21 @@ const node=<K extends keyof SVGElementTagNameMap>(tag:K,attrs:Record<string,stri
 export function mountCityMinimap(places:readonly Building[],solids:readonly Rect[],board:Rect){
  const svg=document.querySelector<SVGSVGElement>('.miniMap svg')!,map=document.querySelector<HTMLElement>('.miniMap')!,hud=document.querySelector<HTMLElement>('.districtHud')!;
  const player=document.getElementById('mapPlayer')!,goal=document.getElementById('mapGoal')!,route=document.getElementById('mapRoute')!;
- const roads=[...DISTRICT_ROADS,...CITY_ROADS];const layer=node('g',{});svg.replaceChildren(node('rect',{width:140,height:114,rx:4,fill:'#f8f5ee'}),layer);
+ const roads=[...DISTRICT_ROADS,...CITY_ROADS];const layer=node('g',{});svg.replaceChildren(node('rect',{width:140,height:114,rx:4,fill:'#141414'}),layer);
  const rect=(r:Rect,attrs:Record<string,string|number>)=>node('rect',{x:mx(r.x-r.w/2),y:mz(r.z-r.d/2),width:r.w*140/300,height:r.d*114/256,...attrs});
- for(const road of roads)layer.append(rect(road,{fill:'#b3ada2'}));
- for(const b of BUILDINGS)layer.append(rect(b,{fill:'#ded5c4',stroke:'#d8cbb2','stroke-width':.35}));
- layer.append(rect(board,{fill:'#d4ba78'}));
+ for(const road of roads)layer.append(rect(road,{fill:'#777772'}));
+ for(const b of BUILDINGS)layer.append(rect(b,{fill:'#343434',stroke:'#8b8475','stroke-width':.35}));
+ layer.append(rect(board,{fill:'#d6b46b'}));
  const buildings=new Map<number,SVGRectElement>();
- for(const b of places){const box=rect(b,{fill:b.number===SOUVENIR_NUMBER?'#d4b56b':'#e0d8ca',stroke:'#e4d8bf','stroke-width':.45,rx:.6});buildings.set(b.number,box);layer.append(box);}
- route.setAttribute('stroke','#946b22');route.setAttribute('stroke-width','2.1');route.setAttribute('stroke-linecap','round');route.setAttribute('stroke-linejoin','round');route.removeAttribute('hidden');svg.append(route);
- for(const b of places){const t=node('text',{x:mx(b.x),y:mz(b.z)+1.45,fill:'#25211b','font-size':4.6,'font-weight':800,'text-anchor':'middle','paint-order':'stroke',stroke:'#e3d9bf','stroke-width':.25});t.textContent=b.number===SOUVENIR_NUMBER?'★':String(b.number);svg.append(t);}
- goal.setAttribute('fill','#b68b36');goal.setAttribute('stroke','#25211b');goal.setAttribute('stroke-width','.65');goal.setAttribute('r','2.3');svg.append(goal);
- player.setAttribute('fill','#25211b');player.setAttribute('stroke','#fffdf8');player.setAttribute('stroke-width','.7');player.setAttribute('d','M0 -4L2.8 3 0 1.7-2.8 3Z');svg.append(player);
+ for(const b of places){const box=rect(b,{fill:b.number===SOUVENIR_NUMBER?'#d4b56b':'#454545',stroke:'#888278','stroke-width':.45,rx:.6});buildings.set(b.number,box);layer.append(box);}
+ route.setAttribute('stroke','#f5ca70');route.setAttribute('stroke-width','2.1');route.setAttribute('stroke-linecap','round');route.setAttribute('stroke-linejoin','round');route.removeAttribute('hidden');svg.append(route);
+ for(const b of places){const t=node('text',{x:mx(b.x),y:mz(b.z)+1.45,fill:'#ffffff','font-size':5.1,'font-weight':800,'text-anchor':'middle','paint-order':'stroke',stroke:'#141414','stroke-width':.25});t.textContent=b.number===SOUVENIR_NUMBER?'★':String(b.number);svg.append(t);}
+ goal.setAttribute('fill','#f5ca70');goal.setAttribute('stroke','#25211b');goal.setAttribute('stroke-width','.65');goal.setAttribute('r','2.3');svg.append(goal);
+ player.setAttribute('fill','#ffffff');player.setAttribute('stroke','#141414');player.setAttribute('stroke-width','.7');player.setAttribute('d','M0 -4L2.8 3 0 1.7-2.8 3Z');svg.append(player);
  hud.prepend(map);svg.setAttribute('aria-label','Peta jalan dan gedung HAJJI CITY, posisi pemain dan tujuan emas');
  let last:Point|null=null,lastTarget=-1,lastTime=-Infinity,points:Point[]=[];
  function update(p:Point,yaw:number,target:number,now:number){const b=places.find(b=>b.number===target);if(!b)return;
-  if(target!==lastTarget||!last||now-lastTime>1000&&Math.hypot(p.x-last.x,p.z-last.z)>3){last={...p};lastTarget=target;lastTime=now;points=cityRoute(p,b.door,roads,solids);for(const [n,box] of buildings){box.setAttribute('fill',n===target?'#d6b46b':n===SOUVENIR_NUMBER?'#d4b56b':'#e0d8ca');box.setAttribute('stroke',n===target?'#805c22':'#e4d8bf');box.setAttribute('stroke-width',n===target?'1.15':'.45');}}
+  if(target!==lastTarget||!last||now-lastTime>1000&&Math.hypot(p.x-last.x,p.z-last.z)>3){last={...p};lastTarget=target;lastTime=now;points=cityRoute(p,b.door,roads,solids);for(const [n,box] of buildings){box.setAttribute('fill',n===target?'#d6b46b':n===SOUVENIR_NUMBER?'#d4b56b':'#454545');box.setAttribute('stroke',n===target?'#fff1c5':'#888278');box.setAttribute('stroke-width',n===target?'1.15':'.45');}}
   player.setAttribute('transform',`translate(${mx(p.x)} ${mz(p.z)}) rotate(${180-yaw*180/Math.PI})`);
   goal.setAttribute('cx',String(mx(b.door.x)));goal.setAttribute('cy',String(mz(b.door.z)));
   route.setAttribute('points',points.map(q=>mx(q.x)+','+mz(q.z)).join(' '));route.toggleAttribute('hidden',points.length<2);
