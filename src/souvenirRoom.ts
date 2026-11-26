@@ -11,9 +11,9 @@ import {readSetup} from './frontSettings.ts';
 import {readStory} from './travelStory.ts';
 import {gateGuide} from './gateGuide.ts';
 import {tenantUrl} from './tenant.ts';
-import {GIFTS,DEMO_REFERRALS,bankDraft,commissionFor,demoWallet,validWithdrawal,courseUrl,type GiftId,type SouvenirSave} from './souvenirModel.ts';
+import {GIFTS,SOUVENIR_BOUNDS,DEMO_REFERRALS,bankDraft,commissionFor,demoWallet,validWithdrawal,courseUrl,type GiftId,type SouvenirSave} from './souvenirModel.ts';
 import {ensureSouvenir,storeSouvenir} from './souvenirProgress.ts';
-import {SOUVENIR_COURSES} from './souvenirConfig.ts';
+import {SOUVENIR_COURSES,SOUVENIR_ASSETS} from './souvenirConfig.ts';
 import {souvenirCertificate,downloadSouvenirCertificate} from './souvenirCertificate.ts';
 import {buildSouvenirWorld} from './souvenirWorld.ts';
 import {attachWalker} from './coreWalk.ts';
@@ -38,27 +38,27 @@ function boot(){
  let exiting=false;let record:SouvenirSave=initial,current:GiftId='guide',disposed=false,portrait=()=>false,pendingDemo=0;
  const requests:{amount:number;bank:string;account:string}[]=[];
  const dialog=$<HTMLDialogElement>('giftDialog'),content=$('giftContent'),actions=$('giftActions');
- const scene=new THREE.Scene();scene.background=new THREE.Color(0xc7d9d4);scene.fog=new THREE.Fog(0xc7d9d4,25,55);
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0xc7d9d4);scene.fog=new THREE.Fog(0xc7d9d4,35,65);
  const camera=new THREE.PerspectiveCamera(58,1,.08,80),canvas=$<HTMLCanvasElement>('souvenirWorld');
  const renderer=new THREE.WebGLRenderer({canvas,antialias:graphicsTier()!=='low',powerPreference:'low-power'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
  scene.add(new THREE.HemisphereLight(0xfff4da,0x657d69,2.4));const sun=new THREE.DirectionalLight(0xffe4b6,2.4);sun.position.set(-7,13,8);scene.add(sun);
  const world=buildSouvenirWorld(scene),budget=createRenderBudget(renderer,{maxFps:30});
  const blocked=()=>disposed||simpleMenuOpen()||dialog.open||portrait()||document.hidden||budget.lost();
  const guideActor=humanActor(scene,0x285f49,avatar==='female');guideActor.position.set(.9,0,1);guideActor.rotation.y=0;
- const walker=attachWalker(scene,camera,canvas,$('souvenirRoom'),{avatar,wardrobe:'casual',lifeKind:'souvenir',arenaEntry:[0,7],blocked,onNear:()=>{paint();}},[-10,10,-8.5,10],world.obstacles,[0,7],[0,2]);
+ const walker=attachWalker(scene,camera,canvas,$('souvenirRoom'),{avatar,wardrobe:'casual',lifeKind:'souvenir',arenaEntry:[0,7],blocked,onNear:()=>{paint();}},SOUVENIR_BOUNDS,world.obstacles,[0,7],[0,2]);
  document.title='Oleh-oleh '+record.name+' · HAJJI.DIGITAL';$('levelLabel').textContent='12/12 · OLEH-OLEH '+(preview?'DEMO':record.name.toUpperCase());
  function p(text:string,small=false){const el=document.createElement('p');el.textContent=text;if(small)el.className='fine';content.append(el);return el;}
  function button(label:string,fn:()=>void,secondary=false,host:HTMLElement=actions){const b=document.createElement('button');b.type='button';b.textContent=label;if(secondary)b.className='secondary';b.onclick=fn;host.append(b);return b;}
  function show(title:string){dialog.classList.remove('giftGuideTalk');walker.endTalk();content.replaceChildren();actions.replaceChildren();$('giftNotice').textContent='';$('giftTitle').textContent=title;$('giftEyebrow').textContent=(preview?'PRATINJAU · ':'')+record.name+' · '+guide;window.dispatchEvent(new Event('blur'));if(!dialog.open)dialog.showModal();dialog.scrollTop=0;}
  function focusDialog(){(actions.querySelector('button,a') as HTMLElement|null)?.focus({preventScroll:true});}
- function close(){walker.endTalk();dialog.classList.remove('giftGuideTalk');dialog.close();window.dispatchEvent(new Event('blur'));paint();}
+ function close(){walker.endTalk();dialog.classList.remove('giftGuideTalk');content.querySelectorAll('video,audio').forEach(el=>(el as HTMLMediaElement).pause());content.replaceChildren();dialog.close();window.dispatchEvent(new Event('blur'));paint();}
  $('giftClose').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});
  dialog.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const items=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')).filter(el=>el.getClientRects().length>0),first=items[0],last=items.at(-1);if(!first||!last)return;if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){e.preventDefault();first.focus();}});
  function update(next:SouvenirSave){if(!storeSouvenir(next)){$('giftNotice').textContent='Perubahan belum tersimpan. Periksa penyimpanan browser lalu coba lagi.';return false;}record=next;$('souvenirRoom').dataset.received=String(record.received);return true;}
  function choose(id:GiftId){if(!record.received&&id!=='guide'){notifySimplePlay('Temui '+guide+' untuk menerima oleh-oleh terlebih dahulu.');return;}current=id;const g=GIFTS.find(g=>g.id===id)!;walker.setGoal(g.x,g.z);paint();}
- function inventory(){show('Ruang oleh-oleh '+record.name);p('Ketuk tujuan, lalu pilih JALAN KE LOKASI. Kamu juga bisa berjalan sendiri dan mengetuk papan meja.');const grid=document.createElement('div');grid.className='giftGrid';content.append(grid);for(const g of GIFTS){const b=button(g.id==='guide'?guide:g.title,()=>{choose(g.id);close();},false,grid);const small=document.createElement('small');small.textContent=g.hint;b.append(small);}if(fromCity)button('Kembali ke pintu masuk',()=>{close();exiting=true;$('actions').replaceChildren();$('title').textContent='Kembali ke pintu masuk';requestArenaExit();},true);button('Kembali ke ruangan',close,true);focusDialog();}
+ function inventory(){show('Ruang oleh-oleh '+record.name);p('Ketuk tujuan, lalu pilih JALAN KE LOKASI. Kamu juga bisa berjalan sendiri dan mengetuk papan hadiah.');const grid=document.createElement('div');grid.className='giftGrid';content.append(grid);for(const g of GIFTS){const b=button(g.id==='guide'?guide:g.title,()=>{choose(g.id);close();},false,grid);const small=document.createElement('small');small.textContent=g.hint;b.append(small);}if(fromCity)button('Kembali ke pintu masuk',()=>{close();exiting=true;$('actions').replaceChildren();$('title').textContent='Kembali ke pintu masuk';requestArenaExit();},true);button('Kembali ke ruangan',close,true);focusDialog();}
  function intro(){show(record.received?'Selamat datang kembali!':'Alhamdulillah, perjalananmu tuntas!');p('Saya '+guide+'. '+(record.received?'Semua oleh-olehmu ada di ruangan ini. Silakan dibuka kembali kapan saja.':'Selamat, '+record.name+'! Dua belas level telah kamu selesaikan. Temui saya di karpet tengah untuk menerima oleh-oleh spesial Haji Digital.'));if(preview)p('Pratinjau ruangan. Progres permainan utama tidak diubah.',true);button(record.received?'Jelajahi oleh-oleh':'Temui '+guide,()=>{close();if(record.received)inventory();else choose('guide');});focusDialog();}
- function handover(){show('Oleh-oleh dari '+guide);dialog.classList.add('giftGuideTalk');walker.talkTo(guideActor.position.x,1.62,guideActor.position.z);p('Selamat, '+record.name+'! Saya berikan sertifikat Haji Digital, kupon referral komisi 30%, dompet komisi, dan dua tas berisi CD kelas Animasi Motion serta Stickman. Ini ruangan milikmu untuk membuka semuanya.');button('Terima oleh-oleh spesial',()=>{if(update({...record,received:true})){close();notifySimplePlay('Alhamdulillah! Dekati masing-masing oleh-oleh untuk membukanya.');}});focusDialog();}
+ function handover(){show('Oleh-oleh dari '+guide);dialog.classList.add('giftGuideTalk');walker.talkTo(guideActor.position.x,1.62,guideActor.position.z);p('Selamat, '+record.name+'! Saya berikan sertifikat Haji Digital, kupon referral komisi 30%, dompet komisi, serta koleksi penghargaan, bekal ibadah dan dua bioskop kelas animasi. Semua hadiah dapat diakses langsung di gedung ini.');button('Terima oleh-oleh spesial',()=>{if(update({...record,received:true})){close();notifySimplePlay('Alhamdulillah! Dekati masing-masing oleh-oleh untuk membukanya.');}});focusDialog();}
  function certificate(){show('Sertifikat Haji Digital');p('Diberikan kepada '+record.name+' atas penyelesaian seluruh 12 level petualangan manasik haji.');const art=document.createElement('div');content.append(art);const c=souvenirCertificate(art,record);button('Unduh sertifikat PDF',()=>downloadSouvenirCertificate(c,record));button('Kembali ke ruangan',close,true);focusDialog();}
  function coupon(){show('Kupon referral pribadi');p('Semua pemain dengan tiket aktif dapat ikut program referral. Kode dan komisi asli tersedia di akun affiliate.');button('Buka referral & komisi',()=>location.assign(tenantUrl('./affiliate.html')),true);focusDialog();}
  function wallet(example:boolean){show('Dompet komisi '+record.name);if(!example){p('Buka dashboard affiliate untuk melihat komisi terverifikasi. Penarikan belum tersedia.');button('Buka dashboard affiliate',()=>location.assign(tenantUrl('./affiliate.html')),true);focusDialog();return;}const totals=example?demoWallet(pendingDemo):{earned:0,paid:0,pending:0,available:0};const badge=document.createElement('span');badge.className='demoBadge';badge.textContent=example?'CONTOH ANGKA · BUKAN SALDO UANG NYATA':'BELUM TERHUBUNG KE PEMBAYARAN';content.append(badge);
@@ -73,14 +73,44 @@ function boot(){
   }
   form.onsubmit=e=>e.preventDefault();button('Kembali ke ruangan',close,true);focusDialog();
  }
- function course(id:'motion'|'stickman'){const title=id==='motion'?'Belajar Animasi Motion':'Belajar Animasi Stickman';show('Tas kelas · '+title);p('Di dalam tasmu ada CD rekaman kelas '+title+'. Hadiah belajar ini melengkapi perjalanan Haji Digitalmu.');const url=courseUrl(SOUVENIR_COURSES[id]);if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Buka akses kelas';actions.append(a);}else{p('Link akses kelas akan ditambahkan setelah materi siap.',true);button('Akses kelas segera tersedia',()=>{}).disabled=true;}button('Kembali ke ruangan',close,true);focusDialog();}
- function interact(){if(blocked()||exiting)return;if(!walker.near()){walker.approach();return;}if(!record.received){handover();return;}if(current==='guide')inventory();else if(current==='certificate')certificate();else if(current==='coupon')coupon();else if(current==='wallet')wallet(false);else course(current);}
- let lastPaint='';function paint(){if(exiting)return;const gift=GIFTS.find(g=>g.id===current)!,near=walker.near(),signature=current+near+record.received;if(signature===lastPaint)return;lastPaint=signature;$('title').textContent=current==='guide'?'Temui '+guide:gift.title;$('body').textContent=gift.hint;const b=document.createElement('button');b.textContent=near?(current==='guide'?(record.received?'Lihat isi ruangan':'Bicara dengan '+guide):current==='certificate'?'Lihat sertifikat':current==='coupon'?'Ambil kupon':current==='wallet'?'Buka dompet':'Buka tas kelas'):'Jalan ke lokasi';b.onclick=interact;$('actions').replaceChildren(b);$('souvenirRoom').dataset.target=current;}
+ function media(url:string,kind:'video'|'audio'){
+  const parsed=new URL(url);
+  if(kind==='video'&&['youtube.com','www.youtube.com','youtu.be','www.youtube-nocookie.com'].includes(parsed.hostname)){
+   const id=parsed.hostname==='youtu.be'?parsed.pathname.slice(1):parsed.searchParams.get('v')??(parsed.pathname.startsWith('/embed/')?parsed.pathname.split('/')[2]:'');
+   if(id&&/^[A-Za-z0-9_-]{11}$/.test(id)){const frame=document.createElement('iframe');frame.className='souvenirVideo';frame.title='Tayangan video kelas';frame.src='https://www.youtube-nocookie.com/embed/'+id;frame.allow='fullscreen; encrypted-media; picture-in-picture';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';content.append(frame);return;}
+  }
+  const el=document.createElement(kind);el.controls=true;el.preload='metadata';el.src=url;if(kind==='video'){el.className='souvenirVideo';(el as HTMLVideoElement).playsInline=true;}content.append(el);
+ }
+ function course(id:'motion'|'stickman'){
+  const title=id==='motion'?'Belajar Animasi Motion':'Belajar Animasi Stickman';
+  walker.lookAt(id==='motion'?-8:8,2.1,-17.5);show('Bioskop · '+title);
+  const url=courseUrl(SOUVENIR_COURSES[id]);
+  if(url)media(url,'video');else{const screen=document.createElement('div');screen.className='souvenirVideo souvenirScreen';screen.textContent='TAYANGAN SEGERA HADIR';content.append(screen);p('Ruang bioskop sudah tersedia. Video kelas belum diatur.',true);}
+  button('Kembali ke ruangan',close,true);focusDialog();
+ }
+ function extra(id:GiftId){
+  const g=GIFTS.find(g=>g.id===id)!;show(g.title);
+  if(id==='commission'){p('Komisi 30% dari pembayaran peserta yang terverifikasi. Nilai aktual dapat dilihat pada dashboard affiliate.');button('Buka dashboard affiliate',()=>location.assign(tenantUrl('./affiliate.html')));}
+  else if(['medal','trophy','badge','alumni','graduates'].includes(id)){
+   const art=document.createElement('div');art.className='souvenirAward';const symbol=document.createElement('strong');symbol.textContent=id==='trophy'?'🏆':id==='medal'?'🥇':id==='badge'?'★ 12/12':id==='alumni'?'ALUMNI':'LULUS';const name=document.createElement('h3');name.textContent=record.name;art.append(symbol,name);content.append(art);p('Penghargaan penyelesaian 12 level simulasi manasik. Bukan penilaian sah atau mabrurnya ibadah haji.');
+  }else if(id==='tasbih'){
+   let count=0;const number=document.createElement('strong');number.className='souvenirCounter';number.textContent='0';content.append(number);button('Tambah hitungan',()=>{number.textContent=String(++count);});button('Reset',()=>{count=0;number.textContent='0';},true);
+  }else if(id==='replay'){p('Akses ulang mengikuti kebijakan tiket yang berlaku. Tidak ada perubahan masa aktif tiket di ruang ini.');}
+  else{
+   const url=courseUrl(SOUVENIR_ASSETS[id]??null);
+   p(g.hint);
+   if(url){if(id==='audio'||id==='congrats')media(url,id==='audio'?'audio':'video');else{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Buka hadiah';actions.append(a);}}
+   else p('Segera hadir · Materi hadiah belum tersedia.',true);
+  }
+  button('Kembali ke ruangan',close,true);focusDialog();
+ }
+ function interact(){if(blocked()||exiting)return;if(!walker.near()){walker.approach();return;}if(!record.received){handover();return;}if(current==='guide')inventory();else if(current==='certificate')certificate();else if(current==='coupon')coupon();else if(current==='wallet')wallet(false);else if(current==='motion'||current==='stickman')course(current);else extra(current);}
+ let lastPaint='';function paint(){if(exiting)return;const gift=GIFTS.find(g=>g.id===current)!,near=walker.near(),signature=current+near+record.received;if(signature===lastPaint)return;lastPaint=signature;$('title').textContent=current==='guide'?'Temui '+guide:gift.title;$('body').textContent=gift.hint;const b=document.createElement('button');b.textContent=near?(current==='guide'?(record.received?'Lihat isi ruangan':'Bicara dengan '+guide):current==='certificate'?'Lihat sertifikat':current==='coupon'?'Ambil kupon':current==='wallet'?'Buka dompet':current==='motion'||current==='stickman'?'Masuk bioskop':'Buka hadiah'):'Jalan ke lokasi';b.onclick=interact;$('actions').replaceChildren(b);$('souvenirRoom').dataset.target=current;}
  $('roomInventory').onclick=()=>{if(exiting)return;if(record.received)inventory();else intro();};
  const ray=new THREE.Raycaster(),point=new THREE.Vector2();let startX=0,startY=0;canvas.addEventListener('pointerdown',e=>{startX=e.clientX;startY=e.clientY;});canvas.addEventListener('pointerup',e=>{if(blocked()||Math.hypot(e.clientX-startX,e.clientY-startY)>7)return;const rect=canvas.getBoundingClientRect();point.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);ray.setFromCamera(point,camera);const hit=ray.intersectObjects(world.pickable)[0];if(hit)choose(hit.object.userData.gift as GiftId);});
  const resize=()=>{budget.resize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();};window.addEventListener('resize',resize);resize();paint();mountSimplePlayHud('field');portrait=installLandscape(()=>{if(dialog.open)close();});
  let last=0;function frame(now:number){if(disposed)return;const dt=last?Math.max(0,Math.min(.05,(now-last)/1000)):0;last=now;walker.update(now);if(!blocked()&&!exiting&&record.received){const nearby=GIFTS.find(g=>Math.hypot(walker.position.x-g.x,walker.position.z-g.z)<1.1);if(nearby&&nearby.id!==current)choose(nearby.id);}world.update(now);updateHumanActors(scene,dt,!blocked(),camera);budget.draw(now,scene,camera,blocked());const root=$('souvenirRoom');root.dataset.playerX=walker.position.x.toFixed(3);root.dataset.playerZ=walker.position.z.toFixed(3);root.dataset.drawCalls=String(renderer.info.render.calls);paint();}
- renderer.setAnimationLoop(frame);$('souvenirRoom').dataset.ready='true';$('souvenirRoom').dataset.received=String(record.received);notifySimplePlay(record.received?'Dekati meja atau tas untuk membuka oleh-oleh.':'Temui '+guide+' di karpet tengah.');
+ renderer.setAnimationLoop(frame);$('souvenirRoom').dataset.ready='true';$('souvenirRoom').dataset.received=String(record.received);notifySimplePlay(record.received?'Dekati rak, etalase atau bioskop untuk membuka oleh-oleh.':'Temui '+guide+' di karpet tengah.');
  window.addEventListener('storage',e=>{if(!preview&&(e.key===null||/manasik-hajj-|manasik-sai-|manasik-tawaf-|journey-setup/.test(e.key)))location.reload();});window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
  window.addEventListener('pagehide',()=>{disposed=true;renderer.setAnimationLoop(null);window.removeEventListener('resize',resize);walker.dispose();disposeHumanActors(scene);world.dispose();budget.dispose();renderer.dispose();},{once:true});
 }

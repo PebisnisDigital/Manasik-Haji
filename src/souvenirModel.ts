@@ -1,13 +1,234 @@
 export const TICKET_PRICE=100000,COMMISSION_PERCENT=30;
-export type GiftId='guide'|'certificate'|'coupon'|'wallet'|'motion'|'stickman';
-export const GIFTS:readonly {id:GiftId;title:string;x:number;z:number;hint:string}[]=[
- {id:'guide',title:'Pemandu',x:0,z:2,hint:'Temui pembimbing untuk menerima oleh-oleh.'},
- {id:'certificate',title:'Sertifikat Haji Digital',x:-7,z:-1,hint:'Dekati bingkai sertifikat untuk membuka dan mengunduhnya.'},
- {id:'coupon',title:'Kupon & komisi 30%',x:-7,z:5,hint:'Ambil kode referral pribadimu dan lihat cara membagikannya.'},
- {id:'wallet',title:'Dompet komisi',x:7,z:5,hint:'Lihat komisi, data rekening dan alur penarikan melalui admin.'},
- {id:'motion',title:'Tas kelas Motion',x:-5,z:-6,hint:'Buka tas berisi CD kelas Belajar Animasi Motion.'},
- {id:'stickman',title:'Tas kelas Stickman',x:5,z:-6,hint:'Buka tas berisi CD kelas Belajar Animasi Stickman.'},
-];
+export const GIFTS = [
+ {
+  "id": "guide",
+  "title": "Pemandu",
+  "x": 0,
+  "z": 2,
+  "zone": "lobi",
+  "kind": "guide",
+  "hint": "Temui pembimbing untuk menerima oleh-oleh."
+ },
+ {
+  "id": "certificate",
+  "title": "Sertifikat Haji Digital",
+  "x": -12,
+  "z": -6,
+  "zone": "prestasi",
+  "kind": "certificate",
+  "hint": "Lihat dan unduh sertifikat kelulusan."
+ },
+ {
+  "id": "medal",
+  "title": "Medali Emas",
+  "x": -8,
+  "z": -6,
+  "zone": "prestasi",
+  "kind": "medal",
+  "hint": "Lihat medali pencapaian 12 level."
+ },
+ {
+  "id": "trophy",
+  "title": "Piala Kelulusan",
+  "x": -4,
+  "z": -6,
+  "zone": "prestasi",
+  "kind": "trophy",
+  "hint": "Lihat trofi perjalanan manasik."
+ },
+ {
+  "id": "badge",
+  "title": "Badge 12 Bintang",
+  "x": -12,
+  "z": -1,
+  "zone": "prestasi",
+  "kind": "badge",
+  "hint": "Lihat emblem 12 bintang."
+ },
+ {
+  "id": "alumni",
+  "title": "Kartu Alumni",
+  "x": -8,
+  "z": -1,
+  "zone": "prestasi",
+  "kind": "card",
+  "hint": "Lihat kartu alumni pribadi."
+ },
+ {
+  "id": "graduates",
+  "title": "Dinding Lulusan",
+  "x": -4,
+  "z": -1,
+  "zone": "prestasi",
+  "kind": "wall",
+  "hint": "Lihat penghargaan kelulusan pribadi."
+ },
+ {
+  "id": "photo",
+  "title": "Foto Kenangan Virtual",
+  "x": -12,
+  "z": 4,
+  "zone": "kenangan",
+  "kind": "photo",
+  "hint": "Kunjungi sudut foto kenangan."
+ },
+ {
+  "id": "congrats",
+  "title": "Video Ucapan Kelulusan",
+  "x": -8,
+  "z": 4,
+  "zone": "kenangan",
+  "kind": "screen",
+  "hint": "Lihat ucapan selamat."
+ },
+ {
+  "id": "replay",
+  "title": "Akses Ulang Manasik",
+  "x": -4,
+  "z": 4,
+  "zone": "kenangan",
+  "kind": "card",
+  "hint": "Lihat informasi akses ulang."
+ },
+ {
+  "id": "prayers",
+  "title": "Buku Saku Doa",
+  "x": 4,
+  "z": -6,
+  "zone": "edukasi",
+  "kind": "book",
+  "hint": "Bacaan doa haji dan umroh."
+ },
+ {
+  "id": "ebook",
+  "title": "E-book Panduan Manasik",
+  "x": 8,
+  "z": -6,
+  "zone": "edukasi",
+  "kind": "book",
+  "hint": "Panduan perjalanan manasik."
+ },
+ {
+  "id": "checklist",
+  "title": "Checklist Perlengkapan",
+  "x": 12,
+  "z": -6,
+  "zone": "edukasi",
+  "kind": "book",
+  "hint": "Daftar persiapan perjalanan."
+ },
+ {
+  "id": "planner",
+  "title": "Planner Tabungan Baitullah",
+  "x": 4,
+  "z": -1,
+  "zone": "edukasi",
+  "kind": "book",
+  "hint": "Rencanakan tabungan perjalanan."
+ },
+ {
+  "id": "audio",
+  "title": "Audio Doa & Talbiyah",
+  "x": 8,
+  "z": -1,
+  "zone": "edukasi",
+  "kind": "audio",
+  "hint": "Dengarkan latihan bacaan."
+ },
+ {
+  "id": "tasbih",
+  "title": "Tasbih Digital",
+  "x": 12,
+  "z": -1,
+  "zone": "edukasi",
+  "kind": "tasbih",
+  "hint": "Buka penghitung zikir."
+ },
+ {
+  "id": "wallpaper",
+  "title": "Wallpaper Baitullah",
+  "x": 4,
+  "z": 4,
+  "zone": "edukasi",
+  "kind": "photo",
+  "hint": "Koleksi latar HP dan komputer."
+ },
+ {
+  "id": "stickers",
+  "title": "Stiker WhatsApp Islami",
+  "x": 8,
+  "z": 4,
+  "zone": "edukasi",
+  "kind": "book",
+  "hint": "Koleksi stiker digital."
+ },
+ {
+  "id": "coupon",
+  "title": "Kupon & komisi 30%",
+  "x": -12,
+  "z": 9,
+  "zone": "bisnis",
+  "kind": "card",
+  "hint": "Buka referral pribadi."
+ },
+ {
+  "id": "commission",
+  "title": "Komisi Affiliate 30%",
+  "x": -8,
+  "z": 9,
+  "zone": "bisnis",
+  "kind": "coins",
+  "hint": "Pelajari komisi pembayaran terverifikasi."
+ },
+ {
+  "id": "wallet",
+  "title": "Dompet komisi",
+  "x": 8,
+  "z": 9,
+  "zone": "bisnis",
+  "kind": "wallet",
+  "hint": "Buka dashboard affiliate."
+ },
+ {
+  "id": "mystery",
+  "title": "Mystery Gift Box",
+  "x": 12,
+  "z": 9,
+  "zone": "bisnis",
+  "kind": "gift",
+  "hint": "Lihat bonus kejutan."
+ },
+ {
+  "id": "motion",
+  "title": "Bioskop Motion",
+  "x": -8,
+  "z": -14,
+  "zone": "bioskop",
+  "kind": "cinema",
+  "hint": "Masuk dan tonton kelas animasi Motion."
+ },
+ {
+  "id": "stickman",
+  "title": "Bioskop Stickman",
+  "x": 8,
+  "z": -14,
+  "zone": "bioskop",
+  "kind": "cinema",
+  "hint": "Masuk dan tonton kelas animasi Stickman."
+ }
+] as const;
+export type GiftId=typeof GIFTS[number]['id'];
+export const SOUVENIR_BOUNDS=[-15,15,-17,11] as const;
+export function souvenirObstacles(){
+ const items=GIFTS.filter(g=>g.kind!=='guide'&&g.kind!=='cinema').map(g=>({x:g.x,z:g.z-1.35,w:2.65,d:1.1}));
+ // Rear theater partitions, two open doors and unobstructed central aisles.
+ for(const x of [-8,8]){
+  for(const dx of [-4.25,4.25])items.push({x:x+dx,z:-9.65,w:5.5,d:.35});
+  for(const dx of [-6.95,6.95])items.push({x:x+dx,z:-13.85,w:.3,d:8.3});
+  for(const dz of [-11.4,-12.9])for(const dx of [-3.3,3.3])items.push({x:x+dx,z:dz,w:4.3,d:.8});
+ }
+ return items;
+}
 export interface BankDraft{bank:string;holder:string;account:string}
 export interface SouvenirSave{version:1;owner:string;name:string;certificateId:string;coupon:string;issuedAt:string;received:boolean;bank:BankDraft|null}
 const clean=(s:unknown,max:number)=>typeof s==='string'&&s.trim().length>0&&s.trim().length<=max&&!/[\u0000-\u001f\u007f]/.test(s);

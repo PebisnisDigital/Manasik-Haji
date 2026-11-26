@@ -11,3 +11,5 @@
 #giftDialog.giftGuideTalk #giftClose{background:#173c32;color:#fff9eb}
 #giftDialog.giftGuideTalk #giftContent p{font-size:13px;line-height:1.45;margin:5px 0}
 #giftDialog.giftGuideTalk #giftActions{margin-top:8px}
+
+.souvenirVideo{display:block;width:100%;aspect-ratio:16/9;border:1px solid #d7b86c;border-radius:8px;background:#101719;object-fit:contain}.souvenirScreen{display:grid;place-items:center;font-weight:750;letter-spacing:.08em;color:#f2d591;text-align:center}.souvenirAward{padding:24px;text-align:center;border:1px solid #e3bd68;border-radius:12px;background:#0e3329;color:#f2d591}.souvenirAward strong{font-size:42px}.souvenirAward h3{font-size:24px;margin:10px 0}.souvenirCounter{display:block;text-align:center;font-size:64px;color:#f2d591}#giftContent audio{width:100%}
