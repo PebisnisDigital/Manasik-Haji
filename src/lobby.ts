@@ -43,7 +43,7 @@ let buburMarket:ReturnType<typeof createBuburMarket>|undefined;
 const sales=loadSales();let salesHold:THREE.Group|null=null;let escortRoute:THREE.Vector3[]|null=null,escortArrived=false,escortManual=false,escortStall=0,escortLastDistance=Infinity;
 function resetEscortRoute(){escortRoute=null;escortArrived=false;escortManual=false;escortStall=0;escortLastDistance=Infinity;}
 function salesHud(){if(sales.job)$('instruction').textContent=sales.pending!==null?(escortManual?'Antar manual ':escortArrived?'Tiba · laporkan ':'Mengantar otomatis ')+ (buburMarket?.prospects[sales.pending]?.name??'pembeli')+' ke '+(sales.job==='hijab'?'kasir KOKOSALAMA':'gerobak bubur')+' · lalu lapor ke penjual':sales.claimed?'Hadiah MAUHAJJI sudah diklaim · menuju loket':sales.accepted.length>=10?'Target tercapai! Kembali ke pemilik '+salesNames[sales.job]:'Sales '+salesNames[sales.job]+' · '+sales.accepted.length+'/10 pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[sales.job]).toLocaleString('id-ID');}
-function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();});}
+function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();},side=>{const actor=side==='player'?hero.root:hold;return actor?projectGatePoint(actor.position.clone().add(new THREE.Vector3(0,1.95,0))):{x:innerWidth/2,y:innerHeight*.43,visible:false};});}
 function talkOwner(job:SalesJob){
  openSales(job==='bubur'?'Pemilik Bubur Ayam':'Kasir KOKOSALAMA',(say,button,close,clear)=>{
   if(sales.pending!==null){
@@ -65,7 +65,7 @@ function talkOwner(job:SalesJob){
    button('Boleh saya bantu jualan?',()=>{clear();say('Saya ingin menabung untuk persiapan haji. Boleh saya bantu menawarkan dagangan?','player');say('Boleh! Komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+' per pembeli. Bawa 10 pembeli, nanti ada hadiah.');button('Sepakat, siap jualan',()=>{clear();sales.job=job;saveSales(sales);say('Siap! Saya akan cari pembeli.','player');say('Semangat, ya! Tawarkan dengan sopan.');button('Mulai mencari pembeli',close,true);},true);button('Pikir-pikir dulu',close);},true);
   }
   button('Kembali',close);
- });
+ },buburMarket?.owners[job]??null);
 }
 function offerProspect(p:{id:number;name:string;actor:THREE.Group}){
  const job=sales.job;if(!job||sales.pending!==null||sales.accepted.length>=10||sales.claimed||sales.accepted.includes(p.id)||sales.rejected.includes(p.id))return;
