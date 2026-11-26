@@ -58,11 +58,128 @@ const sceneFiles=/(?:\/src\/(?:lobby|registrationHall|souvenirWorld|miqatRoom|ha
 function sceneColors(code:string){
  return code.replace(/(0x|#)([0-9a-f]{6})([0-9a-f]{2})?(?![0-9a-f])/gi,(all,prefix:string,color:string,alpha:string|undefined)=>paint[color.toLowerCase()]?prefix+paint[color.toLowerCase()]+(alpha??''):all);
 }
+// Wayfinding is a deliberate exception to the ivory/gold brand: only physical location signs.
+const wayfinding:Record<string,readonly (readonly [string,string])[]> = {
+  "registrationHall.ts": [
+    [
+      "g.fillStyle='#194b3c'",
+      "g.fillStyle='#00664f'"
+    ],
+    [
+      "g.strokeStyle='#d8ba78'",
+      "g.strokeStyle='#ffffff'"
+    ],
+    [
+      "g.fillStyle='#f9e1a7'",
+      "g.fillStyle='#ffffff'"
+    ],
+    [
+      "g.fillStyle='#eef3e6'",
+      "g.fillStyle='#ffffff'"
+    ]
+  ],
+  "lobby.ts": [
+    [
+      "g.fillStyle='#1a4839'",
+      "g.fillStyle='#00664f'"
+    ],
+    [
+      "g.strokeStyle='#cfb577'",
+      "g.strokeStyle='#ffffff'"
+    ],
+    [
+      "g.fillStyle='#f5dda4'",
+      "g.fillStyle='#ffffff'"
+    ],
+    [
+      "g.fillStyle='#e4eee3'",
+      "g.fillStyle='#ffffff'"
+    ]
+  ],
+  "missionCity.ts": [
+    [
+      "t.fillStyle=gift?'#0e4739':'#193d31'",
+      "t.fillStyle='#00664f'"
+    ],
+    [
+      "t.strokeStyle='#d8b972'",
+      "t.strokeStyle='#ffffff'"
+    ],
+    [
+      "t.fillStyle='#f2d18b'",
+      "t.fillStyle='#ffffff'"
+    ],
+    [
+      "t.fillStyle='#fff4d9'",
+      "t.fillStyle='#ffffff'"
+    ]
+  ],
+  "cityLivePlazas.ts": [
+    [
+      "background='#173d32'",
+      "background='#00664f'"
+    ],
+    [
+      "ctx.strokeStyle='#d7b776'",
+      "ctx.strokeStyle='#ffffff'"
+    ],
+    [
+      "ctx.fillStyle='#fff1c9'",
+      "ctx.fillStyle='#ffffff'"
+    ]
+  ],
+  "districtWorld.ts": [
+    [
+      "ctx.fillStyle='#203b34';ctx.fillRect(0,0,1024,128);ctx.fillStyle=color;",
+      "ctx.fillStyle='#00664f';ctx.fillRect(0,0,1024,128);ctx.strokeStyle='#ffffff';ctx.lineWidth=4;ctx.strokeRect(7,7,1010,114);ctx.fillStyle='#ffffff';"
+    ]
+  ],
+  "souvenirWorld.ts": [
+    [
+      "g.fillStyle='#164638'",
+      "g.fillStyle='#00664f'"
+    ],
+    [
+      "g.strokeStyle='#cfaf65'",
+      "g.strokeStyle='#ffffff'"
+    ],
+    [
+      "g.fillStyle='#fff0c5'",
+      "g.fillStyle='#ffffff'"
+    ]
+  ],
+  "miqatRoom.ts": [
+    [
+      "ctx.fillStyle='#204d41'",
+      "ctx.fillStyle='#00664f'"
+    ],
+    [
+      "ctx.strokeStyle='#d7b870'",
+      "ctx.strokeStyle='#ffffff'"
+    ],
+    [
+      "ctx.fillStyle='#fff0c2'",
+      "ctx.fillStyle='#ffffff'"
+    ]
+  ],
+  "hajjScenes.ts": [
+    [
+      "a.fillStyle='#24533f';a.fillRect(0,0,512,128);",
+      "a.fillStyle='#00664f';a.fillRect(0,0,512,128);a.strokeStyle='#ffffff';a.lineWidth=3;a.strokeRect(5,5,502,118);"
+    ]
+  ]
+};
+function locationSigns(code:string,path:string){
+ const changes=wayfinding[path.split('/').pop()??''];
+ if(!changes)return code;
+ for(const [before,after] of changes)code=code.replace(before,after);
+ return code;
+}
 export function hajjiBrand():Plugin{
  return {name:'hajji-ivory-gold-brand',enforce:'pre',
   transform(code,id){const path=id.split('?')[0]!.replace(/\\/g,'/');if(!path.includes('/src/')||path.includes('/node_modules/'))return;
    if(path.endsWith('.css'))return {code:brandCSS(code),map:null};
-   if(sceneFiles.test(path)||path.endsWith('/src/pwa.ts'))return {code:sceneColors(code).replace(/pwa-icon-(?:192|512)\.png/g,'pwa-icon.svg').replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/tujuan hijau/g,'tujuan emas'),map:null};
+   if(sceneFiles.test(path)||path.endsWith('/src/pwa.ts'))return {code:sceneColors(locationSigns(code,path)).replace(/pwa-icon-(?:192|512)\.png/g,'pwa-icon.svg').replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/tujuan hijau/g,'tujuan emas'),map:null};
   },
   transformIndexHtml:{order:'pre',handler(html,ctx){
    let next=html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi,(_,attrs:string,css:string)=>'<style'+attrs+'>'+brandCSS(css)+'</style>');
