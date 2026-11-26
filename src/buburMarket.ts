@@ -25,6 +25,24 @@ export function marketWalkable(x:number,z:number){
  if(Math.abs(x+26)<.79&&z>=-5.65&&z<=-2.52)return true;
  return !marketSolids.some(b=>x>b.min.x-pad&&x<b.max.x+pad&&z>b.min.z-pad&&z<b.max.z+pad);
 }
+// Player escort routes respect the same public paths as manual movement.
+export function escortDestination(job:SalesJob){return job==='bubur'?new THREE.Vector3(14.7,0,8.65):new THREE.Vector3(-26,0,-5.35);}
+export function planEscortRoute(start:THREE.Vector3,job:SalesJob):THREE.Vector3[]{
+ const goal=escortDestination(job),step=.4,ox=-30,oz=-5.6,nx=128,nz=40;
+ const valid=(x:number,z:number)=>x>=-30.1&&x<=21&&z>=-5.65&&z<=10.2&&(Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&(z>=-3||Math.abs(x+26)<.79)&&marketWalkable(x,z);
+ const at=(id:number)=>new THREE.Vector3(ox+(id%nx)*step,0,oz+Math.floor(id/nx)*step);
+ const segment=(a:THREE.Vector3,b:THREE.Vector3)=>{const n=Math.max(1,Math.ceil(a.distanceTo(b)/.12));for(let i=1;i<=n;i++){const t=i/n;if(!valid(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;}return true;};
+ if(segment(start,goal))return [goal];
+ const nearest=(p:THREE.Vector3)=>{let best=-1,d=Infinity;for(let i=0;i<nx*nz;i++){const q=at(i),dist=q.distanceToSquared(p);if(dist<d&&valid(q.x,q.z)&&segment(p,q)){best=i;d=dist;}}return best;};
+ const s=nearest(start),g=nearest(goal);if(s<0||g<0)return [];
+ const prev=new Int32Array(nx*nz);prev.fill(-2);prev[s]=-1;const pending=[s];
+ for(let i=0;i<pending.length&&prev[g]===-2;i++){const id=pending[i]!,x=id%nx,z=Math.floor(id/nx);for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]] as const){const xx=x+dx,zz=z+dz;if(xx<0||xx>=nx||zz<0||zz>=nz)continue;const n=zz*nx+xx;if(prev[n]!==-2)continue;const p=at(n);if(!valid(p.x,p.z)||!segment(at(id),p))continue;prev[n]=id;pending.push(n);}}
+ if(prev[g]===-2)return [];
+ const nodes=[goal];for(let id=g;id>=0;id=prev[id]!)nodes.unshift(at(id));
+ const route:THREE.Vector3[]=[];let from=start;
+ while(nodes.length){let j=-1;for(let i=nodes.length-1;i>=0;i--){if(segment(from,nodes[i]!)){j=i;break;}}if(j<0)return [];const next=nodes[j]!;route.push(next);from=next;nodes.splice(0,j+1);}
+ return route;
+}
 const cameraRay=new THREE.Ray(),cameraHit=new THREE.Vector3(),cameraDir=new THREE.Vector3();
 // Shorten the orbit before a solid object can hide the player or contain the camera.
 export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
@@ -140,7 +158,7 @@ export function createBuburMarket(scene:THREE.Scene){
  function cancelEscort(){if(escort){const p=prospects[escort.id];if(p)delete p.actor.userData.marketPurchase;}escort=null;}
  function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
  function updateEscort(dt:number,player:THREE.Vector3){if(!escort)return;const p=prospects[escort.id];if(!p)return;const a=p.actor;if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}const t=escort.trail[0];if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}}
- function handoff(id:number,job:SalesJob){if(escort?.id!==id)return false;escort=null;purchase(id,job);return true;}
+ function handoff(id:number,job:SalesJob,player:THREE.Vector3){const p=prospects[id];if(!p||!escortReady(id,player)||player.distanceTo(escortDestination(job))>2.0||(job==='hijab'&&(!insideHijab(player.x,player.z)||!insideHijab(p.actor.position.x,p.actor.position.z))))return false;escort=null;purchase(id,job);return true;}
  function resetPurchases(){cancelEscort();for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;}}purchases.clear();line.length=0;}
  function updatePurchase(p:Prospect,buy:Purchase,dt:number){
   const a=p.actor;const id=p.id;
