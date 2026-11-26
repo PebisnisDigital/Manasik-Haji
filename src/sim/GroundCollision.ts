@@ -28,6 +28,23 @@ export function sweepGround(start:GroundPoint,target:GroundPoint,bodies:readonly
  }
  return {x,z,hit};
 }
+/** Scripted pedestrians yield on contact, then try going around if there is room. */
+export function walkGroundTowards(start:GroundPoint,goal:GroundPoint,maxStep:number,bodies:readonly SolidBody[],
+ walkable:(x:number,z:number)=>boolean=()=>true,radius=HUMAN_RADIUS,detour=true){
+ const dx=goal.x-start.x,dz=goal.z-start.z,distance=Math.hypot(dx,dz);
+ if(distance<=.025||maxStep<=0)return {x:start.x,z:start.z,hit:false,arrived:distance<=.025};
+ const step=Math.min(distance,maxStep),x=dx/distance,z=dz/distance;
+ const target={x:start.x+x*step,z:start.z+z*step};
+ let moved=sweepGround(start,target,bodies,walkable,radius);
+ // Near a waypoint stay on the assigned slot instead of oscillating around it.
+ if(detour&&moved.hit&&distance>.65&&Math.hypot(moved.x-start.x,moved.z-start.z)<step*.3){
+  for(const side of [1,-1]){
+   const around=sweepGround(start,{x:start.x+(x*.22+z*side*.97)*step,z:start.z+(z*.22-x*side*.97)*step},bodies,walkable,radius);
+   if(Math.hypot(around.x-start.x,around.z-start.z)>step*.4){moved=around;break;}
+  }
+ }
+ return {...moved,arrived:Math.hypot(goal.x-moved.x,goal.z-moved.z)<=.025};
+}
 let lastContact=-Infinity;
 /** One gentle notice per encounter window, never invalidate a ritual or reset progress. */
 export function reportContact(hit:boolean){

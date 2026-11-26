@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import {Clip} from './sim/States.ts';
-import {humanActor} from './characters/HumanActors.ts';
+import {humanActor,humanBodies,groundBodyRadius} from './characters/HumanActors.ts';
 import {alfamartSolids,createAlfamartStore,insideAlfamart,type MarketAudioCue} from './alfamartStore.ts';
 import {STORE_REPORT} from './alfamartInterior.ts';
 import {createAlfamartNPCs} from './alfamartNPC.ts';
 import {ALFAMART_PRODUCTS,ALFAMART_SALES} from './alfamartProducts.ts';
 import {createMarketStreet,streetSolids} from './marketStreet.ts';
+import {canWalkOnPlaza,gatePlazaSolids,groundBox,legacyPlazaSolids,PLAZA} from './lobbyGround.ts';
+import {walkMarketActor,type MarketWalk} from './marketGeometry.ts';
 
 export const BUBUR_POINT = new THREE.Vector3(14.7, 1.9, 6.4);
 const colors = new Map<number,THREE.MeshStandardMaterial>();
@@ -19,27 +21,33 @@ function sign(parent:THREE.Object3D,title:string,sub:string,x:number,y:number,z:
 const shops=[{x:-16.5,name:'INDOMARET',sub:'MINIMARKET',bg:'#ffffff',fg:'#204f9e',stripe:0xe63835},{x:-26,name:'KOKOSALAMA',sub:'TOKO HIJAB',bg:'#6f526a',fg:'#fff2df',stripe:0xd4a78b}];
 // Shared static collision volumes for walking and camera obstruction, padded for body clearance.
 const marketSolids=[
- ...alfamartSolids,...streetSolids,
- ...shops.map(shop=>new THREE.Box3(new THREE.Vector3(shop.x-4.32,0,-9.72),new THREE.Vector3(shop.x+4.32,4.2,-2.86))),
- new THREE.Box3(new THREE.Vector3(13.38,0,5.57),new THREE.Vector3(16.03,2.48,7.23)),
- ...[-19,19].map(x=>new THREE.Box3(new THREE.Vector3(x-1.05,0,-.82),new THREE.Vector3(x+1.05,1.49,3.42))),
- ...[-1,1].map(side=>new THREE.Box3(new THREE.Vector3(side*10-1.02,0,-2.35),new THREE.Vector3(side*10+1.02,1.65,1.85))),
+ ...gatePlazaSolids,...alfamartSolids,...streetSolids,
+ ...shops.flatMap(({x})=>[
+  groundBox(x,-9.6,8.5,.2,3.9),
+  ...[-1,1].flatMap(side=>[
+   groundBox(x+side*4.15,-6.4,.22,6.4,3.9),
+   groundBox(x+side*2.55,-3.1,3.10,.17,2.7),
+   groundBox(x+side*1.01,-3.02,.09,.17,2.7),
+   groundBox(x+side*2.55,-4.35,2.6,.72,1.9),
+  ]),
+ ]),
+ groundBox(-26,-6.02,1.75,.72,1.1),
+ groundBox(14.7,6.4,2.35,1.20,2.48),
+ ...[-19,19].map(x=>groundBox(x,1.3,1.87,3.8,1.49)),
+ ...[17.9,19.9].map(x=>groundBox(x,5.95,1.12,.86,.82)),
 ];
-export function insideHijab(x:number,z:number){return Math.abs(x+26)<1.15&&z< -3.05&&z> -6.05;}
-export function marketWalkable(x:number,z:number){
- const pad=.32;
- // The central doorway and clear shopping aisle are walkable; shelves and counter are not.
- if(Math.abs(x+26)<.79&&z>=-5.65&&z<=-2.52)return true;
- return !marketSolids.some(b=>x>b.min.x-pad&&x<b.max.x+pad&&z>b.min.z-pad&&z<b.max.z+pad);
+export function insideHijab(x:number,z:number){return Math.abs(x+26)<4.05&&z< -3.10&&z> -9.45;}
+export function marketWalkable(x:number,z:number,radius?:number){
+ return canWalkOnPlaza(x,z,PLAZA,marketSolids,radius);
 }
 // Player escort routes respect the same public paths as manual movement.
-export function escortDestination(job:SalesJob){return job==='alfamart'?new THREE.Vector3(STORE_REPORT.x,0,STORE_REPORT.z):job==='bubur'?new THREE.Vector3(14.7,0,8.65):new THREE.Vector3(-26,0,-5.35);}
+export function escortDestination(job:SalesJob){return job==='alfamart'?new THREE.Vector3(STORE_REPORT.x,0,STORE_REPORT.z):job==='bubur'?new THREE.Vector3(14.7,0,8.65):new THREE.Vector3(-26.65,0,-4.85);}
 export function planEscortRoute(start:THREE.Vector3,job:SalesJob):THREE.Vector3[]{
  return planMarketRoute(start,escortDestination(job));
 }
 function planMarketRoute(start:THREE.Vector3,goal:THREE.Vector3):THREE.Vector3[]{
- const step=.4,ox=-30,oz=-10.45,nx=128,nz=52;
- const valid=(x:number,z:number)=>x>=-30.1&&x<=21&&z>=-10.45&&z<=10.2&&(Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&(z>=-3||Math.abs(x+26)<.79&&z>=-5.65||x>12.25&&x<20.8)&&marketWalkable(x,z);
+ const step=.4,ox=PLAZA.x-PLAZA.width/2,nx=Math.floor(PLAZA.width/step)+1,oz=-PLAZA.depth/2,nz=Math.floor(PLAZA.depth/step)+1;
+ const valid=marketWalkable;
  const at=(id:number)=>new THREE.Vector3(ox+(id%nx)*step,0,oz+Math.floor(id/nx)*step);
  const segment=(a:THREE.Vector3,b:THREE.Vector3)=>{const n=Math.max(1,Math.ceil(a.distanceTo(b)/.12));for(let i=1;i<=n;i++){const t=i/n;if(!valid(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;}return true;};
  if(segment(start,goal))return [goal];
@@ -55,12 +63,14 @@ function planMarketRoute(start:THREE.Vector3,goal:THREE.Vector3):THREE.Vector3[]
 }
 const cameraRay=new THREE.Ray(),cameraHit=new THREE.Vector3(),cameraDir=new THREE.Vector3();
 // Shorten the orbit before a solid object can hide the player or contain the camera.
-export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
- if(insideAlfamart(pivot.x,pivot.z))goal.y=Math.min(goal.y,3.30);
- if(insideHijab(pivot.x,pivot.z)){goal.x=THREE.MathUtils.clamp(goal.x,-29.6,-22.4);goal.z=THREE.MathUtils.clamp(goal.z,-8.8,-3.3);goal.y=Math.min(goal.y,3.25);return goal;}
+export function insideMarketShop(x:number,z:number){
+ return insideAlfamart(x,z)||shops.some(shop=>Math.abs(x-shop.x)<4.05&&z<-3.10&&z>-9.45);
+}
+export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3,market=true){
+ if(market&&insideMarketShop(pivot.x,pivot.z))goal.y=Math.min(goal.y,3.27);
  cameraDir.subVectors(goal,pivot);const length=cameraDir.length();if(length<.001)return goal;
  cameraRay.set(pivot,cameraDir.multiplyScalar(1/length));let nearest=length;
- for(const b of marketSolids){if(b.containsPoint(pivot))continue;const hit=cameraRay.intersectBox(b,cameraHit);if(hit){const d=hit.distanceTo(pivot);if(d<nearest)nearest=d;}}
+ for(const b of market?marketSolids:legacyPlazaSolids){if(b.containsPoint(pivot))continue;const hit=cameraRay.intersectBox(b,cameraHit);if(hit){const d=hit.distanceTo(pivot);if(d<nearest)nearest=d;}}
  if(nearest<length)goal.copy(pivot).addScaledVector(cameraDir,Math.max(.16,nearest-.23));
  return goal;
 }
@@ -80,9 +90,10 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
  const store=createAlfamartStore(root,audio);
  for(let i=0;i<3;i++){
   const actor=humanActor(scene,0x739385,i===1,undefined,undefined,{palette:i+3,build:1,brightness:1,cull:true,registration:true});
-  actor.userData.noCollision=true;addProspect(actor,i+3);
-  const lane=16.35+i*.49, z=4.28+i*.50;
-  const path=[new THREE.Vector3(lane,0,z),new THREE.Vector3(lane,0,-1.46-i*.18)];
+  addProspect(actor,i+3);
+  // Loop on a separate path from Alfamart's two door lanes.
+  const lane=14.47+i*.90, z=4.62+i*.67;
+  const path=[new THREE.Vector3(lane,0,z),new THREE.Vector3(lane,0,3.55+i*.67)];
   actor.position.copy(path[0]!);walkers.push({actor,points:path,index:1,wait:i*.65});
  }
  for(const shop of shops){
@@ -103,9 +114,11 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   for(let i=0;i<3;i++){
    const female=shop.name==='KOKOSALAMA'||i%2===1;
    const actor=humanActor(scene,[0x739385,0xb28b84,0x9f9b75][i]!,female,undefined,undefined,{palette:i+3,build:1,brightness:1,cull:true,registration:true});
-   actor.userData.noCollision=true;addProspect(actor,i+3);
-   const path=[new THREE.Vector3(x-3+i*.6,0,4.25+i*.36),new THREE.Vector3(x+.2,0,3.6),new THREE.Vector3(x+.2,0,-2.65),new THREE.Vector3(x+.2,0,-5.3),new THREE.Vector3(x+.2,0,-2.65),new THREE.Vector3(x+.2,0,3.6),new THREE.Vector3(x+3-i*.6,0,4.25+i*.36)];
-   const index=i*2;actor.position.copy(path[index]!);walkers.push({actor,points:path,index:(index+1)%path.length,wait:i*.8});
+   addProspect(actor,i+3);
+   // Leave the narrow shop entrance for the player and escorted customers.
+   const lane=x-2.5+i*1.13, front=4.55+i*.75;
+   const path=[new THREE.Vector3(lane,0,front),new THREE.Vector3(lane+.3,0,front+.48)];
+   actor.position.copy(path[0]!);walkers.push({actor,points:path,index:1,wait:i*.8});
   }
  }
  for(const x of [-19,19]){
@@ -120,8 +133,8 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
  for(let i=0;i<4;i++){cylinder(cart,.15,.075,x-.1+i*.28,1.18,z+.22,[0xffe5b3,0xb78851,0xf2cf92,0x8eac6d][i]!);}
  cylinder(cart,.21,.42,x+.85,1.37,z-.2,0xd0ae54);
  const vendor=humanActor(scene,0x547e64,false,undefined,undefined,{palette:8,build:1,brightness:1,registration:true});vendor.position.set(x,0,z-.92);vendor.rotation.y=0;
- for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x-3.5-i*.65,0,z+2.8);a.rotation.y=Math.PI;a.userData.noCollision=true;addProspect(a,5+i);}
- for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});actor.userData.noCollision=true;addProspect(actor,i+4);const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
+ for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x-3.5-i*.65,0,z+2.8);a.rotation.y=Math.PI;addProspect(a,5+i);}
+ for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});addProspect(actor,i+4);const points=[new THREE.Vector3(-29,0,10.1+i*.83),new THREE.Vector3(-12,0,10.1+i*.83),new THREE.Vector3(12,0,10.1+i*.83),new THREE.Vector3(21,0,10.1+i*.83)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
  const hijabOwner=humanActor(scene,0x866b88,true,undefined,undefined,{palette:7,build:1,brightness:1,registration:true});
  hijabOwner.position.set(-26,0,-6.55);hijabOwner.rotation.y=0;
  box(root,1.65,1.02,.64,-26,.51,-6.02,0x8d6c70);box(root,1.75,.08,.72,-26,1.06,-6.02,0xe8cfb8);box(root,.30,.28,.10,-26.48,1.23,-6.15,0x354448);sign(root,'KASIR','KOKOSALAMA',-26,2.45,-6.44,1.55,.42,'#6f526a','#fff4df');
@@ -144,34 +157,30 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
  const completedAlfamart=new Set<number>();
  let speech:{actor:THREE.Group;name:string;text:string;left:number}|null=null;
  const speak=(actor:THREE.Group,name:string,text:string)=>{speech={actor,name,text,left:2.7};};
- const alfamart=createAlfamartNPCs(scene,root,tier==='low'?2:3,speak,audio,id=>{completedAlfamart.add(id);served.push(id);});
- const street=createMarketStreet(scene,root,tier!=='low',speak,audio);
+ let playerBody:THREE.Vector3|undefined;
+ const bodiesFor=(actor:THREE.Group)=>{
+  const bodies=humanBodies(scene,actor);
+  if(playerBody)bodies.push({x:playerBody.x,z:playerBody.z,radius:.32});
+  return bodies;
+ };
+ const advance:MarketWalk=(actor,target,dt,speed=1.55,detour=true)=>{
+  const radius=groundBodyRadius(actor);
+  return walkMarketActor(actor,target,dt,speed,bodiesFor(actor),(x,z)=>marketWalkable(x,z,radius),radius,detour);
+ };
+ const spawnIsClear=(actor:THREE.Group,point:THREE.Vector3)=>{
+  const radius=groundBodyRadius(actor);
+  return marketWalkable(point.x,point.z,radius)&&bodiesFor(actor).every(body=>Math.hypot(body.x-point.x,body.z-point.z)>=radius+body.radius);
+ };
+ const alfamart=createAlfamartNPCs(scene,root,tier==='low'?2:3,speak,audio,id=>{completedAlfamart.add(id);served.push(id);},advance,spawnIsClear);
+ const street=createMarketStreet(scene,root,tier!=='low',speak,audio,advance,spawnIsClear);
  const markServed=(id:number,b:Purchase)=>{if(!b.paid){b.paid=true;served.push(id);}};
  let service:{id:number;route:THREE.Vector3[];phase:'carry'|'return';prop?:THREE.Group;time:number}|null=null;
  const vendorHome=vendor.position.clone();
  const purchases=new Map<number,Purchase>(),line:number[]=[];
- let escort:{id:number;job:SalesJob;trail:THREE.Vector3[];last:THREE.Vector3}|null=null;
+ let escort:{id:number;trail:THREE.Vector3[];last:THREE.Vector3;retry:number}|null=null;
  const v=(x:number,z:number)=>new THREE.Vector3(x,0,z);
  const fabric=[0x315e75,0xb28b51,0x687b63,0x8e5460,0x3d465c,0xb6a793,0x527d76,0x735f92,0xefe7d3,0x284c3f];
- const advance=(a:THREE.Group,t:THREE.Vector3,dt:number,speed=1.55)=>{const dx=t.x-a.position.x,dz=t.z-a.position.z,d=Math.hypot(dx,dz);if(d<.055){a.position.copy(t);return true;}const step=Math.min(d,dt*speed);a.position.x+=dx/d*step;a.position.z+=dz/d*step;a.rotation.y=Math.atan2(dx,dz);return d<=step;};
  const follow=(a:THREE.Group,p:Purchase,dt:number)=>{const t=p.route[0];if(t&&advance(a,t,dt))p.route.shift();return p.route.length===0;};
- const clearSegment=(a:THREE.Vector3,b:THREE.Vector3)=>{const n=Math.ceil(a.distanceTo(b)/.22);for(let i=1;i<=n;i++){const t=i/n;if(!marketWalkable(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;}return true;};
- // Grid search is run once per sale, not each frame. Route via the public pavement.
- function outsideRoute(a:THREE.Vector3,dest:THREE.Vector3){
-  const path:THREE.Vector3[]=[];let from=a.clone();
-  if(from.z< -2.5){const shop=shops.find(s=>Math.abs(s.x-from.x)<4.5);if(shop){path.push(v(shop.x+.2,from.z),v(shop.x+.2,-1.95));from=path[path.length-1]!.clone();}}
-  if(clearSegment(from,dest))return [...path,dest];
-  const step=.6,ox=-31,oz=-2.1,nx=90,nz=22;
-  const cell=(p:THREE.Vector3)=>[Math.max(0,Math.min(nx-1,Math.round((p.x-ox)/step))),Math.max(0,Math.min(nz-1,Math.round((p.z-oz)/step)))];
-  const at=(id:number)=>v(ox+(id%nx)*step,oz+Math.floor(id/nx)*step);
-  const [sx,sz]=cell(from),[ex,ez]=cell(dest);const start=sz!*nx+sx!,goal=ez!*nx+ex!;
-  const prev=new Int32Array(nx*nz);prev.fill(-2);prev[start]=-1;const pending=[start];
-  for(let i=0;i<pending.length&&prev[goal]===-2;i++){const id=pending[i]!,cx=id%nx,cz=Math.floor(id/nx);for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]] as const){const x=cx+dx,z=cz+dz;if(x<0||x>=nx||z<0||z>=nz)continue;const next=z*nx+x;if(prev[next]!==-2)continue;const point=at(next);if(!marketWalkable(point.x,point.z))continue;prev[next]=id;pending.push(next);}}
-  if(prev[goal]===-2)return [...path,v(from.x,9.65),v(dest.x,9.65),dest];
-  const nodes:THREE.Vector3[]=[];for(let id=goal;id!==start&&id>=0;id=prev[id]!)nodes.unshift(at(id));nodes.push(dest);
-  while(nodes.length){let last=0;for(let i=nodes.length-1;i>=0;i--){if(clearSegment(from,nodes[i]!)){last=i;break;}}const next=nodes[last]!;path.push(next);from=next;nodes.splice(0,last+1);}
-  return path;
- }
  function propFor(p:Prospect,kind:'bag'|'bowl'|'belly'){
   const g=new THREE.Group();g.name='market-'+kind;p.actor.add(g);
   if(kind==='bag'){
@@ -189,7 +198,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
  }
  function removeProp(p:Purchase){if(p.prop){p.prop.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});p.prop.removeFromParent();p.prop=undefined;}}
  function complete(p:Prospect,buy:Purchase){removeProp(buy);buy.prop=propFor(p,buy.job==='bubur'?'belly':'bag');buy.stage='done';buy.time=0;p.actor.userData.marketPurchase='done';}
- function purchase(id:number,job:SalesJob,restored=false,product=0){
+ function purchase(id:number,job:SalesJob,restored=false,product=0,player?:THREE.Vector3){
   if(job==='alfamart'){
    const customer=prospects[id];
    if(restored)completedAlfamart.add(id);
@@ -199,11 +208,14 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   const p=prospects[id];if(!p||purchases.has(id))return;
   const buy:Purchase={job,stage:'approach',route:[],time:0};purchases.set(id,buy);p.actor.userData.marketPurchase=job;
   if(restored){buy.paid=true;complete(p,buy);buy.time=1;if(buy.prop)buy.prop.scale.setScalar(1);return;}
-  if(job==='bubur'){line.push(id);buy.route=outsideRoute(p.actor.position,v(16.8,8.85));speak(vendor,'Penjual Bubur','Silakan duduk, saya siapkan buburnya.');}
-  else if(insideHijab(p.actor.position.x,p.actor.position.z)){buy.stage='shop';buy.route=[v(-25.8,-5.15)];}
-  else{buy.route=outsideRoute(p.actor.position,v(-25.8,-1.95));}
+  if(job==='bubur'){line.push(id);buy.route=planMarketRoute(p.actor.position,v(16.8,8.85));speak(vendor,'Penjual Bubur','Silakan duduk, saya siapkan buburnya.');}
+  else if(insideHijab(p.actor.position.x,p.actor.position.z)){
+   const side=player&&player.x>=-26?-1:1;
+   buy.stage='shop';buy.route=[v(-26+side*.74,-5.23)];
+  }
+  else{buy.route=planMarketRoute(p.actor.position,v(-25.8,-1.95));}
  }
- function startEscort(id:number,player:THREE.Vector3,job:SalesJob){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,job,trail:clearSegment(p.actor.position,player)?[player.clone()]:job==='alfamart'?planMarketRoute(p.actor.position,player.clone()):outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
+ function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:planMarketRoute(p.actor.position,player.clone()),last:player.clone(),retry:0};p.actor.userData.marketPurchase='escort';}
  function cancelEscort(){if(escort){const p=prospects[escort.id];if(p)delete p.actor.userData.marketPurchase;}escort=null;}
  function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
  function updateEscort(dt:number,player:THREE.Vector3){
@@ -212,17 +224,13 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   const a=p.actor;
   if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}
   const t=escort.trail[0];
-  if(t&&escort.job==='alfamart'&&!clearSegment(a.position,t)){
-   // Repair a corner only when the movement sample is obstructed.
-   escort.trail=planMarketRoute(a.position,player.clone());
-   return;
-  }
   if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();
-  if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}
+  escort.retry-=dt;
+  if(escort.trail.length===0&&a.position.distanceTo(player)>1.5&&escort.retry<=0){escort.trail=planMarketRoute(a.position,player.clone());escort.last.copy(player);escort.retry=.6;}
  }
  function handoff(id:number,job:SalesJob,player:THREE.Vector3,product:number|null){const p=prospects[id];if(!p||!escortReady(id,player)||player.distanceTo(escortDestination(job))>2.0||(job==='hijab'&&(!insideHijab(player.x,player.z)||!insideHijab(p.actor.position.x,p.actor.position.z))))return false;if(job==='alfamart'){
    if(product===null||!insideAlfamart(p.actor.position.x,p.actor.position.z)||!insideAlfamart(player.x,player.z)||!alfamart.handoff(id,p.actor,p.name,product))return false;
-  }else purchase(id,job);
+  }else purchase(id,job,false,0,player);
   escort=null;return true;}
  function resetPurchases(){cancelEscort();alfamart.reset();for(const customer of prospects){delete customer.actor.userData.marketPurchase;delete customer.actor.userData.marketDeparture;}completedAlfamart.clear();if(service?.prop){service.prop.removeFromParent();}service=null;vendor.position.copy(vendorHome);delete vendor.userData.campPose;delete hijabOwner.userData.campPose;for(const seat of seats)seat.busy=null;for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;delete p.actor.userData.campPose;}}purchases.clear();
   for(let i=walkers.length-1;i>=0;i--){
@@ -233,7 +241,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   }
   line.length=0;served.length=0;speech=null;}
 
- function vendorRoute(seatIndex:number){const seat=seats[seatIndex]!;return [v(14.7,4.78),v(16.65,4.78),v(16.65,8.35),v(seat.table.x-.85,8.35),v(seat.table.x-.85,5.95)];}
+ function vendorRoute(seatIndex:number){const seat=seats[seatIndex]!;return [v(14.7,4.78),v(16.65,4.78),v(16.65,8.35),v(seat.table.x-.95,8.35),v(seat.table.x-.95,5.95)];}
  function updateVendor(dt:number){
   if(!service){const next=Array.from(purchases.entries()).find(([,b])=>b.stage==='seated');if(!next)return;const [id,b]=next;if(b.seat===undefined)return;service={id,route:vendorRoute(b.seat),phase:'carry',time:0,prop:propFor({id:-1,name:'Penjual Bubur',actor:vendor},'bowl')};return;}
   const s=service;const buy=purchases.get(s.id),customer=prospects[s.id];if(!buy||!customer){service=null;return;}
@@ -253,7 +261,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   }else if(buy.stage==='queue'){
    const index=line.indexOf(id);if(index<0)return;
    const free=seats.findIndex(s=>s.busy===null);
-   if(index===0&&free>=0){line.shift();const seat=seats[free]!;seat.busy=id;buy.seat=free;buy.stage='seat-walk';buy.route=seat.yaw===Math.PI?[v(seat.point.x,8.45),seat.point.clone()]:[v(seat.point.x-.85,8.45),v(seat.point.x-.85,seat.point.z),seat.point.clone()];}
+   if(index===0&&free>=0){line.shift();const seat=seats[free]!;seat.busy=id;buy.seat=free;buy.stage='seat-walk';buy.route=seat.yaw===Math.PI?[v(seat.point.x,8.45),seat.point.clone()]:[v(seat.point.x-.95,8.45),v(seat.point.x-.95,seat.point.z),seat.point.clone()];}
    else advance(a,v(16.8+Math.min(index,5)*.65,8.85),dt);
   }else if(buy.stage==='seat-walk'&&follow(a,buy,dt)){const seat=seats[buy.seat!]!;a.rotation.y=seat.yaw;a.userData.campPose={clip:Clip.MARKET_SEAT,phase:0};buy.stage='seated';buy.time=0;speak(a,p.name,'Baik, saya duduk dulu.');}
   else if(buy.stage==='seated'){buy.time+=dt;a.userData.campPose={clip:Clip.MARKET_SEAT,phase:(buy.time*.3)%1};}
@@ -266,6 +274,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
  return {owners:{bubur:vendor,hijab:hijabOwner,alfamart:alfamart.cashier},talkers:street.talkers,prospects,purchase,startEscort,cancelEscort,escortReady,drainServed:()=>served.splice(0),speech:()=>speech,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
+  playerBody=player;
   if(player&&escort&&prospects[escort.id]?.actor!==hold)updateEscort(dt,player);
   if(speech){speech.left-=dt;if(speech.left<=0)speech=null;}
   for(const p of prospects){const buy=purchases.get(p.id);if(buy&&p.actor!==hold)updatePurchase(p,buy,dt);}
@@ -279,11 +288,11 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
    document.documentElement.dataset.alfamartDoor=store.root.userData.doorOpen?'open':'closed';
   }
   for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&(escort?.id===p.id||alfamart.has(p.id)))continue;if(buy&&buy.stage!=='done')continue;
-   if((buy?.stage==='done'||p&&completedAlfamart.has(p.id))&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...outsideRoute(w.actor.position,v(w.actor.position.x,9.65)),v(-29,9.65),v(21,9.65)];w.index=0;w.wait=.6;}
+   if((buy?.stage==='done'||p&&completedAlfamart.has(p.id))&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...planMarketRoute(w.actor.position,v(w.actor.position.x,13.2)),v(-29,13.2),v(23,13.2)];w.index=0;w.wait=.6;}
    if(w.wait>0){w.wait-=dt;continue;}const t=w.points[w.index]!;if(advance(w.actor,t,dt,1.1)){w.index=(w.index+1)%w.points.length;w.wait=.45;}
   }
   // Previously stationary customers join a visible departure loop after eating or shopping.
-  for(const p of prospects){const buy=purchases.get(p.id);if((buy?.stage==='done'||completedAlfamart.has(p.id))&&!alfamart.has(p.id)&&!walkers.some(w=>w.actor===p.actor)){const points=[v(12,9.65),v(2,9.65),v(-12,9.65),v(20,9.65)];walkers.push({actor:p.actor,points,index:0,wait:1.5});}}
+  for(const p of prospects){const buy=purchases.get(p.id);if((buy?.stage==='done'||completedAlfamart.has(p.id))&&!alfamart.has(p.id)&&!walkers.some(w=>w.actor===p.actor)){const points=[...planMarketRoute(p.actor.position,v(p.actor.position.x,11.9)),v(22.2,11.9),v(-29,11.9)];walkers.push({actor:p.actor,points,index:0,wait:1.5});}}
   document.documentElement.dataset.marketQueue=String(line.length);
   document.documentElement.dataset.marketCompleted=String([...purchases.values()].filter(p=>p.stage==='done').length);
  }};

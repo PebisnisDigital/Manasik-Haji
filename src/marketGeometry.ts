@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {walkGroundTowards,HUMAN_RADIUS,type SolidBody} from './sim/GroundCollision.ts';
 
 const cube = new THREE.BoxGeometry();
 const tube = new THREE.CylinderGeometry(1, 1, 1, 12);
@@ -55,19 +56,17 @@ export function marketPoint(x: number, z: number) {
   return new THREE.Vector3(x, 0, z);
 }
 
-export function walkMarketActor(actor: THREE.Group, target: THREE.Vector3, dt: number, speed = 1.55, actors: readonly THREE.Group[] = []) {
-  const dx = target.x - actor.position.x, dz = target.z - actor.position.z;
-  const distance = Math.hypot(dx, dz);
-  if (distance < .03) return true;
-  const step = Math.min(distance, dt * speed);
-  const x = actor.position.x + dx * step / distance, z = actor.position.z + dz * step / distance;
-  // Allow an actor already close to another to step away.
-  if (actors.some(other => other !== actor && other.visible &&
-    Math.hypot(other.position.x - x, other.position.z - z) < .56 &&
-    Math.hypot(other.position.x - actor.position.x, other.position.z - actor.position.z) > Math.hypot(other.position.x - x, other.position.z - z))) return false;
-  actor.position.set(x, 0, z);
-  actor.rotation.y = Math.atan2(dx, dz);
-  return step === distance;
+export type MarketWalk = (actor: THREE.Group, target: THREE.Vector3, dt: number, speed?: number, detour?: boolean) => boolean;
+
+export function walkMarketActor(actor: THREE.Group, target: THREE.Vector3, dt: number, speed: number,
+  bodies: readonly SolidBody[], walkable: (x: number, z: number) => boolean, radius = HUMAN_RADIUS, detour = true) {
+  const p = actor.position;
+  const moved = walkGroundTowards(p, target, dt * speed, bodies, walkable, radius, detour);
+  const dx = moved.x - p.x, dz = moved.z - p.z;
+  if (Math.hypot(dx, dz) > .0001) actor.rotation.y = Math.atan2(dx, dz);
+  p.x = moved.x;
+  p.z = moved.z;
+  return moved.arrived;
 }
 
 // Batch opaque static cuboids. Leave animated groups and individual transparent glass alone.

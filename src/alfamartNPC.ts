@@ -3,7 +3,7 @@ import { humanActor } from './characters/HumanActors.ts';
 import { Clip } from './sim/States.ts';
 import { ALFAMART_PRODUCTS } from './alfamartProducts.ts';
 import { buildBasket, buildStoreBag, STORE_CHECKOUT, STORE_SHELVES } from './alfamartInterior.ts';
-import { block, marketPoint as point, walkMarketActor as walk } from './marketGeometry.ts';
+import { block, marketPoint as point, type MarketWalk } from './marketGeometry.ts';
 import type { MarketAudioCue } from './alfamartStore.ts';
 
 export type MarketSpeech = (actor: THREE.Group, name: string, text: string) => void;
@@ -28,7 +28,7 @@ const spawnPoints = [point(15.28,3.6),point(16.09,4.28),point(16.85,4.52)];
 const queueSpot = (i: number) => i<3?point(STORE_CHECKOUT.x, STORE_CHECKOUT.z + .79*i):point(17.9,-3.87);
 const sStand = point(16.36,-5.03);
 
-export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count: number, speak: MarketSpeech, audio: (cue: MarketAudioCue) => void, served: (id: number) => void) {
+export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count: number, speak: MarketSpeech, audio: (cue: MarketAudioCue) => void, served: (id: number) => void, walk: MarketWalk, canSpawn: (actor:THREE.Group,point:THREE.Vector3)=>boolean) {
   const cashier = humanActor(scene, 0xde2833, false, undefined, undefined, { palette:10, build:1, brightness:1, cull:true, registration:true });
   cashier.position.set(19.48,0,-7.22);
   const ambient = Array.from({length:count}, (_,i):Shopper => {
@@ -55,7 +55,7 @@ export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count:
   }
   function routeDone(buyer: Shopper, dt: number) {
     const next=buyer.route[0];
-    if(next&&walk(buyer.actor,next,dt,1.52,activeActors)) buyer.route.shift();
+    if(next&&walk(buyer.actor,next,dt,1.52)) buyer.route.shift();
     return buyer.route.length===0;
   }
   function attachBasket(buyer: Shopper) {
@@ -74,7 +74,7 @@ export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count:
   }
   function handoff(id: number, actor: THREE.Group, name: string, product: number) {
     if(mission.has(id)) return false;
-    const buyer:Shopper={actor,name,state:'QUEUE',route:[point(18.6,actor.position.z)],wait:0,shelf:0,selected:product,basket:null,sale:id};
+    const buyer:Shopper={actor,name,state:'QUEUE',route:[point(18.6,-4.13)],wait:0,shelf:0,selected:product,basket:null,sale:id};
     mission.set(id,buyer);
     addItem(buyer);
     line.push(buyer);
@@ -98,8 +98,10 @@ export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count:
       case 'SPAWN': {
         buyer.wait-=dt;
         if(buyer.wait>0||browsing||line.length>=2) return;
+        const spawn=spawnPoints[ambient.indexOf(buyer)]!;
+        if(!canSpawn(actor,spawn))return;
         browsing=buyer;
-        actor.position.copy(spawnPoints[ambient.indexOf(buyer)]!);
+        actor.position.copy(spawn);
         actor.visible=true;
         buyer.route=[point(16.04,3.4),entry()[0]!];
         buyer.state='WALK_TO_STORE';
@@ -134,11 +136,12 @@ export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count:
         if(index===-1) return;
         const spot = queueSpot(index);
         if(Math.abs(actor.position.z-spot.z)>.07) {
-          if(actor.position.x>18.66&&actor.position.x<19.2) walk(actor,point(18.6,actor.position.z),dt,1.35,activeActors);
-          else walk(actor,point(actor.position.x,spot.z),dt,1.35,activeActors);
+          if(index===0&&actor.position.x<19.25) walk(actor,point(19.28,actor.position.z),dt,1.35,false);
+          else if(actor.position.x>18.66&&actor.position.x<19.2) walk(actor,point(18.6,actor.position.z),dt,1.35,false);
+          else walk(actor,point(actor.position.x,spot.z),dt,1.35,false);
           return;
         }
-        if(!walk(actor,spot,dt,1.35,activeActors)) return;
+        if(!walk(actor,spot,dt,1.35,false)) return;
         actor.rotation.y=Math.PI;
         if(index===0&&!current&&actor.position.distanceTo(checkoutPoint)<.08) {
           current=buyer;buyer.state='CHECKOUT';buyer.wait=1.1;

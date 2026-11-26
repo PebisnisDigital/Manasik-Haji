@@ -1,9 +1,10 @@
 import {drawNamePlate} from './characters/NamePlate.ts';
 import {sweepGround,type SolidBody} from './sim/GroundCollision.ts';
 import {GATE_OFFICE as O,GATE_VIDEOTRON as V} from './gateVideotronModel.ts';
+import {parkingLayout,foodCartLayout} from './lobbyGround.ts';
 import {joinQueue,serveQueue,type QueueTicket} from './queueTicket.ts';
 import * as THREE from 'three';
-import {humanActor} from './characters/HumanActors.ts';
+import {humanActor,humanBodies,groundBodyRadius,registerGroundBody} from './characters/HumanActors.ts';
 
 type LaneNPC={root:THREE.Group;label:THREE.Sprite;canvas:HTMLCanvasElement;nameIndex:number;target:THREE.Vector3};
 type Lane={ticket:QueueTicket|null;side:number;female:boolean;queue:LaneNPC[];spare:LaneNPC|null;outgoing:LaneNPC|null;exitStep:number;service:number;pen:THREE.Group;clerk:THREE.Group;clock:number;nextName:number;names:readonly string[]};
@@ -61,7 +62,7 @@ function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  sign(scene,female?'LOKET PEREMPUAN':'LOKET LAKI-LAKI','PENDAFTARAN · SIMULASI NPC',x,2.43,-2.96,2.03,.58);
  box(scene,.30,.018,.23,x+.15,1.089,-3.52,paper);for(let i=0;i<4;i++)box(scene,.22,.003,.008,x+.15,1.10,-3.59+i*.038,ink);
  const screen=box(scene,.32,.22,.045,x-.42,1.26,-3.68,ink);screen.rotation.x=-.12;box(scene,.07,.12,.06,x-.42,1.13,-3.68,green);
- const {pen,clerk}=makeAdmin(scene,x,female);
+ const {pen,clerk}=makeAdmin(scene,x,female);registerGroundBody(scene,clerk);
  sign(scene,'GERBANG','KEBERANGKATAN',side*6,2.77,-5.68,2.05,.53);
  sign(scene,'MULAI ANTREAN','MASUK ANTREAN',x,1.95,5.34,1.95,.56);box(scene,.82,.025,.76,x,.021,4.93,gold);
  const railX=side*4.83;for(let i=0;i<5;i++){const z=-2.30+i*1.55;post(scene,railX,z);if(i)rope(scene,railX,z-1.55,z);}
@@ -75,10 +76,10 @@ function createLane(scene:THREE.Scene,side:number,female:boolean):Lane{
  }
  return lane;
 }
-function advance(npc:LaneNPC,dt:number,speed:number,bodies:readonly SolidBody[]){
+function advance(npc:LaneNPC,dt:number,speed:number,bodies:readonly SolidBody[],walkable:(x:number,z:number)=>boolean){
  const p=npc.root.position,dx=npc.target.x-p.x,dz=npc.target.z-p.z,d=Math.hypot(dx,dz);
  if(d<.015)return true;
- const distance=Math.min(d,speed*dt),next=sweepGround(p,{x:p.x+dx/d*distance,z:p.z+dz/d*distance},bodies,undefined,.30);p.x=next.x;p.z=next.z;
+ const distance=Math.min(d,speed*dt),next=sweepGround(p,{x:p.x+dx/d*distance,z:p.z+dz/d*distance},bodies,walkable,groundBodyRadius(npc.root));p.x=next.x;p.z=next.z;
  const yaw=Math.atan2(dx,dz),delta=Math.atan2(Math.sin(yaw-npc.root.rotation.y),Math.cos(yaw-npc.root.rotation.y));npc.root.rotation.y+=delta*(1-Math.exp(-dt*9));return Math.hypot(p.x-npc.target.x,p.z-npc.target.z)<.015;
 }
 
@@ -132,13 +133,13 @@ function createParking(scene:THREE.Scene){
   box(g,.22,.10,.035,0,.43,-.76,plate);
   rod(g,new THREE.Vector3(-.10,.38,-.16),new THREE.Vector3(-.26,.02,-.22),.018,chrome);
  }
- for(const side of [-1,1]){
+ for(const {side,car,scooters} of parkingLayout){
   box(scene,5.05,.035,10.4,side*9.24,.014,.65,asphalt);
   for(let i=0;i<5;i++)box(scene,1.78,.009,.04,side*7.38,.037,-3.2+i*1.52,stripe);
   box(scene,.045,.009,9.7,side*11.65,.037,.65,stripe);
-  mpv(side*10.0,-.25,side<0?0xf0efeb:0x59636a,side<0?.10:-.10);
+  mpv(car.x,car.z,side<0?0xf0efeb:0x59636a,car.yaw);
   const colors=[0x263c4b,0xb32f35,0xe8e9de,0x355d59,0x34559b,0x222528];
-  for(let i=0;i<6;i++)scooter(side*7.0,-1.55+i*1.13,colors[(i+(side<0?0:2))%colors.length]!,side<0?-Math.PI/2:Math.PI/2);
+  scooters.forEach(({x,z,yaw},i)=>scooter(x,z,colors[(i+(side<0?0:2))%colors.length]!,yaw));
   sign(scene,'PARKIR','MOBIL & MOTOR',side*9.6,2.12,-4.55,1.65,.48);
  }
 }
@@ -233,6 +234,7 @@ function createFoodCourt(scene:THREE.Scene){
     actors.push({arm,head,phase,vendor});
    }else arm.rotation.z=side*.1;
   }
+  registerGroundBody(scene,body,h*.21,body.getWorldPosition(new THREE.Vector3()));
   return body;
  }
  function cart(side:number,z:number,title:string,color:number,food:number,index:number){
@@ -263,14 +265,11 @@ function createFoodCourt(scene:THREE.Scene){
   sign(scene,'JAJANAN UMKM','KULINER INDONESIA',side*13.6,2.9,-5.15,2.8,.8);
   for(let i=0;i<3;i++){const x=side*15.2,z=-3+i*2.6;box(scene,1.2,.10,.38,x,.45,z,wood);for(const dz of [-.12,.12])box(scene,.08,.43,.08,x,.21,z+dz,green);}
  }
- cart(-1,-3.15,'CILOK',0x368b52,0xe6cd91,0);
- cart(-1,.45,'SIOMAY',0xb6813b,0xe8d6b2,1);
- cart(1,-3.15,'BATAGOR',0xc66b3d,0xd7a45e,2);
- cart(1,.45,'ES TEH',0x397c92,0x9a5b34,3);
+ foodCartLayout.forEach(({side,z,title,color,food},i)=>cart(side,z,title,color,food,i));
  return (time:number)=>{for(const a of actors){const t=time+a.phase;a.arm.rotation.x=a.vendor?-.72+Math.sin(t*3)*.25:-.40-Math.pow(Math.max(0,Math.sin(t*1.6)),4)*1.38;a.arm.rotation.z=a.vendor?-.16+Math.sin(t*2)*.12:-.12;a.head.rotation.y=Math.sin(t*.8)*.10;}};
 }
 
-export function createRegistrationHall(scene:THREE.Scene){
+export function createRegistrationHall(scene:THREE.Scene,walkable:(x:number,z:number)=>boolean){
  createParking(scene);
  createGrandOffice(scene);
  const animateMarket=createFoodCourt(scene);
@@ -282,19 +281,21 @@ export function createRegistrationHall(scene:THREE.Scene){
   if(registrationBusy)return;
   for(const lane of lanes){
    lane.clock+=dt;lane.pen.rotation.y=Math.sin(lane.clock*7)*.16;lane.pen.position.x=.15+Math.sin(lane.clock*5)*.025;lane.pen.position.z=.22+Math.cos(lane.clock*5)*.015;
-   const bodies=(npc:LaneNPC)=>[...lane.queue.filter(n=>n!==npc).map(n=>({...n.root.position,radius:.30})),...(lane.outgoing&&lane.outgoing!==npc?[{...lane.outgoing.root.position,radius:.30}]:[]),...(player?[player]:[])];
-   for(const npc of lane.queue)advance(npc,dt,1.12,bodies(npc));
+   const bodies=(npc:LaneNPC)=>[...humanBodies(scene,npc.root),...(player?[player]:[])];
+   const spawn=entrance(lane.side);
+   const canSpawn=humanBodies(scene).every(body=>Math.hypot(body.x-spawn.x,body.z-spawn.z)>.32+(body.radius??.32))&&(!player||Math.hypot(player.x-spawn.x,player.z-spawn.z)>.64);
+   for(const npc of lane.queue)advance(npc,dt,1.12,bodies(npc),walkable);
    if(lane.outgoing){
-    const npc=lane.outgoing;if(advance(npc,dt,1.55,bodies(npc))){
+    const npc=lane.outgoing;if(advance(npc,dt,1.55,bodies(npc),walkable)){
      if(lane.exitStep===0){lane.exitStep=1;npc.target.set(lane.side*5.9,0,-4.55);}
      else if(lane.exitStep===1){lane.exitStep=2;npc.target.set(lane.side*6,0,-7.20);}
      else{npc.root.visible=false;lane.spare=npc;lane.outgoing=null;completed++;}
     }
    }
    lane.service-=dt;
-   if(lane.service<=0&&lane.ticket?.ahead!==0&&lane.spare&&!lane.outgoing&&lane.queue[0]!.root.position.distanceTo(slot(lane,0))<.08){
+   if(lane.service<=0&&lane.ticket?.ahead!==0&&lane.spare&&!lane.outgoing&&canSpawn&&lane.queue[0]!.root.position.distanceTo(slot(lane,0))<.08){
     const first=lane.queue.shift()!;if(lane.ticket)lane.ticket=serveQueue(lane.ticket);lane.outgoing=first;lane.exitStep=0;first.target.set(lane.side*5.65,0,-2.77);
-    const incoming=lane.spare;lane.spare=null;rename(incoming,lane);incoming.root.position.copy(entrance(lane.side));incoming.root.rotation.y=Math.PI;incoming.root.visible=true;lane.queue.push(incoming);
+    const incoming=lane.spare;lane.spare=null;rename(incoming,lane);incoming.root.position.copy(spawn);incoming.root.rotation.y=Math.PI;incoming.root.visible=true;lane.queue.push(incoming);
     lane.queue.forEach((npc,i)=>npc.target.copy(slot(lane,i)));
     lane.service=7.5;
    }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { humanActor } from './characters/HumanActors.ts';
+import { humanActor,registerGroundBody } from './characters/HumanActors.ts';
 import { Clip } from './sim/States.ts';
-import { batchMarketBlocks, block, marketPaint, marketPoint as point, marketSign, round, walkMarketActor as walk } from './marketGeometry.ts';
+import { batchMarketBlocks, block, marketPaint, marketPoint as point, marketSign, round, type MarketWalk } from './marketGeometry.ts';
 import { storeGlass } from './alfamartInterior.ts';
 import type { MarketSpeech } from './alfamartNPC.ts';
 import type { MarketAudioCue } from './alfamartStore.ts';
@@ -27,7 +27,9 @@ function person(scene:THREE.Scene,palette:number,female=false,height?:number) {
   return humanActor(scene,0xffe1c1,female,height,undefined,{palette,build:1,brightness:1,cull:true,registration:true});
 }
 
-function createVendors(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,extraVisitors:boolean) {
+type CanSpawn = (actor:THREE.Group,point:THREE.Vector3)=>boolean;
+
+function createVendors(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,extraVisitors:boolean,walk:MarketWalk,canSpawn:CanSpawn) {
   return vendorInfo.map(({name,food,x,z,color,foodColor}, index)=>{
     const actor=person(scene,index===0?2:4,index===1);actor.position.set(x,0,z-.69);
     block(root,1.76,.74,.8,x,.47,z,color);
@@ -53,21 +55,20 @@ function createVendors(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,ext
       return {customer,bowl,state:'arrive',time:index*4+i*6};
     });
     const line:typeof visitors=[];
-    const lane=point(x+.80,9.88), order=point(x+.67,z+.65), seat=point(x+.13,z+1.24), departure=point(x+.12,9.88);
+    const lane=point(x+.80,9.88), order=point(x+.67,z+.86), seat=point(x+.13,z+1.24), departure=point(x+.12,9.88);
     return { actor,name,food, update(dt:number,player:THREE.Vector3) {
       const near=actor.position.distanceToSquared(player)<75;
-      const bodies=visitors.map(v=>v.customer);
-      for(const visitor of visitors) {
+        for(const visitor of visitors) {
         const {customer,bowl}=visitor;
         if(visitor.state==='arrive') {
           visitor.time-=dt;
-          if(visitor.time<=0 && !bodies.some(b=>b.visible&&b.position.distanceToSquared(lane)<.7)) {
+          if(visitor.time<=0 && canSpawn(customer,lane)) {
             customer.position.copy(lane);customer.visible=true;line.push(visitor);visitor.state='queue';
           }
         } else if(visitor.state==='queue') {
           const place=line.indexOf(visitor);
           const slot=place===0?order:point(x+.73,z+1.93);
-          if(walk(customer,slot,dt,1.15,bodies)&&place===0&&!visitors.some(v=>v.state==='seat'||v.state==='eat')) {
+          if(walk(customer,slot,dt,1.15)&&place===0&&!visitors.some(v=>v.state==='seat'||v.state==='eat')) {
             customer.rotation.y=Math.PI;
             visitor.state='order';visitor.time=2;
             if(near) speak(customer,index===0?'Tamu Bakso':'Tamu Siomay','Pesan satu porsi, ya.');
@@ -81,7 +82,7 @@ function createVendors(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,ext
             if(near) speak(actor,name,'Silakan, masih hangat.');
           }
         } else if(visitor.state==='seat') {
-          if(walk(customer,seat,dt,1.2,bodies)) {
+          if(walk(customer,seat,dt,1.2)) {
             visitor.state='eat';visitor.time=4.5;customer.rotation.y=-Math.PI/2;
           }
         } else if(visitor.state==='eat') {
@@ -91,7 +92,7 @@ function createVendors(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,ext
             delete customer.userData.campPose;bowl.visible=false;visitor.state='leave';
             if(near) speak(customer,'Pengunjung','Enak! Terima kasih.');
           }
-        } else if(walk(customer,departure,dt,1.15,bodies)) {
+        } else if(walk(customer,departure,dt,1.15)) {
           customer.visible=false;visitor.state='arrive';visitor.time=5+index;
         }
       }
@@ -99,7 +100,7 @@ function createVendors(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,ext
   });
 }
 
-function createRides(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio:(cue:MarketAudioCue)=>void) {
+function createRides(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio:(cue:MarketAudioCue)=>void,walk:MarketWalk,canSpawn:CanSpawn) {
   const bulbs=[0xf55a36,0x41d1de,0xffd934,0xa278fc].map(color=>new THREE.MeshBasicMaterial({color}));
   const models=rides.map(({x,z,name,color}, i)=>{
     block(root,1.12,.18,1.15,x,.09,z,0xf5c531);
@@ -130,10 +131,10 @@ function createRides(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio
     return prop;
   });
   const parent=person(scene,4,true), child=person(scene,1,false,1.12);
-  const away=point(11.98,4.5);
-  parent.position.copy(away);child.position.copy(point(12.3,4.7));parent.visible=child.visible=false;
-  const sidePoints=rides.map(({x,z})=>point(x-.98,z));
-  const childPoints=rides.map(({x,z})=>point(x-.99,z+.42));
+  const away=point(11.62,4.91),childAway=point(12.27,4.64);
+  parent.position.copy(away);child.position.copy(childAway);parent.visible=child.visible=false;
+  const sidePoints=rides.map(({x,z})=>point(x-1.43,z));
+  const childPoints=rides.map(({x,z})=>point(x-1.04,z+.52));
   let cycle=0, state:'rest'|'arrive'|'ride'|'leave'='rest',time=1.5, pulse=0;
   return (dt:number,player:THREE.Vector3)=>{
     pulse+=dt;
@@ -141,7 +142,7 @@ function createRides(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio
     const {x,z}=rides[cycle]!;
     if(state==='rest'){
       time-=dt;
-      if(time<=0){parent.visible=child.visible=true;state='arrive';}
+      if(time<=0&&canSpawn(parent,away)&&canSpawn(child,childAway)){parent.visible=child.visible=true;state='arrive';}
     } else if(state==='arrive'){
       const ready=walk(parent,sidePoints[cycle]!,dt,1.3);
       if(walk(child,childPoints[cycle]!,dt,1.25)&&ready){
@@ -153,30 +154,31 @@ function createRides(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio
     } else if(state==='ride'){
       time-=dt;models[cycle]!.position.y=Math.sin(pulse*5)*.07;models[cycle]!.rotation.x=Math.sin(pulse*4)*.10;
       child.position.y=.52+models[cycle]!.position.y;
-      if (time<=0){
+      if (time<=0&&canSpawn(child,childPoints[cycle]!)){
         delete child.userData.campPose;child.position.copy(childPoints[cycle]!);
         models[cycle]!.position.y=0;models[cycle]!.rotation.x=0;state='leave';
         if(parent.position.distanceToSquared(player)<65) speak(child,'Anak','Sudah selesai! Ayo, Bu.');
       }
     } else {
       const ready=walk(parent,away,dt,1.26);
-      if(walk(child,point(12.3,4.7),dt,1.2)&&ready){
+      if(walk(child,childAway,dt,1.2)&&ready){
         state='rest';cycle=(cycle+1)%rides.length;time=3;parent.visible=child.visible=false;
       }
     }
   };
 }
 
-function createParking(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio:(cue:MarketAudioCue)=>void) {
+function createParking(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,audio:(cue:MarketAudioCue)=>void,walk:MarketWalk,canSpawn:CanSpawn) {
   const actor=person(scene,11);
-  const home=point(20.66,3.56),parking=point(20.78,.86),street=point(20.78,7.95),guide=point(20.55,2.93);
+  const home=point(21.15,3.85),parking=point(22.35,.86),street=point(22.35,7.95),guide=point(21.55,2.93);
   actor.position.copy(home);
   block(actor,.25,.09,.25,0,1.73,.025,0x344255);
   block(actor,.18,.028,.17,0,1.70,.194,0x344255);
   block(actor,.05,.08,.038,0,1.37,.18,0xddd9c1);
   block(actor,.05,.48,.05,.34,.93,.12,0xef8b20).rotation.z=.36;
   block(actor,.048,.16,.047,.285,1.12,.12,0xf1ecda).rotation.z=.36;
-  const motor=new THREE.Group();root.add(motor);
+  const motor=new THREE.Group();root.add(motor);motor.position.copy(street);motor.visible=false;
+  registerGroundBody(scene,motor,.54);
   block(motor,.35,.32,.68,0,.47,0,0x477691);
   block(motor,.26,.11,.52,0,.68,-.075,0x292d35);
   block(motor,.17,.51,.18,0,.58,.51,0x477691);
@@ -186,13 +188,21 @@ function createParking(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,aud
   const driver=person(scene,6);
   driver.userData.campPose={clip:Clip.MARKET_SEAT,phase:0};
   driver.userData.noCollision=true;
+  driver.visible=false;
   let elapsed=0;
   return {actor,update(dt:number,player:THREE.Vector3){
-    const before=elapsed;elapsed=(elapsed+dt)%24;
-    const inbound=elapsed<6, outbound=elapsed>=15&&elapsed<21, parked=elapsed>=6&&elapsed<15;
+    const before=elapsed;
+    const inbound=elapsed<6, parked=elapsed>=6&&elapsed<15, outbound=elapsed>=15&&elapsed<21;
+    if(inbound&&!motor.visible){
+      if(!canSpawn(motor,street))return;
+      motor.position.copy(street);
+    }
     motor.visible=driver.visible=inbound||outbound||parked;
-    const t=inbound?elapsed/6:outbound?1-(elapsed-15)/6:1;
-    motor.position.lerpVectors(street,parking,t);
+    if(inbound||outbound){
+      const arrived=walk(motor,inbound?parking:street,dt,1.30,false);
+      const end=inbound?6:21;
+      elapsed=arrived?end:Math.min(end-.001,elapsed+dt);
+    }else elapsed=(elapsed+dt)%24;
     motor.rotation.y=inbound||parked?Math.PI:0;
     driver.position.copy(motor.position);driver.position.y=.29;driver.rotation.y=motor.rotation.y;
     walk(actor,(inbound||outbound)?guide:home,dt,1.2);
@@ -207,11 +217,11 @@ function createParking(scene:THREE.Scene,root:THREE.Group,speak:MarketSpeech,aud
   }};
 }
 
-export function createMarketStreet(scene:THREE.Scene,root:THREE.Group,detail:boolean,speak:MarketSpeech,audio:(cue:MarketAudioCue)=>void) {
+export function createMarketStreet(scene:THREE.Scene,root:THREE.Group,detail:boolean,speak:MarketSpeech,audio:(cue:MarketAudioCue)=>void,walk:MarketWalk,canSpawn:CanSpawn) {
   const street=new THREE.Group();root.add(street);
-  const vendors=createVendors(scene,street,speak,detail);
-  const ridesUpdate=createRides(scene,street,speak,audio);
-  const parking=createParking(scene,street,speak,audio);
+  const vendors=createVendors(scene,street,speak,detail,walk,canSpawn);
+  const ridesUpdate=createRides(scene,street,speak,audio,walk,canSpawn);
+  const parking=createParking(scene,street,speak,audio,walk,canSpawn);
   batchMarketBlocks(street);
   return {
     talkers:[

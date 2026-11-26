@@ -6,10 +6,14 @@ import {PlayerRenderer} from './PlayerRenderer.ts';
 import type {Wardrobe} from './playerAppearance.ts';
 import {resolveFrames} from './CrowdView.ts';
 import {Clip} from '../sim/States.ts';
+import {HUMAN_RADIUS,type GroundPoint} from '../sim/GroundCollision.ts';
 
 interface Actor {root:THREE.Group;renderKey:string;female:boolean;height:number;palette:number;build:number;brightness:number;cull:boolean;motion:DistrictLocomotion;x:number;z:number;ready:boolean;prayerTime:number}
 interface Pool {actors:Actor[];renderers:Map<string,CrowdRenderer|PlayerRenderer>}
 const pools=new WeakMap<THREE.Scene,Pool>();
+type Collider=GroundPoint&{radius:number};
+const groundBodies=new WeakMap<THREE.Scene,{root:THREE.Object3D;body:Collider}[]>();
+const groundRadii=new WeakMap<THREE.Object3D,number>();
 const registrationColors:ReadonlyArray<readonly [number,number,number]> = [[0x315e75,0xe7d7bf,0xd8ae8b],[0xb28b51,0x8a673d,0x78533c],[0x687b63,0xbcc4a0,0xefc8a6],[0x8e5460,0x78414b,0x583c2d],[0x3d465c,0xa8b9cb,0xb37f58],[0xb6a793,0xe1ceaf,0xc3936d],[0x527d76,0x25564b,0x95633f],[0x735f92,0x57416f,0xe4b995],[0xefe7d3,0xc8bb9d,0xab7956],[0x284c3f,0x4a7360,0xcd9f7b],[0xd72830,0xb51420,0xcd9f7b],[0xf18422,0x3a4d61,0xb37f58]];
 const visibleFrustum=new THREE.Frustum(),clipMatrix=new THREE.Matrix4(),actorSphere=new THREE.Sphere(new THREE.Vector3(),1.2);
 /** Keep gameplay roots and collision coordinates; share the existing skinned VAT renderer. */
@@ -24,6 +28,7 @@ export function humanActor(scene:THREE.Scene,robe=0xf4f1e8,female=false,height=f
   const color=new THREE.Color(robe),palette=color.r<.65?9:pool.actors.length%8;
   const root=new THREE.Group();root.name='human-actor';scene.add(root);
   pool.actors.push({root,renderKey,female,height,palette:appearance?.palette??palette,build:appearance?.build??1,brightness:appearance?.brightness??1,cull:appearance?.cull??false,motion:new DistrictLocomotion(pool.actors.length*.17%1),x:0,z:0,ready:false,prayerTime:pool.actors.length*.13%1});
+  if(!playerWardrobe)registerGroundBody(scene,root,HUMAN_RADIUS*buildRadius(height,appearance?.build??1));
   return root;
 }
 export function humanPlayer(scene:THREE.Scene,avatar:'male'|'female',wardrobe:Wardrobe='ritual'){return humanActor(scene,0xf4f1e8,avatar==='female',avatar==='female'?1.64:1.74,wardrobe);}
@@ -50,9 +55,21 @@ export function disposeHumanActors(scene:THREE.Scene):void {
   const pool=pools.get(scene);if(!pool)return;
   for(const crowd of pool.renderers.values()){scene.remove(crowd.group);crowd.dispose();}
   pools.delete(scene);
+  groundBodies.delete(scene);
 }
 
-/** NPC ground bodies use their actual gameplay roots, not the render meshes or camera culling. */
-export function humanBodies(scene:THREE.Scene){
- return (pools.get(scene)?.actors??[]).filter(a=>a.root.parent&&a.root.visible&&!a.renderKey.includes(':player:')&&a.root.userData.noCollision!==true).map(a=>({x:a.root.position.x,z:a.root.position.z,radius:.32*a.build}));
+function buildRadius(height:number,build:number){return build*Math.min(1,height/1.6);}
+
+/** Hand-built NPCs and animated crowd roots share the same ground collision. */
+export function registerGroundBody(scene:THREE.Scene,root:THREE.Object3D,radius=HUMAN_RADIUS,position=root.position){
+ let list=groundBodies.get(scene);
+ if(!list){list=[];groundBodies.set(scene,list);}
+ groundRadii.set(root,radius);
+ list.push({root,body:{get x(){return position.x;},get z(){return position.z;},radius}});
+}
+
+export function groundBodyRadius(actor:THREE.Object3D){return groundRadii.get(actor)??HUMAN_RADIUS;}
+
+export function humanBodies(scene:THREE.Scene,except?:THREE.Object3D):Collider[]{
+ return (groundBodies.get(scene)??[]).filter(({root})=>root!==except&&root.parent&&root.visible&&root.userData.noCollision!==true).map(({body})=>body);
 }
