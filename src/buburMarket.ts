@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {Clip} from './sim/States.ts';
 import {humanActor} from './characters/HumanActors.ts';
 
 export const BUBUR_POINT = new THREE.Vector3(14.7, 1.9, 6.4);
@@ -104,8 +105,26 @@ export function createBuburMarket(scene:THREE.Scene){
  const hijabOwner=humanActor(scene,0x866b88,true,undefined,undefined,{palette:7,build:1,brightness:1,registration:true});
  hijabOwner.position.set(-26,0,-6.55);hijabOwner.rotation.y=0;
  box(root,1.65,1.02,.64,-26,.51,-6.02,0x8d6c70);box(root,1.75,.08,.72,-26,1.06,-6.02,0xe8cfb8);box(root,.30,.28,.10,-26.48,1.23,-6.15,0x354448);sign(root,'KASIR','KOKOSALAMA',-26,2.45,-6.44,1.55,.42,'#6f526a','#fff4df');
+ // Two dining tables and four plastic chairs beside the cart, outside the main footpath.
+ const seats:{point:THREE.Vector3;table:THREE.Vector3;yaw:number;busy:number|null}[]=[];
+ for(const tx of [17.9,19.9]){
+  const tz=5.95;box(root,1.12,.10,.86,tx,.77,tz,0xc5a77b);
+  for(const dx of [-.43,.43])for(const dz of [-.31,.31])box(root,.075,.72,.075,tx+dx,.36,tz+dz,0x555d58);
+  for(const side of [-1,1]){
+   const sz=tz+side*.83;box(root,.46,.075,.44,tx,.45,sz,0x39735b);
+   for(const dx of [-.17,.17])for(const dz of [-.15,.15])box(root,.055,.42,.055,tx+dx,.21,sz+dz,0x39735b);
+   box(root,.44,.30,.065,tx,.67,sz+side*.19,0x39735b);
+   seats.push({point:new THREE.Vector3(tx,0,sz),table:new THREE.Vector3(tx,.85,tz+side*.20),yaw:side===1?Math.PI:0,busy:null});
+  }
+ }
  // A sale changes the actual NPC's activity; the normal pedestrian loop pauses until purchase finishes.
- type Purchase={job:SalesJob;stage:'approach'|'queue'|'eating-walk'|'eat'|'shop'|'shop-wait'|'exit'|'done';route:THREE.Vector3[];time:number;prop?:THREE.Group};
+ type Purchase={job:SalesJob;stage:'approach'|'queue'|'seat-walk'|'seated'|'eat'|'thank'|'shop'|'shop-wait'|'bag-thank'|'exit'|'done';route:THREE.Vector3[];time:number;prop?:THREE.Group;seat?:number;paid?:boolean};
+ const served:number[]=[];
+ let speech:{actor:THREE.Group;name:string;text:string;left:number}|null=null;
+ const speak=(actor:THREE.Group,name:string,text:string)=>{speech={actor,name,text,left:2.7};};
+ const markServed=(id:number,b:Purchase)=>{if(!b.paid){b.paid=true;served.push(id);}};
+ let service:{id:number;route:THREE.Vector3[];phase:'carry'|'return';prop?:THREE.Group;time:number}|null=null;
+ const vendorHome=vendor.position.clone();
  const purchases=new Map<number,Purchase>(),line:number[]=[];
  let escort:{id:number;trail:THREE.Vector3[];last:THREE.Vector3}|null=null;
  const v=(x:number,z:number)=>new THREE.Vector3(x,0,z);
@@ -136,7 +155,7 @@ export function createBuburMarket(scene:THREE.Scene){
    for(const z of [-.065,.065]){const h=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,6,14,Math.PI),material(0x896447));h.position.set(0,.17,z);g.add(h);}
    sign(g,'KOKOSALAMA','HIJAB',0,0,.083,.255,.13,'#6f526a','#fff4df');g.position.set(.31,.66,.09);
   }else if(kind==='bowl'){
-   const bowl=new THREE.Mesh(new THREE.SphereGeometry(.14,16,10,0,Math.PI*2,Math.PI/2,Math.PI/2),material(0xf3f0e5));g.add(bowl);cylinder(g,.13,.025,0,.005,0,0xe9d5ad);g.position.set(.06,1.12,.30);
+   const bowl=new THREE.Mesh(new THREE.SphereGeometry(.14,16,10,0,Math.PI*2,Math.PI/2,Math.PI/2),material(0xf3f0e5));g.add(bowl);cylinder(g,.13,.025,0,.005,0,0xe9d5ad);g.position.set(.06,1.12,.30);for(let k=0;k<4;k++)cylinder(g,.027,.014,Math.cos(k*1.8)*.065,.025,Math.sin(k*1.8)*.065,[0xd4ac68,0x6f925e,0xe3c598,0xba873e][k]!);
   }else{
    const palette=Number(p.actor.userData.marketPalette??5);
    const belly=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),material(fabric[palette]??0xb6a793));belly.scale.set(.30,.25,.27);g.position.set(0,1.00,.17);g.add(belly);
@@ -149,9 +168,9 @@ export function createBuburMarket(scene:THREE.Scene){
  function purchase(id:number,job:SalesJob,restored=false){
   const p=prospects[id];if(!p||purchases.has(id))return;
   const buy:Purchase={job,stage:'approach',route:[],time:0};purchases.set(id,buy);p.actor.userData.marketPurchase=job;
-  if(restored){complete(p,buy);buy.time=1;if(buy.prop)buy.prop.scale.setScalar(1);return;}
-  if(job==='bubur'){line.push(id);buy.route=outsideRoute(p.actor.position,v(14.7+Math.min(line.length-1,9)*.73,9.6));}
-  else if(insideHijab(p.actor.position.x,p.actor.position.z)){buy.stage='shop-wait';buy.time=0;}
+  if(restored){buy.paid=true;complete(p,buy);buy.time=1;if(buy.prop)buy.prop.scale.setScalar(1);return;}
+  if(job==='bubur'){line.push(id);buy.route=outsideRoute(p.actor.position,v(16.8,8.85));speak(vendor,'Penjual Bubur','Silakan duduk, saya siapkan buburnya.');}
+  else if(insideHijab(p.actor.position.x,p.actor.position.z)){buy.stage='shop';buy.route=[v(-25.8,-5.15)];}
   else{buy.route=outsideRoute(p.actor.position,v(-25.8,-1.95));}
  }
  function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:clearSegment(p.actor.position,player)?[player.clone()]:outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
@@ -159,27 +178,44 @@ export function createBuburMarket(scene:THREE.Scene){
  function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
  function updateEscort(dt:number,player:THREE.Vector3){if(!escort)return;const p=prospects[escort.id];if(!p)return;const a=p.actor;if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}const t=escort.trail[0];if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}}
  function handoff(id:number,job:SalesJob,player:THREE.Vector3){const p=prospects[id];if(!p||!escortReady(id,player)||player.distanceTo(escortDestination(job))>2.0||(job==='hijab'&&(!insideHijab(player.x,player.z)||!insideHijab(p.actor.position.x,p.actor.position.z))))return false;escort=null;purchase(id,job);return true;}
- function resetPurchases(){cancelEscort();for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;}}purchases.clear();line.length=0;}
+ function resetPurchases(){cancelEscort();if(service?.prop){service.prop.removeFromParent();}service=null;vendor.position.copy(vendorHome);delete vendor.userData.campPose;delete hijabOwner.userData.campPose;for(const seat of seats)seat.busy=null;for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;delete p.actor.userData.campPose;}}purchases.clear();line.length=0;served.length=0;speech=null;}
+ function vendorRoute(seatIndex:number){const seat=seats[seatIndex]!;return [v(14.7,4.78),v(16.65,4.78),v(16.65,8.35),v(seat.table.x-.85,8.35),v(seat.table.x-.85,5.95)];}
+ function updateVendor(dt:number){
+  if(!service){const next=Array.from(purchases.entries()).find(([,b])=>b.stage==='seated');if(!next)return;const [id,b]=next;if(b.seat===undefined)return;service={id,route:vendorRoute(b.seat),phase:'carry',time:0,prop:propFor({id:-1,name:'Penjual Bubur',actor:vendor},'bowl')};return;}
+  const s=service;const buy=purchases.get(s.id),customer=prospects[s.id];if(!buy||!customer){service=null;return;}
+  const target=s.route[0];if(target&&advance(vendor,target,dt,1.8))s.route.shift();s.time+=dt;
+  if(s.phase==='carry'){vendor.userData.campPose={clip:Clip.MARKET_CARRY,phase:(s.time*1.8)%1};if(s.route.length===0&&buy.seat!==undefined){
+   const seat=seats[buy.seat]!;vendor.rotation.y=Math.PI/2;delete vendor.userData.campPose;
+   if(s.prop){root.add(s.prop);s.prop.position.copy(seat.table);s.prop.rotation.set(0,0,0);buy.prop=s.prop;s.prop=undefined;}
+   buy.stage='eat';buy.time=0;speak(vendor,'Penjual Bubur','Ini buburnya, silakan dinikmati.');markServed(s.id,buy);
+   s.phase='return';s.route=vendorRoute(buy.seat).reverse().slice(1).concat([vendorHome.clone()]);
+  }}else if(s.route.length===0){vendor.position.copy(vendorHome);vendor.rotation.y=0;service=null;}
+ }
  function updatePurchase(p:Prospect,buy:Purchase,dt:number){
-  const a=p.actor;const id=p.id;
+  const a=p.actor,id=p.id;
   if(buy.stage==='approach'&&follow(a,buy,dt)){
    if(buy.job==='bubur')buy.stage='queue';
-   else{buy.stage='shop';buy.route=[v(-25.8,-3.5),v(-25.8,-5.2)];}
+   else{buy.stage='shop';buy.route=[v(-25.8,-3.5),v(-25.8,-5.15)];}
   }else if(buy.stage==='queue'){
    const index=line.indexOf(id);if(index<0)return;
-   const target=v(14.7+index*.73,8.13);
-   // Queue from the pavement, then shuffle forwards in FIFO order.
-   if(advance(a,target,dt)){a.rotation.y=Math.PI;if(index===0){buy.time+=dt;if(buy.time>=2.2){line.shift();buy.stage='eating-walk';buy.time=0;buy.route=[v(13.1,8.45),v(12.05-(id%5)*.72,8.95+Math.floor(id%10/5)*.95)];buy.prop=propFor(p,'bowl');}}}
-  }else if(buy.stage==='eating-walk'&&follow(a,buy,dt)){buy.stage='eat';buy.time=0;a.rotation.y=Math.PI;}
-  else if(buy.stage==='eat'){buy.time+=dt;if(buy.prop){const lift=(1+Math.sin(buy.time*5))*.5;buy.prop.position.set(.06,1.12+lift*.23,.30-lift*.10);}if(buy.time>=4.3){complete(p,buy);}}
-  else if(buy.stage==='shop'&&follow(a,buy,dt)){buy.stage='shop-wait';buy.time=0;}
-  else if(buy.stage==='shop-wait'){buy.time+=dt;if(buy.time>=3.5){buy.prop=propFor(p,'bag');buy.stage='exit';buy.route=[v(-25.8,-3.5),v(-25.8,-1.7),v(-25.8,4.4),v(-25.8,9.65)];}}
+   const free=seats.findIndex(s=>s.busy===null);
+   if(index===0&&free>=0){line.shift();const seat=seats[free]!;seat.busy=id;buy.seat=free;buy.stage='seat-walk';buy.route=seat.yaw===Math.PI?[v(seat.point.x,8.45),seat.point.clone()]:[v(seat.point.x-.85,8.45),v(seat.point.x-.85,seat.point.z),seat.point.clone()];}
+   else advance(a,v(16.8+Math.min(index,5)*.65,8.85),dt);
+  }else if(buy.stage==='seat-walk'&&follow(a,buy,dt)){const seat=seats[buy.seat!]!;a.rotation.y=seat.yaw;a.userData.campPose={clip:Clip.MARKET_SEAT,phase:0};buy.stage='seated';buy.time=0;speak(a,p.name,'Baik, saya duduk dulu.');}
+  else if(buy.stage==='seated'){buy.time+=dt;a.userData.campPose={clip:Clip.MARKET_SEAT,phase:(buy.time*.3)%1};}
+  else if(buy.stage==='eat'){buy.time+=dt;a.userData.campPose={clip:Clip.MARKET_EAT,phase:(buy.time*.8)%1};if(buy.time>=5.0){buy.stage='thank';buy.time=0;removeProp(buy);speak(a,p.name,'Alhamdulillah, enak buburnya. Terima kasih!');a.userData.campPose={clip:Clip.MARKET_SEAT,phase:0};}}
+  else if(buy.stage==='thank'){buy.time+=dt;if(buy.time>=1.8){if(buy.seat!==undefined)seats[buy.seat]!.busy=null;delete a.userData.campPose;complete(p,buy);}}
+  else if(buy.stage==='shop'&&follow(a,buy,dt)){buy.stage='shop-wait';buy.time=0;a.rotation.y=Math.PI;speak(hijabOwner,'Kasir KOKOSALAMA','Ini tas belanjaannya. Terima kasih!');buy.prop=propFor(p,'bag');root.add(buy.prop);buy.prop.position.set(-26,1.13,-6.05);buy.prop.rotation.set(0,0,0);}
+  else if(buy.stage==='shop-wait'){buy.time+=dt;if(buy.prop){const t=Math.min(1,buy.time/1.1);const from=new THREE.Vector3(-26,1.13,-6.05);const to=a.localToWorld(new THREE.Vector3(.31,.66,.09));buy.prop.position.copy(from.lerp(to,t));hijabOwner.userData.campPose={clip:Clip.GUIDE_WAVE,phase:Math.min(.88,t*.88)};if(t===1){a.add(buy.prop);buy.prop.position.set(.31,.66,.09);buy.prop.rotation.set(0,0,0);delete hijabOwner.userData.campPose;buy.stage='bag-thank';buy.time=0;speak(a,p.name,'Iya, terima kasih!');markServed(id,buy);}}}
+  else if(buy.stage==='bag-thank'){buy.time+=dt;if(buy.time>=1.7){buy.stage='exit';buy.route=[v(-25.8,-3.5),v(-25.8,-1.7),v(-25.8,4.4),v(-25.8,9.65)];}}
   else if(buy.stage==='exit'&&follow(a,buy,dt)){buy.stage='done';buy.time=1;a.userData.marketPurchase='done';}
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
- return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,startEscort,cancelEscort,escortReady,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
+ return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,startEscort,cancelEscort,escortReady,drainServed:()=>served.splice(0),speech:()=>speech,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
   if(player&&escort&&prospects[escort.id]?.actor!==hold)updateEscort(dt,player);
+  if(speech){speech.left-=dt;if(speech.left<=0)speech=null;}
   for(const p of prospects){const buy=purchases.get(p.id);if(buy&&p.actor!==hold)updatePurchase(p,buy,dt);}
+  updateVendor(dt);
   for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&escort?.id===p.id)continue;if(buy&&buy.stage!=='done')continue;
    if(buy?.stage==='done'&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...outsideRoute(w.actor.position,v(w.actor.position.x,9.65)),v(-29,9.65),v(21,9.65)];w.index=0;w.wait=.6;}
    if(w.wait>0){w.wait-=dt;continue;}const t=w.points[w.index]!;if(advance(w.actor,t,dt,1.1)){w.index=(w.index+1)%w.points.length;w.wait=.45;}
@@ -192,11 +228,11 @@ export function createBuburMarket(scene:THREE.Scene){
 }
 
 
-type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean;pending:number|null};
+type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean;pending:number|null;serving:number|null};
 const storeKey='hajji-market-sales-v1';
 export function loadSales():SalesState{
- try{const s=JSON.parse(sessionStorage.getItem(storeKey)??'null');if(s&&(s.job==='bubur'||s.job==='hijab')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected))return {job:s.job,accepted:s.accepted,rejected:s.rejected,claimed:!!s.claimed,pending:Number.isInteger(s.pending)&&s.pending>=0&&s.pending<16?s.pending:null};}catch{}
- return {job:null,accepted:[],rejected:[],claimed:false,pending:null};
+ try{const s=JSON.parse(sessionStorage.getItem(storeKey)??'null');if(s&&(s.job==='bubur'||s.job==='hijab')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected))return {job:s.job,accepted:s.accepted,rejected:s.rejected,claimed:!!s.claimed,pending:Number.isInteger(s.pending)&&s.pending>=0&&s.pending<16?s.pending:null,serving:Number.isInteger(s.serving)&&s.serving>=0&&s.serving<16&&!s.accepted.includes(s.serving)?s.serving:null};}catch{}
+ return {job:null,accepted:[],rejected:[],claimed:false,pending:null,serving:null};
 }
 export function saveSales(s:SalesState){try{sessionStorage.setItem(storeKey,JSON.stringify(s));}catch{}}
 export function salesResponse(id:number,pitch:number,job:SalesJob){
