@@ -2,7 +2,7 @@ import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
-import {createBuburMarket,BUBUR_POINT,marketWalkable,keepMarketCameraClear,openBuburGame} from './buburMarket.ts';
+import {createBuburMarket,BUBUR_POINT,marketWalkable,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_COUPON,type SalesJob} from './buburMarket.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
@@ -40,7 +40,29 @@ let chosenProgram:Program='umrah';let avatar:Avatar='male',selected=false,modal=
 type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:ReturnType<typeof createRenderBudget>;let r:THREE.WebGLRenderer,s:THREE.Scene,cam:THREE.PerspectiveCamera,hero:Actor;const guides={} as Record<Program,Actor>;const keys=new Set<string>();let joy=new THREE.Vector2(),last=0,walkPhase=0;const start=new THREE.Vector3(0,0,4.1);const placements={hajj:new THREE.Vector3(-2.5,0,-1.8),umrah:new THREE.Vector3(2.5,0,-1.8)};
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
 let buburMarket:ReturnType<typeof createBuburMarket>|undefined;
-function playBubur(){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();openBuburGame(()=>{modal=false;stopMotion();$('instruction').textContent='Jelajahi pertokoan atau menuju loket manasik.';},registrationAction);}
+const sales=loadSales();let salesHold:THREE.Group|null=null;
+function salesHud(){if(sales.job)$('instruction').textContent=sales.claimed?'Hadiah MAUHAJJI sudah diklaim · menuju loket':sales.accepted.length>=10?'Target tercapai! Kembali ke pemilik '+salesNames[sales.job]:'Sales '+salesNames[sales.job]+' · '+sales.accepted.length+'/10 pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[sales.job]).toLocaleString('id-ID');}
+function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();});}
+function talkOwner(job:SalesJob){
+ openSales(job==='bubur'?'Pemilik Bubur Ayam':'Pemilik KOKOSALAMA',(say,button,close)=>{
+  if(sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
+  else if(sales.job===job&&sales.accepted.length>=10){say('Alhamdulillah! Kamu berhasil membawa 10 pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}close();talkOwner(job);},true);}
+  else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari 10 pembeli. Terus tawarkan dengan sopan; kalau ditolak, cari calon pembeli lain.');}
+  else if(sales.job){say('Selesaikan dulu misi '+salesNames[sales.job]+'.');}
+  else{say('Pemain: Pak/Bu, boleh saya bantu menawarkan dagangan untuk menabung biaya haji?');say('Pemilik: Boleh! Setiap pembeli yang setuju, kamu dapat komisi virtual Rp'+salesCommission[job].toLocaleString('id-ID')+'. Bawa 10 pembeli, lalu kembali ke sini untuk mengambil hadiah.');button('Sepakat, siap jualan',()=>{sales.job=job;saveSales(sales);close();},true);}
+  button('Kembali',close);
+ });
+}
+function offerProspect(p:{id:number;name:string;actor:THREE.Group}){
+ const job=sales.job;if(!job||sales.accepted.length>=10||sales.claimed||sales.accepted.includes(p.id)||sales.rejected.includes(p.id))return;
+ openSales('Tawarkan ke '+p.name,(say,button,close)=>{
+  say('Pilih cara menawarkan '+salesNames[job]+'.');
+  const pitches=job==='bubur'?['Permisi, mau bubur ayam hangat?','Sudah sarapan? Ada bubur ayam di depan Alfamart.','Pokoknya harus beli bubur saya!']:['Permisi, sedang mencari hijab?','Boleh lihat koleksi hijab KOKOSALAMA?','Pokoknya harus beli hijab saya!'];
+  let answered=false;
+  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;const result=salesResponse(p.id,i,job);(result.ok?sales.accepted:sales.rejected).push(p.id);saveSales(sales);close();openSales(p.name,(say,button,close)=>{say(result.line);say(result.ok?'Deal! Komisi virtual +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/10 pembeli':'Tidak apa-apa. Hormati jawaban mereka, lanjut cari calon pembeli.');button('Lanjut',close,true);},p.actor);}));
+  button('Batal',close);
+ },p.actor);
+}
 let videotron:ReturnType<typeof mountGateVideotron>|undefined;
 let closeGateDialogue:(()=>void)|undefined;
 let gateEncounter:'guide'|'clerk'|null=null,guideIntroduced=false,guidePlayerName='';
@@ -164,7 +186,7 @@ window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.target a
 let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
 j.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
 // One contextual interaction at a time, with the same range checks for touch, mouse and E.
-type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'bubur';title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
+type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'bubur'|'hijab'|`prospect-${number}`;title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
 let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gateQueueCancel:HTMLButtonElement|undefined;
 const cameraStick=new THREE.Vector2();let cameraStickPointer:number|null=null;let gateCameraPad:HTMLElement|undefined;
 function currentGateAction():GateAction|null{
@@ -173,7 +195,14 @@ function currentGateAction():GateAction|null{
  if(departure){if(!departure.arrived)return null;const point=new THREE.Vector3(departure.side*6,2.1,-5.68);return {id:'door',title:'PINTU KEBERANGKATAN',line:'Tiket aktif. Selamat memulai perjalanan!',label:'MASUK',point,run:()=>{if(departure?.arrived)location.assign(departure.href);}};}
  if(queueAuthorized){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'PETUGAS PENDAFTARAN',line:'Silakan, sekarang giliran Anda.',label:'DAFTAR',point,run:()=>greet(p)};}
  if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'BATALKAN ANTREAN',point,run:()=>{leaveRegistrationQueue();$('instruction').textContent='Antrean dibatalkan.';}};}
- if(buburMarket&&Math.hypot(pos.x-BUBUR_POINT.x,pos.z-BUBUR_POINT.z)<=3.15)return {id:'bubur',title:'BUBUR AYAM · TABUNGAN HAJI',line:'Mau bantu saya berdagang bubur? Ada misi gratis!',label:'BANTU DAGANG',point:BUBUR_POINT.clone(),run:playBubur};
+ if(buburMarket){
+  const owners=buburMarket.owners;
+  for(const job of ['bubur','hijab'] as const){const owner=owners[job],point=job==='bubur'?BUBUR_POINT.clone():owner.position.clone().add(new THREE.Vector3(0,1.9,0));if(Math.hypot(pos.x-point.x,pos.z-point.z)<=(job==='bubur'?2.7:2.2))return {id:job,title:salesNames[job],line:sales.job===job&&sales.accepted.length>=10?'Target tercapai! Ambil hadiah.':'Mau membantu menjual produk?',label:sales.job===job&&sales.accepted.length>=10?'AMBIL HADIAH':'BICARA PEMILIK',point,run:()=>talkOwner(job)};}
+  if(sales.job&&!sales.claimed&&sales.accepted.length<10){
+   const p=buburMarket.prospects.filter(p=>!sales.accepted.includes(p.id)&&!sales.rejected.includes(p.id)&&marketWalkable(p.actor.position.x,p.actor.position.z)).map(p=>({p,d:Math.hypot(pos.x-p.actor.position.x,pos.z-p.actor.position.z)})).filter(x=>x.d<=2.25).sort((a,b)=>a.d-b.d)[0]?.p;
+   if(p)return {id:`prospect-${p.id}`,title:p.name,line:'Calon pembeli · tawarkan '+salesNames[sales.job],label:'TAWARKAN',point:p.actor.position.clone().add(new THREE.Vector3(0,1.95,0)),run:()=>offerProspect(p)};
+  }
+ }
  const g=placements[p],q=new THREE.Vector3(female?4.15:-4.15,0,5.34);
  const dg=Math.hypot(pos.x-g.x,pos.z-g.z),dq=Math.hypot(pos.x-q.x,pos.z-q.z);
  if(dg<=2.1&&dg<=dq){const point=g.clone();point.y=2.12;return {id:'guide',title:gateGuide(avatar).name,line:'Assalamualaikum! Mau tahu tentang HAJJI.DIGITAL?',label:'BICARA',point,run:()=>greet(p)};}
@@ -186,7 +215,7 @@ function paintGateAction(a:GateAction|null){
  document.documentElement.dataset.gateAction=a.id;
  const pt=a.point.clone(),v=pt.clone().applyMatrix4(cam.matrixWorldInverse);pt.project(cam);
  const offscreen=v.z>=-cam.near||pt.z< -1||pt.z>1||Math.abs(pt.x)>1||Math.abs(pt.y)>1;if(offscreen&&a.id!=='door'&&a.id!=='clerk'&&a.id!=='leave'){gatePrompt.hidden=true;return;}
- if(gatePrompt.dataset.action!==a.id){gatePrompt.dataset.action=a.id;gatePromptTitle.textContent=a.title;gatePromptLine.textContent=a.line;gatePromptButton.textContent=a.label;gatePromptButton.hidden=!a.run;}
+ if(gatePrompt.dataset.action!==a.id||gatePromptButton.textContent!==a.label||gatePromptLine.textContent!==a.line){gatePrompt.dataset.action=a.id;gatePromptTitle.textContent=a.title;gatePromptLine.textContent=a.line;gatePromptButton.textContent=a.label;gatePromptButton.hidden=!a.run;}
  gatePrompt.hidden=false;
  const rect=canvas.getBoundingClientRect(),x=rect.left+(pt.x*.5+.5)*rect.width,y=rect.top+(.5-pt.y*.5)*rect.height,w=gatePrompt.offsetWidth,h=gatePrompt.offsetHeight;
  const left=offscreen?Math.round((innerWidth-w)/2):Math.max(10,Math.min(innerWidth-w-10,x-w/2)),top=offscreen?76:Math.max(68,Math.min(innerHeight-h-12,y-h-12));
@@ -309,7 +338,7 @@ function frame(now:number){
  }
 
  if(guideMode){const a=currentGateAction();$('bubble').hidden=!showCallBubble||a?.id==='guide';paintGateAction(a);}
- registrationHall?.update(dt,pos);buburMarket?.update(dt);
+ registrationHall?.update(dt,pos);buburMarket?.update(dt,salesHold);if(sales.job&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure)salesHud();
  if(guideMode){if(gateQueueCancel)gateQueueCancel.hidden=!(queueJoining||queueAuthorized);const ahead=registrationHall?.ahead(avatar==='female');if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=departure?'departing':gateEncounter==='clerk'?'serving':queueAuthorized?'ready':queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
  updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!portraitBlocked&&!budget.lost());
