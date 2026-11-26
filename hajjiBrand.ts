@@ -64,9 +64,12 @@ export function hajjiBrand():Plugin{
    if(path.endsWith('.css'))return {code:brandCSS(code),map:null};
    if(sceneFiles.test(path)||path.endsWith('/src/pwa.ts'))return {code:sceneColors(code).replace(/pwa-icon-(?:192|512)\.png/g,'pwa-icon.svg').replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/tujuan hijau/g,'tujuan emas'),map:null};
   },
-  transformIndexHtml:{order:'pre',handler(html){
+  transformIndexHtml:{order:'pre',handler(html,ctx){
    let next=html.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi,(_,attrs:string,css:string)=>'<style'+attrs+'>'+brandCSS(css)+'</style>');
    next=next.replace(/UMROH\.DIGITAL/g,'HAJJI.DIGITAL').replace(/(<meta\s+name="theme-color"\s+content=")[^"]+"/gi,'$1#0a0a0a"').replace(/pwa-(?:apple-180|icon-192|icon-512|maskable-512)\.png/g,'pwa-icon.svg');
+   const page=(ctx.filename||ctx.path).replace(/\\/g,'/').split('/').pop()||'index.html';
+   const gameplay=/^(?:index|legacy|manasik|district|player|sai|umrah|hajj|explore|avatar-preview|oleh-oleh|adventure|adventure-map|[a-z]+-adventure)\.html$/.test(page);
+   if(gameplay)next=next.replace(/<html\b/i,'<html data-hajji-game="ivory"').replace(/(<meta\s+name="theme-color"\s+content=")[^"]+"/gi,'$1#fffdf8"');
    if(!/rel="icon"/i.test(next))next=next.replace('</head>','<link rel="icon" type="image/svg+xml" href="./pwa-icon.svg"></head>');
    return {html:next,tags:[{tag:'link',attrs:{rel:'stylesheet',href:'./hajji-brand.css'},injectTo:'head'}]};
   }}
