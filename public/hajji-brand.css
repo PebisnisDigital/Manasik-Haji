@@ -1,16 +1,16 @@
-/* HAJJI.DIGITAL | Black • Ivory • Gold. Shared across all built pages. */
-:root{--hajji-bg:#0a0a0a;--hajji-panel:#151515;--hajji-raised:#202020;--hajji-gold:#d6b46b;--hajji-text:#f8f7f4;--hajji-muted:#bdb9af;--hajji-border:#504534;color-scheme:dark}
+/* HAJJI.DIGITAL — Ivory Luxury | white surfaces, charcoal ink, champagne gold. */
+:root{--hajji-bg:#fffdf8;--hajji-panel:#ffffff;--hajji-raised:#f5f1e8;--hajji-gold:#d6b46b;--hajji-text:#25211b;--hajji-muted:#5e564c;--hajji-border:#e3d9c7;color-scheme:light}
 html,body{background-color:var(--hajji-bg);color:var(--hajji-text)}
-body input:not([type=checkbox]):not([type=radio]):not([type=range]),body select,body textarea{background-color:#1d1d1d;color:#f8f7f4;border-color:#514634}
-body input::placeholder,body textarea::placeholder{color:#aaa49b;opacity:1}
-body option{background:#1d1d1d;color:#f8f7f4}
+body input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),body select,body textarea{background-color:#fff;color:#25211b;border-color:#d8ccb4}
+body input::placeholder,body textarea::placeholder{color:#80776b;opacity:1}
+body option{background:#fff;color:#25211b}
 body input[type=checkbox],body input[type=radio],body input[type=range],body progress{accent-color:#d6b46b}
 body a:focus-visible,body button:focus-visible,body input:focus-visible{outline-color:#e5c878}
 body .primary,body .frontStart,body .gateEnterDistrict,body .travelPrimary{background:#d6b46b;color:#0a0a0a;border-color:#d6b46b}
 body .primary:hover,body .frontStart:hover,body .gateEnterDistrict:hover{background:#efcf86;color:#0a0a0a}
-body .secondary{background:#222;color:#eed099;border-color:#504534}
-body .danger{background:#321b1b;color:#ffb7b7;border-color:#99504a}
-body .muted,body .caption{color:#bdb9af}
+body .secondary{background:#fffdf8;color:#25211b;border-color:#d6b46b}
+body .danger{background:#fff0f0;color:#9d3030;border-color:#d99b97}
+body .muted,body .caption{color:#5e564c}
 body .brand,body .frontBrand{background-image:url('./pwa-icon.svg');background-repeat:no-repeat;background-position:left center;background-size:42px 42px;padding-left:51px;min-height:42px;color:#fff}
 body .brand span,body .frontBrand span{color:#d6b46b}
 body .gateWorldBubble,body .districtSpeech,body .simpleWorldPrompt{background:#161616;color:#fff;border-color:#b59858;text-shadow:none}
@@ -153,7 +153,7 @@ body .districtJourneyBoard{background:#151515!important;color:#f8f7f4;outline-co
 body .boardLevel.done{background:#554323!important;color:#fff5dd;border-color:#d6b46b}
 body .boardLevel.locked{background:#292929!important;color:#bdb9af}
 
-/* Ivory-first gameplay: scoped to game entry points, independent of the dark admin theme. */
+/* Ivory-first gameplay: scoped to game entry points, shared with the light admin theme. */
 html[data-hajji-game=ivory]{color-scheme:light;background:#fffdf8}
 html[data-hajji-game=ivory] body{background-color:#fffdf8;color:#25211b;font-family:var(--hajji-font)}
 html[data-hajji-game=ivory] body :is(.simpleTop>div,.simpleGuide,#simpleGear,.missionCard,.rewardCard,.miniMap,.notification,.routeCue,.busGuide,.miqatObjective,.miqatReading,.tawafRadio,.miqatGuideTag,.guidePanel,.missionGuide,.cutControls,.districtContextPrompt,.voice-guide,.hud .panel,.right-hud .panel,.hudRight .card,.hudRight .panel,.top>.card,.top>.panel,.travelEntrance,.frontSetup,.frontChoice,.menu nav,.program,.guide,.districtJourneyBoard,.errorPanel,.rotateCover,.rotateScreen,.coreRotate,.pwaDialog,.loading){
@@ -234,3 +234,28 @@ html[data-hajji-office=ivory] body.hajjiAdmin .adminBottomNav{background:#fff;bo
 html[data-hajji-office=ivory] body.hajjiAdmin .ticketCard header{background:transparent;border:0}
 html[data-hajji-office=ivory] body :is(.qrPanel,.preview) img{object-fit:contain}
 @media print{html[data-hajji-office=ivory],html[data-hajji-office=ivory] body{background:#fff!important}}
+
+/* Final authority: never let older component selectors reintroduce dark surfaces.
+   Keep layout, pointer events, canvas/video, custom tenant preview and ritual content unchanged. */
+html[data-hajji-office=ivory],html[data-hajji-game=ivory]{color-scheme:light}
+html[data-hajji-office=ivory] body.hajjiAdmin{background:#fff!important;color:#25211b!important}
+html[data-hajji-office=ivory] body.hajjiAdmin :is(.adminTop,.adminBottomNav,.panel,.stats article,.ticketDialog,.ticketCard,.ticketTableHead,.payment,th){background:#fff!important;color:#25211b!important;border-color:#e3d9c7!important;box-shadow:none}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketStats article:nth-child(2){background:#fff9ed!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketStats article:nth-child(3){border-color:#d6b46b!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .revenue{background:linear-gradient(120deg,#fff,#f7ebcf)!important;color:#25211b!important;border:1px solid #d6b46b!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .revenue strong{color:#25211b!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .adminBottomNav a{background:transparent!important;color:#5e564c!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .adminBottomNav a[aria-current=page]{background:#f7ebcf!important;color:#805c22!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketCard header{background:transparent!important;border:0!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .primary{background:#d6b46b!important;color:#25211b!important;border-color:#c9a75d!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .secondary{background:#fff!important;color:#25211b!important;border-color:#d6b46b!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .danger{background:#fff0f0!important;color:#9d3030!important;border-color:#d99b97!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketState{background:#f5f1e8!important;color:#5e564c!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketState:is(.approved,.reported){background:#f7ebcf!important;color:#654818!important}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketState.suspended{background:#fff0f0!important;color:#9d3030!important}
+html[data-hajji-game=ivory] body :is(.simpleTop>div,.simpleGuide,.missionCard,.rewardCard,.miniMap,.miqatObjective,.tawafRadio,.districtJourneyBoard,.gateWorldPanel,.gateWorldBubble,.districtSpeech,.districtGuardAnswer,.simpleWorldPrompt,.miqatDialog,#giftDialog,.magicLinkPopup,.modal,.districtModal,.frontSetup){background:#fffdf8!important;color:#25211b!important;border-color:#d6b46b!important}
+html[data-hajji-game=ivory] body :is(.miqatReading,.gateReceipt,.gateBank,.gateReceiptBank,.gateStatus){background:#f8f5ee!important;color:#25211b!important}
+html[data-hajji-game=ivory] body :is(.gateWorldBubble,.districtSpeech)[data-side=player]{background:#f8f5ee!important}
+html[data-hajji-game=ivory] body .simplePlay #simpleRun[aria-pressed=true],html[data-hajji-game=ivory] body #simpleAction{background:#d6b46b!important;color:#25211b!important}
+html[data-hajji-game=ivory] body .brand{color:#25211b}
+html[data-hajji-game=ivory] body .brand span{color:#805c22}
