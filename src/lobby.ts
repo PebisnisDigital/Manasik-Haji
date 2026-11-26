@@ -5,7 +5,7 @@ import {mountGateVideotron} from './gateVideotron.ts';
 import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,insideMarketShop,escortDestination,planEscortRoute,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_TARGET,SALES_COUPON,type SalesJob} from './buburMarket.ts';
 import {canWalkOnPlaza,LEGACY_PLAZA,legacyPlazaSolids,PLAZA} from './lobbyGround.ts';
 import {insideAlfamart} from './alfamartStore.ts';
-import {ALFAMART_PRODUCTS,ALFAMART_SALES,alfamartOffers,alfamartResponse} from './alfamartProducts.ts';
+import {ALFAMART_PRODUCTS,alfamartOffers,alfamartResponse} from './alfamartProducts.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
