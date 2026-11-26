@@ -2,7 +2,7 @@ import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
-import {createBuburMarket,BUBUR_POINT,marketWalkable,openBuburGame} from './buburMarket.ts';
+import {createBuburMarket,BUBUR_POINT,marketWalkable,keepMarketCameraClear,openBuburGame} from './buburMarket.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
@@ -31,7 +31,7 @@ const btn=(id:string)=>$<HTMLButtonElement>(id);
 const gateMode=document.documentElement.classList.contains('ticketMode'),entranceMode=document.documentElement.classList.contains('entranceMode'),guideMode=entranceMode||new URLSearchParams(location.search).has('guide');
 if(guideMode)document.documentElement.classList.add('guideMode');
 let entranceFramePresented=false;
-const touchMode=matchMedia('(pointer: coarse)').matches||(navigator.maxTouchPoints>1&&Math.min(screen.width,screen.height)<=1024);document.documentElement.classList.toggle('touchMode',touchMode);let portraitBlocked=false;
+const touchMode=matchMedia('(pointer: coarse)').matches||matchMedia('(any-pointer: coarse)').matches||navigator.maxTouchPoints>0;document.documentElement.classList.toggle('touchMode',touchMode);let portraitBlocked=false;
 const programs={hajj:{title:'Manasik Haji',desc:'11 level • Haji Tamattu’',levels:['Miqat & niat umroh','Tawaf umroh','Sa’i umroh','Tahallul umroh','Ihram & niat haji','Wukuf Arafah','Mabit Muzdalifah','Jumrah Aqabah & tahallul awal','Tawaf Ifadah & sa’i haji','Mabit Mina & jumrah','Tawaf Wada’']},umrah:{title:'Manasik Umroh',desc:'4 level • Umroh',levels:['Miqat, ihram, niat, talbiyah','Tawaf, salat sunah & Zamzam','Sa’i 7 lintasan','Tahallul']}};
 let settings:ProgramSetting[]|null=null;let settingsTicket=0;let starting=false;
 async function loadSettings(){const ticket=++settingsTicket;try{const rows=await getProgramSettings();if(ticket===settingsTicket)settings=rows;}catch{/* preview retains last known configuration */}return settings;}
@@ -155,14 +155,14 @@ async function landscapeFullscreen(){if(!touchMode)return;try{if(!document.fulls
 btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exitFullscreen().catch(()=>{});}else void landscapeFullscreen();};btn('rotateFullscreen').onclick=()=>void landscapeFullscreen();btn('cameraReset').onclick=()=>resetCamera();
 window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);document.addEventListener('fullscreenchange',()=>{btn('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Keluar layar penuh':'Layar penuh');syncOrientation();});
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();ray.layers.enable(1);const canvas=$<HTMLCanvasElement>('world');let cameraPointer:number|null=null,downX=0,downY=0,prevX=0,prevY=0,dragged=false;
-canvas.addEventListener('pointerdown',e=>{if(!sceneReady||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(!sceneReady||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
 canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor(),.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
 canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
 canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
-canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
+canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();if(touchMode||e.ctrlKey)return;cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.target as HTMLElement)?.closest('.minimalGameMenu')||document.querySelector('.menu[open]'))return;if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter&&!portraitBlocked){e.preventDefault();currentGateAction()?.run?.();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',stopGuideVoice);
 let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
-j.addEventListener('pointerdown',e=>{if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
+j.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
 // One contextual interaction at a time, with the same range checks for touch, mouse and E.
 type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'bubur';title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
 let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gateQueueCancel:HTMLButtonElement|undefined;
@@ -237,7 +237,8 @@ function frame(now:number){
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
  // The rear arcade is solid. Shorten the camera boom rather than letting it cross the wall.
  if(cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
- const plazaView=guideMode?1.25:0;
+ if(guideMode&&buburMarket)keepMarketCameraClear(pivot,cameraGoal);
+ const plazaView=guideMode?Math.min(1.25,cameraGoal.distanceTo(pivot)*.13):0;
  const look=pivot.clone().add(new THREE.Vector3(fx*.82+rx*.34,.13+plazaView,fz*.82+rz*.34));
  const clerk=gateEncounter==='clerk'?registrationHall?.clerk(avatar==='female'):undefined;
  if(clerk){
@@ -260,8 +261,9 @@ function frame(now:number){
  if(nextFov!==cam.fov||nextFilm!==cam.filmOffset){cam.fov=nextFov;cam.filmOffset=nextFilm;cam.updateProjectionMatrix();}
  document.documentElement.dataset.gateCamera=clerk?'clerk':'free';
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
+ if(!clerk&&guideMode&&buburMarket)keepMarketCameraClear(pivot,cam.position);
  cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
- hero.root.visible=!clerk&&cam.position.distanceTo(pivot)>.85;
+ hero.root.visible=!clerk;
  const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!guideIntroduced?gateGuide(avatar).slot:null;
  if(activeSlot){
   callClock+=dt;
@@ -316,7 +318,17 @@ function frame(now:number){
 }
 mountPwa();mountComfort($('comfortIntro'),{intro:true});mountComfort(document.querySelector<HTMLElement>('.menu nav')!);mountGraphics(document.querySelector<HTMLElement>('.menu nav')!);window.addEventListener('umroh-comfort-change',()=>{stopMotion();pid=null;cameraPointer=null;});
 const tutorial=installSmartTutorial({kind:'lobby',host:document.querySelector<HTMLElement>('.headerRight')!,blocked:()=>introPlaying||portraitBlocked||modal||encounter,ready:()=>selected&&sceneReady});
-if(touchMode)$('movementHint').textContent='';syncOrientation();try{build();}catch(error){if(entranceMode)throw error;sceneReady=false;$('joystick').hidden=true;$('cameraReset').hidden=true;$('hajjLabel').hidden=true;$('umrahLabel').hidden=true;$('movementHint').textContent='Pilih Haji atau Umroh.';}
+if(touchMode){
+ $('movementHint').textContent='';
+ // Prevent browser pinch/double-tap zoom on the gameplay surface, not on forms or payment dialogs.
+ const surface=$('lobby');
+ const isGameGesture=(e:Event)=>{const el=e.target;return el instanceof Element&&!el.closest('dialog,input,textarea,select,.gateClerkDialogue,.gateGuideDialogue,.menu');};
+ surface.addEventListener('touchmove',e=>{if(e.touches.length>1&&isGameGesture(e)&&e.cancelable)e.preventDefault();},{passive:false});
+ for(const type of ['gesturestart','gesturechange'])surface.addEventListener(type,e=>{if(isGameGesture(e)&&e.cancelable)e.preventDefault();},{passive:false});
+ surface.addEventListener('dblclick',e=>{if(isGameGesture(e)&&e.cancelable)e.preventDefault();});
+ window.addEventListener('blur',()=>{stopMotion();pid=null;cameraPointer=null;resetCameraStick();});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){stopMotion();pid=null;cameraPointer=null;resetCameraStick();}});
+ }syncOrientation();try{build();}catch(error){if(entranceMode)throw error;sceneReady=false;$('joystick').hidden=true;$('cameraReset').hidden=true;$('hajjLabel').hidden=true;$('umrahLabel').hidden=true;$('movementHint').textContent='Pilih Haji atau Umroh.';}
 installMissionMap({host:$('previewMap'),get:()=>({program:chosenProgram,save:readCore(chosenProgram)}),blocked:()=>portraitBlocked,keyboard:false,onChange:open=>{if(open){stopMotion();cameraPointer=null;pid=null;}tutorial.paint();}});
 if(slug)$('partner').hidden=false;for(const a of document.querySelectorAll<HTMLAnchorElement>('.menu nav a'))a.href=tenantUrl(a.getAttribute('href')!);bootTenant();void loadSettings();for(const a of document.querySelectorAll<HTMLAnchorElement>('.accountLink')){a.href=tenantUrl('./account.html');if(accountId())a.textContent='Akun saya';}
 
