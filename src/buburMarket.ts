@@ -18,13 +18,17 @@ const marketSolids=[
  ...[-19,19].map(x=>new THREE.Box3(new THREE.Vector3(x-1.05,0,-.82),new THREE.Vector3(x+1.05,1.49,3.42))),
  ...[-1,1].map(side=>new THREE.Box3(new THREE.Vector3(side*10-1.02,0,-2.35),new THREE.Vector3(side*10+1.02,1.65,1.85))),
 ];
+export function insideHijab(x:number,z:number){return Math.abs(x+26)<1.15&&z< -3.05&&z> -6.05;}
 export function marketWalkable(x:number,z:number){
  const pad=.32;
+ // The central doorway and clear shopping aisle are walkable; shelves and counter are not.
+ if(Math.abs(x+26)<.79&&z>=-5.65&&z<=-2.52)return true;
  return !marketSolids.some(b=>x>b.min.x-pad&&x<b.max.x+pad&&z>b.min.z-pad&&z<b.max.z+pad);
 }
 const cameraRay=new THREE.Ray(),cameraHit=new THREE.Vector3(),cameraDir=new THREE.Vector3();
 // Shorten the orbit before a solid object can hide the player or contain the camera.
 export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
+ if(insideHijab(pivot.x,pivot.z)){goal.x=THREE.MathUtils.clamp(goal.x,-29.6,-22.4);goal.z=THREE.MathUtils.clamp(goal.z,-8.8,-3.3);goal.y=Math.min(goal.y,3.25);return goal;}
  cameraDir.subVectors(goal,pivot);const length=cameraDir.length();if(length<.001)return goal;
  cameraRay.set(pivot,cameraDir.multiplyScalar(1/length));let nearest=length;
  for(const b of marketSolids){if(b.containsPoint(pivot))continue;const hit=cameraRay.intersectBox(b,cameraHit);if(hit){const d=hit.distanceTo(pivot);if(d<nearest)nearest=d;}}
@@ -80,10 +84,12 @@ export function createBuburMarket(scene:THREE.Scene){
  for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x-3.5-i*.65,0,z+2.8);a.rotation.y=Math.PI;a.userData.noCollision=true;addProspect(a,5+i);}
  for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});actor.userData.noCollision=true;addProspect(actor,i+4);const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
  const hijabOwner=humanActor(scene,0x866b88,true,undefined,undefined,{palette:7,build:1,brightness:1,registration:true});
- hijabOwner.position.set(-26,0,-1.8);hijabOwner.rotation.y=0;
+ hijabOwner.position.set(-26,0,-6.55);hijabOwner.rotation.y=0;
+ box(root,1.65,1.02,.64,-26,.51,-6.02,0x8d6c70);box(root,1.75,.08,.72,-26,1.06,-6.02,0xe8cfb8);box(root,.30,.28,.10,-26.48,1.23,-6.15,0x354448);sign(root,'KASIR','KOKOSALAMA',-26,2.45,-6.44,1.55,.42,'#6f526a','#fff4df');
  // A sale changes the actual NPC's activity; the normal pedestrian loop pauses until purchase finishes.
  type Purchase={job:SalesJob;stage:'approach'|'queue'|'eating-walk'|'eat'|'shop'|'shop-wait'|'exit'|'done';route:THREE.Vector3[];time:number;prop?:THREE.Group};
  const purchases=new Map<number,Purchase>(),line:number[]=[];
+ let escort:{id:number;trail:THREE.Vector3[];last:THREE.Vector3}|null=null;
  const v=(x:number,z:number)=>new THREE.Vector3(x,0,z);
  const fabric=[0x315e75,0xb28b51,0x687b63,0x8e5460,0x3d465c,0xb6a793,0x527d76,0x735f92,0xefe7d3,0x284c3f];
  const advance=(a:THREE.Group,t:THREE.Vector3,dt:number,speed=1.55)=>{const dx=t.x-a.position.x,dz=t.z-a.position.z,d=Math.hypot(dx,dz);if(d<.055){a.position.copy(t);return true;}const step=Math.min(d,dt*speed);a.position.x+=dx/d*step;a.position.z+=dz/d*step;a.rotation.y=Math.atan2(dx,dz);return d<=step;};
@@ -127,9 +133,15 @@ export function createBuburMarket(scene:THREE.Scene){
   const buy:Purchase={job,stage:'approach',route:[],time:0};purchases.set(id,buy);p.actor.userData.marketPurchase=job;
   if(restored){complete(p,buy);buy.time=1;if(buy.prop)buy.prop.scale.setScalar(1);return;}
   if(job==='bubur'){line.push(id);buy.route=outsideRoute(p.actor.position,v(14.7+Math.min(line.length-1,9)*.73,9.6));}
+  else if(insideHijab(p.actor.position.x,p.actor.position.z)){buy.stage='shop-wait';buy.time=0;}
   else{buy.route=outsideRoute(p.actor.position,v(-25.8,-1.95));}
  }
- function resetPurchases(){for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;}}purchases.clear();line.length=0;}
+ function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
+ function cancelEscort(){if(escort){const p=prospects[escort.id];if(p)delete p.actor.userData.marketPurchase;}escort=null;}
+ function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
+ function updateEscort(dt:number,player:THREE.Vector3){if(!escort)return;const p=prospects[escort.id];if(!p)return;const a=p.actor;if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}const t=escort.trail[0];if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}}
+ function handoff(id:number,job:SalesJob){if(escort?.id!==id)return false;escort=null;purchase(id,job);return true;}
+ function resetPurchases(){cancelEscort();for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;}}purchases.clear();line.length=0;}
  function updatePurchase(p:Prospect,buy:Purchase,dt:number){
   const a=p.actor;const id=p.id;
   if(buy.stage==='approach'&&follow(a,buy,dt)){
@@ -147,9 +159,10 @@ export function createBuburMarket(scene:THREE.Scene){
   else if(buy.stage==='exit'&&follow(a,buy,dt)){buy.stage='done';buy.time=1;a.userData.marketPurchase='done';}
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
- return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,resetPurchases,update(dt:number,hold:THREE.Group|null=null){
+ return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,startEscort,cancelEscort,escortReady,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
+  if(player&&escort&&prospects[escort.id]?.actor!==hold)updateEscort(dt,player);
   for(const p of prospects){const buy=purchases.get(p.id);if(buy&&p.actor!==hold)updatePurchase(p,buy,dt);}
-  for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(buy&&buy.stage!=='done')continue;
+  for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&escort?.id===p.id)continue;if(buy&&buy.stage!=='done')continue;
    if(buy?.stage==='done'&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...outsideRoute(w.actor.position,v(w.actor.position.x,9.65)),v(-29,9.65),v(21,9.65)];w.index=0;w.wait=.6;}
    if(w.wait>0){w.wait-=dt;continue;}const t=w.points[w.index]!;if(advance(w.actor,t,dt,1.1)){w.index=(w.index+1)%w.points.length;w.wait=.45;}
   }
@@ -161,11 +174,11 @@ export function createBuburMarket(scene:THREE.Scene){
 }
 
 
-type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean};
+type SalesState={job:SalesJob|null;accepted:number[];rejected:number[];claimed:boolean;pending:number|null};
 const storeKey='hajji-market-sales-v1';
 export function loadSales():SalesState{
- try{const s=JSON.parse(sessionStorage.getItem(storeKey)??'null');if(s&&(s.job==='bubur'||s.job==='hijab')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected))return {job:s.job,accepted:s.accepted,rejected:s.rejected,claimed:!!s.claimed};}catch{}
- return {job:null,accepted:[],rejected:[],claimed:false};
+ try{const s=JSON.parse(sessionStorage.getItem(storeKey)??'null');if(s&&(s.job==='bubur'||s.job==='hijab')&&Array.isArray(s.accepted)&&Array.isArray(s.rejected))return {job:s.job,accepted:s.accepted,rejected:s.rejected,claimed:!!s.claimed,pending:Number.isInteger(s.pending)&&s.pending>=0&&s.pending<16?s.pending:null};}catch{}
+ return {job:null,accepted:[],rejected:[],claimed:false,pending:null};
 }
 export function saveSales(s:SalesState){try{sessionStorage.setItem(storeKey,JSON.stringify(s));}catch{}}
 export function salesResponse(id:number,pitch:number,job:SalesJob){
@@ -173,7 +186,7 @@ export function salesResponse(id:number,pitch:number,job:SalesJob){
  // Others accept if approached respectfully; all ten sales are attainable.
  if(id%4===3)return {ok:false,line:job==='bubur'?'Maaf, saya sudah makan.':'Maaf, saya belum membutuhkan hijab.'};
  if(pitch===2)return {ok:false,line:'Maaf, saya kurang nyaman kalau ditawari seperti itu.'};
- return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Saya ke gerobaknya sekarang.':'Boleh, saya mau beli hijab. Saya ke toko sekarang.'};
+ return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Tolong antarkan saya ke penjualnya, ya.':'Boleh, saya mau beli hijab. Tolong antar saya ke kasir, ya.'};
 }
 export function salesDialog(title:string,build:(say:(s:string,who?:'player'|'npc'|'system')=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void,clearChoices:()=>void)=>void,onClose:()=>void){
  const dlg=document.createElement('dialog');dlg.setAttribute('aria-label',title);
