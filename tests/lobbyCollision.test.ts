@@ -41,3 +41,10 @@ it('stops opposing bodies and lets a scripted walker pass with room at the side'
   }
   expect(walker.x).toBeGreaterThan(1.9);
 });
+
+import {GATE_SOUVENIR_TABLE} from '../src/gateSouvenirLayout.ts';
+it('keeps the souvenir display solid without blocking guides or registration approaches',()=>{
+ expect(marketWalkable(GATE_SOUVENIR_TABLE.x,GATE_SOUVENIR_TABLE.z)).toBe(false);
+ for(const side of [-1,1])for(const [x,z] of [[2.5,-1.8],[2.25,5.35],[4.15,5.34],[5.65,-2.77],[5.9,-4.55]])expect(marketWalkable(side*x,z)).toBe(true);
+ expect(marketWalkable(0,-1.8)).toBe(true);
+});

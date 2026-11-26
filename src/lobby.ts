@@ -14,6 +14,8 @@ import {defaultSetup} from './frontModel.ts';
 import {gateGuide} from './gateGuide.ts';
 import {openSalmaWelcome,openGateGuide} from './salmaWelcome.ts';
 import {createRegistrationHall} from './registrationHall.ts';
+import {buildGateSouvenirShowcase,gateSouvenirTitles} from './gateSouvenirShowcase.ts';
+import {GATE_SOUVENIR_POINT} from './gateSouvenirLayout.ts';
 import {mountCinematicIntro} from './cinematicIntro.ts';
 import {mountPwa} from './pwa.ts';
 import {graphicsTier,graphicsProfile,createRenderBudget,mountGraphics} from './graphicsQuality.ts';
@@ -261,7 +263,7 @@ for(const x of [-6,-3,0,3,6]){const arc=mesh(new THREE.TorusGeometry(1.24,.15,10
 placa(guideMode?'PUSAT MANASIK':'UMROH.DIGITAL',guideMode?'PENDAFTARAN PESERTA':'',0,-5.67);
 for(const p of ['hajj','umrah'] as const){const pos=placements[p];const ring=new THREE.Mesh(new THREE.RingGeometry(.79,.91,64).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd4bb83,side:THREE.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));ring.position.set(pos.x,.012,pos.z);s.add(ring);guideRings[p]=ring;const actor=person(p==='umrah',p==='umrah'?0x52796b:0xeae2cc);actor.root.position.copy(pos);actor.root.position.y=0;guides[p]=actor;if(!guideMode)placa(p==='hajj'?'MANASIK HAJI':'MANASIK UMROH','',pos.x,-3.65);}
 for(const x of (guideMode?[-8.3,8.3]:[-6.5,6.5]))for(const z of [-2.6,3.5]){mesh(new THREE.CylinderGeometry(.55,.38,.49,12),sand,x,.245,z,s);box(.18,2,.18,mat(0x967c55),x,1.25,z,s);for(let k=0;k<9;k++){const o=ball(.3,teal,x+Math.cos(k*2.4)*.55,2.5+Math.sin(k)*.25,z+Math.sin(k*2.4)*.55,s);o.scale.set(1.4,.55,1.8);}}
-if(guideMode){registrationHall=createRegistrationHall(s,marketWalkable);buburMarket=createBuburMarket(s,tier,cue=>lobbySound.market(cue));if(sales.job){for(const id of sales.accepted)buburMarket.purchase(id,sales.job,true);if(sales.serving!==null){const customer=buburMarket.prospects[sales.serving];if(customer){customer.actor.position.copy(escortDestination(sales.job));buburMarket.purchase(sales.serving,sales.job,false,sales.product??0);}else{sales.serving=null;saveSales(sales);}}}videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
+if(guideMode){const souvenir=buildGateSouvenirShowcase(s);document.documentElement.dataset.gateSouvenirCount=String(souvenir.userData.rewardCount);registrationHall=createRegistrationHall(s,marketWalkable);buburMarket=createBuburMarket(s,tier,cue=>lobbySound.market(cue));if(sales.job){for(const id of sales.accepted)buburMarket.purchase(id,sales.job,true);if(sales.serving!==null){const customer=buburMarket.prospects[sales.serving];if(customer){customer.actor.position.copy(escortDestination(sales.job));buburMarket.purchase(sales.serving,sales.job,false,sales.product??0);}else{sales.serving=null;saveSales(sales);}}}videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
 hero=person(false,0xf4ead6,true);hero.root.position.copy(start);hero.root.rotation.y=Math.PI;heading=Math.PI;sceneReady=true;resize();requestAnimationFrame(frame);}
 function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.fov=guideMode?(touchMode?65:w/h<.85?69:64):(touchMode?57:w/h<.85?66:60);cam.updateProjectionMatrix();videotron?.resize();}
 function syncOrientation(){const was=portraitBlocked;portraitBlocked=!gateMode&&touchMode&&matchMedia('(orientation: portrait)').matches;lobbySound.setPaused(portraitBlocked||introPlaying);const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){if(portraitBlocked&&guideMode)dismissGuideCall();stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
@@ -339,7 +341,7 @@ j.addEventListener('pointermove',e=>{if(e.pointerId===pid){if(canWalk())jp(e);el
 function ju(e:PointerEvent){if(e.pointerId===pid)resetMove();}
 j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
 // One contextual interaction at a time, with the same range checks for touch, mouse and E.
-type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|SalesJob|`vendor-${number}`|`prospect-${number}`;title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
+type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'souvenir'|SalesJob|`vendor-${number}`|`prospect-${number}`;title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
 let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gateQueueCancel:HTMLButtonElement|undefined;
 const cameraStick=new THREE.Vector2();let cameraStickPointer:number|null=null;let gateCameraPad:HTMLElement|undefined;
 function currentGateAction():GateAction|null{
@@ -367,6 +369,7 @@ function currentGateAction():GateAction|null{
  }
  const g=placements[p],q=new THREE.Vector3(female?4.15:-4.15,0,5.34);
  const dg=Math.hypot(pos.x-g.x,pos.z-g.z),dq=Math.hypot(pos.x-q.x,pos.z-q.z);
+ if(Math.abs(pos.x)<1.75&&pos.z>-2.55&&pos.z<-.15&&sales.pending===null&&sales.serving===null){const point=new THREE.Vector3(GATE_SOUVENIR_POINT.x,GATE_SOUVENIR_POINT.y,GATE_SOUVENIR_POINT.z);return {id:'souvenir',title:'23 OLEH-OLEH KELULUSAN',line:'Lihat hadiah sebelum mendaftar.',label:'LIHAT OLEH-OLEH',point,run:()=>openSales('Oleh-oleh HAJJI.DIGITAL',(say,button,close)=>{say('Bonus untuk peserta yang menyelesaikan 12 level. Pameran ini hanya pratinjau.');const titles=gateSouvenirTitles();for(let i=0;i<titles.length;i+=5)say(titles.slice(i,i+5).join(' · '),'system');say('Materi yang belum tersedia menyusul. Komisi hanya dari pembayaran referral terverifikasi.');button('Mulai antrean',()=>{close();registrationAction();},true);button('Kembali',close);})};}
  if(dg<=2.1&&dg<=dq){const point=g.clone();point.y=2.12;return {id:'guide',title:gateGuide(avatar).name,line:'Assalamualaikum! Mau tahu tentang HAJJI.DIGITAL?',label:'BICARA',point,run:()=>greet(p)};}
  if(dq<=2.35){q.y=2.18;return {id:'queue',title:female?'LOKET PEREMPUAN':'LOKET LAKI-LAKI',line:'Silakan ikut barisan dari sini.',label:'MASUK ANTREAN',point:q,run:registrationAction};}
  return null;

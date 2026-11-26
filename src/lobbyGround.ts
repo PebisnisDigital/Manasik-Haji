@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GATE_OFFICE } from './gateVideotronModel.ts';
+import { GATE_SOUVENIR_TABLE } from './gateSouvenirLayout.ts';
 import { HUMAN_RADIUS } from './sim/GroundCollision.ts';
 
 export const PLAZA = { x: -4, width: 66, depth: 34 } as const;
@@ -32,6 +33,7 @@ const arcade = [
 const planters = (xs: number[]) => xs.flatMap(x => [-2.6, 3.5].map(z => groundBox(x, z, .98, .98, .56)));
 
 export const gatePlazaSolids = [
+  groundBox(GATE_SOUVENIR_TABLE.x,GATE_SOUVENIR_TABLE.z,GATE_SOUVENIR_TABLE.w,GATE_SOUVENIR_TABLE.d,GATE_SOUVENIR_TABLE.h),
   ...arcade,
   ...[-8.15, 8.15].map(x => groundBox(x, -6.5, 1.7, .4, 3.7)),
   groundBox(0, -6.5, 9.5, .4, 3.7),
