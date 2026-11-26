@@ -206,24 +206,57 @@ export function salesResponse(id:number,pitch:number,job:SalesJob){
  if(pitch===2)return {ok:false,line:'Maaf, saya kurang nyaman kalau ditawari seperti itu.'};
  return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Tolong antarkan saya ke penjualnya, ya.':'Boleh, saya mau beli hijab. Tolong antar saya ke kasir, ya.'};
 }
-export function salesDialog(title:string,build:(say:(s:string,who?:'player'|'npc'|'system')=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void,clearChoices:()=>void)=>void,onClose:()=>void){
- const dlg=document.createElement('dialog');dlg.setAttribute('aria-label',title);
- dlg.style.cssText='width:min(440px,92vw);max-height:82dvh;overflow:hidden;border:1px solid #d0b36d;border-radius:16px;background:#15382e;color:#fff5dd;padding:12px;font:15px system-ui;box-sizing:border-box;margin:auto';
- const frame=document.createElement('div');frame.style.cssText='display:flex;flex-direction:column;max-height:calc(82dvh - 26px);gap:8px';
- const head=document.createElement('header');head.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;position:static;padding:0';
- const h=document.createElement('strong');h.textContent=title;head.append(h);
- const x=document.createElement('button');x.type='button';x.textContent='×';x.setAttribute('aria-label','Tutup percakapan');x.style.cssText='min-width:40px;min-height:36px;background:#285343;color:#fff5dd;border:1px solid #7f967b;border-radius:8px;font-size:22px';head.append(x);
- const chat=document.createElement('div');chat.setAttribute('role','log');chat.setAttribute('aria-live','polite');chat.style.cssText='display:flex;flex-direction:column;gap:7px;overflow-y:auto;min-height:48px;flex:1 1 auto;overscroll-behavior:contain;touch-action:pan-y';
- const actions=document.createElement('div');actions.style.cssText='display:flex;flex-direction:column;gap:5px;flex:0 1 auto;overflow-y:auto;max-height:48dvh;touch-action:pan-y;overscroll-behavior:contain';
- frame.append(head,chat,actions);dlg.append(frame);
- let closed=false;
- const close=()=>{if(closed)return;closed=true;dlg.close();dlg.remove();onClose();};
- const say=(s:string,who:'player'|'npc'|'system'='npc')=>{
-  const p=document.createElement('div');p.style.cssText='border-radius:11px;padding:8px 10px;max-width:89%;line-height:1.35;'+(who==='player'?'align-self:flex-end;background:#dfc47e;color:#18392e':who==='system'?'align-self:center;background:#102d26;color:#cbe4cd;text-align:center;font-size:13px':'align-self:flex-start;background:#285343;color:#fff5dd');
-  if(who!=='system'){const label=document.createElement('strong');label.textContent=who==='player'?'Kamu':title;label.style.cssText='display:block;font-size:11px;margin-bottom:2px;opacity:.8';p.append(label);}
-  const msg=document.createElement('span');msg.textContent=s;p.append(msg);chat.append(p);chat.scrollTop=chat.scrollHeight;requestAnimationFrame(()=>{chat.scrollTop=chat.scrollHeight;});
- };
- const clearChoices=()=>actions.replaceChildren();
- const button=(s:string,fn:()=>void,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=s;b.style.cssText='flex:0 0 auto;width:100%;min-height:42px;padding:8px;border-radius:9px;border:1px solid #d5bd7b;background:'+(primary?'#e8c974':'#285343')+';color:'+(primary?'#15382e':'#fff5dd')+';font:inherit;cursor:pointer;text-align:left;touch-action:manipulation';b.onclick=()=>fn();actions.append(b);};
- x.onclick=close;build(say,button,close,clearChoices);dlg.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(dlg);dlg.showModal();
+type SalesSide='player'|'npc'|'system';
+type SalesAnchor={x:number;y:number;visible:boolean};
+type Speech={text:string;who:SalesSide};
+/** Share the standing-guide world overlay: one projected speech bubble, player choices below. */
+export function salesDialog(title:string,build:(say:(s:string,who?:SalesSide)=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void,clearChoices:()=>void)=>void,onClose:()=>void,project:(side:'npc'|'player')=>SalesAnchor){
+ const root=document.createElement('section');root.className='gateWorldDialogue gateGuideDialogue gateSalesDialogue';root.setAttribute('role','dialog');root.setAttribute('aria-label','Percakapan dengan '+title);root.dataset.guide=title;
+ const bubble=document.createElement('div');bubble.className='gateWorldBubble';bubble.setAttribute('aria-live','polite');
+ const who=document.createElement('strong'),line=document.createElement('p');bubble.append(who,line);
+ const panel=document.createElement('section');panel.className='gateWorldPanel';panel.setAttribute('aria-label','Pilihan jawaban pemain');
+ const actions=document.createElement('div');actions.className='travelActions gateWorldActions gateGuideActions';panel.append(actions);
+ const x=document.createElement('button');x.type='button';x.className='gateWorldClose';x.textContent='×';x.setAttribute('aria-label','Tutup percakapan');
+ root.append(bubble,panel,x);document.body.append(root);document.documentElement.classList.add('gateDialogueActive');
+ let closed=false,raf=0,timer:ReturnType<typeof setTimeout>|undefined,side:SalesSide='npc',collecting=false,busy=false,closeAfter=false;
+ let messages:Speech[]=[];
+ function render(m:Speech){side=m.who;bubble.dataset.side=side==='player'?'player':side==='system'?'system':'guide';who.textContent=side==='player'?'Pemain':side==='system'?'Misi penjualan':title;line.textContent=m.text;}
+ function say(text:string,who:SalesSide='npc'){messages.push({text,who});}
+ function layout(){
+  if(closed)return;
+  const a=project(side==='player'?'player':'npc'),w=innerWidth,h=innerHeight,bw=bubble.offsetWidth,bh=bubble.offsetHeight,p=panel.getBoundingClientRect();
+  const clamp=(v:number,lo:number,hi:number)=>Math.max(lo,Math.min(v,Math.max(lo,hi)));
+  let left=clamp(a.x-bw/2,12,w-bw-12),top=clamp(a.y-bh-12,58,h-bh-12);
+  let detached=!a.visible||side==='system'||Math.abs(top-(a.y-bh-12))>18;
+  if(!a.visible||side==='system'){left=clamp((w-bw)/2,12,w-bw-12);top=side==='player'&&!panel.hidden?clamp(p.top-bh-14,58,h-bh-12):58;}
+  if(!panel.hidden&&left<p.right&&left+bw>p.left&&top<p.bottom&&top+bh>p.top){top=clamp(p.top-bh-14,12,h-bh-12);detached=true;}
+  bubble.style.left=Math.round(left)+'px';bubble.style.top=Math.round(top)+'px';bubble.style.setProperty('--gate-tail',Math.round(clamp(a.x-left,16,bw-16))+'px');bubble.classList.toggle('detached',detached||a.x<left||a.x>left+bw);
+  raf=requestAnimationFrame(layout);
+ }
+ function finish(){if(closed)return;closed=true;clearTimeout(timer);cancelAnimationFrame(raf);document.removeEventListener('keydown',escape);root.remove();document.documentElement.classList.remove('gateDialogueActive');onClose();}
+ function close(){if(collecting){closeAfter=true;return;}finish();}
+ function escape(e:KeyboardEvent){if(e.key==='Escape'){e.preventDefault();finish();}}
+ function clearChoices(){actions.replaceChildren();}
+ function play(){
+  if(closed)return;clearTimeout(timer);const queue=messages;messages=[];
+  if(!queue.length){if(closeAfter){finish();return;}busy=false;panel.hidden=!actions.childElementCount;return;}
+  busy=true;panel.hidden=true;
+  const next=()=>{
+   if(closed)return;
+   const m=queue.shift();
+   if(!m){if(closeAfter){finish();return;}busy=false;panel.hidden=!actions.childElementCount;return;}
+   render(m);
+   if(!queue.length&&!closeAfter){busy=false;panel.hidden=!actions.childElementCount;return;}
+   // Readable alternating NPC/player lines; no text history or modal covers the world.
+   timer=setTimeout(next,Math.min(1900,Math.max(850,m.text.length*19)));
+  };next();
+ }
+ function button(text:string,fn:()=>void,primary=false){
+  const b=document.createElement('button');b.type='button';b.textContent=text;if(primary)b.className='travelPrimary';
+  b.onclick=()=>{if(closed||busy)return;collecting=true;try{fn();}finally{collecting=false;}play();};
+  actions.append(b);
+ }
+ x.onclick=finish;document.addEventListener('keydown',escape);
+ collecting=true;try{build(say,button,close,clearChoices);}finally{collecting=false;}
+ play();layout();
 }
