@@ -354,6 +354,10 @@ function guideWave(u:number,out:Pose){
  out.rot[BoneIndex.head*3]+=Math.sin(u*P*2)*.035*strength;
 }
 
+// Separate ordinary market poses; no prayer posture is reused for dining.
+const MARKET_SEAT=makePose({rootOffset:[0,-.235,-.012],spine:[.08,0,0],thighL:[-1.48,0,.05],thighR:[-1.48,0,-.05],shinL:[1.48,0,0],shinR:[1.48,0,0],upArmL:[-.3,0,.12],upArmR:[-.4,0,-.12],loArmL:[-.9,0,0],loArmR:[-.95,0,0]});
+function marketEat(u:number,out:Pose){hold(MARKET_SEAT,.7)(u,out);const t=(1-Math.cos(u*P*2))*.5;out.rot[BoneIndex.upArmR*3]-=.40*t;out.rot[BoneIndex.loArmR*3]-=.80*t;out.rot[BoneIndex.head*3]+=.12*t;}
+function marketCarry(u:number,out:Pose){walkCycle(.55,.65)(u,out);out.rot[BoneIndex.upArmL*3]=-.48;out.rot[BoneIndex.upArmR*3]=-.48;out.rot[BoneIndex.loArmL*3]=-1.2;out.rot[BoneIndex.loArmR*3]=-1.2;}
 export const CLIPS: ClipDef[] = (() => {
   const c: ClipDef[] = new Array(CLIP_COUNT);
 
@@ -392,6 +396,9 @@ export const CLIPS: ClipDef[] = (() => {
 
   c[Clip.DUA] = { frames:24, loop:true, sample:hold(POSE_DUA,.45) };
   c[Clip.GUIDE_WAVE] = { frames:48, loop:true, sample:guideWave };
+  c[Clip.MARKET_SEAT]={frames:12,loop:true,sample:hold(MARKET_SEAT,.6)};
+  c[Clip.MARKET_EAT]={frames:24,loop:true,sample:marketEat};
+  c[Clip.MARKET_CARRY]={frames:28,loop:true,sample:marketCarry};
   for (let i = 0; i < CLIP_COUNT; i++) {
     if (!c[i]) throw new Error(`clip ${i} is undefined`);
   }
