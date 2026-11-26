@@ -234,7 +234,7 @@ export function salesDialog(title:string,build:(say:(s:string,who?:SalesSide)=>v
   raf=requestAnimationFrame(layout);
  }
  function finish(){if(closed)return;closed=true;clearTimeout(timer);cancelAnimationFrame(raf);document.removeEventListener('keydown',escape);root.remove();document.documentElement.classList.remove('gateDialogueActive');onClose();}
- function close(){if(collecting){closeAfter=true;return;}finish();}
+ function close(){if(collecting&&messages.length){closeAfter=true;return;}finish();}
  function escape(e:KeyboardEvent){if(e.key==='Escape'){e.preventDefault();finish();}}
  function clearChoices(){actions.replaceChildren();}
  function play(){
