@@ -291,3 +291,48 @@ body #districtDialog.gameplaySettingsDialog #graphicsOptions{order:1}
 body #districtDialog.gameplaySettingsDialog #dialogActions{order:2}
 body #districtDialog.gameplaySettingsDialog #dialogActions button{min-height:40px}
 @media(max-height:450px){body .gameplaySettingsRows > label{padding:8px 0;min-height:40px}body .menu nav.minimalGameMenu{padding:12px}body #simpleSettings:has(.gameplaySettingsRows)>section{padding:12px}}
+
+/* Dark navigation is intentional contrast against the ivory world. Do not restyle unrelated HUDs. */
+html[data-hajji-game=ivory] body :is(.miniMap,.right-hud:has(svg.map),.hudRight .card:has(svg.minimap),.districtJourneyBoard,#map.overlay>.modal){background:#141414!important;color:#fff!important;border-color:#d6b46b!important;box-shadow:0 3px 12px #0003;color-scheme:dark}
+html[data-hajji-game=ivory] body :is(.miniMap,.right-hud:has(svg.map),.hudRight .card:has(svg.minimap),.districtJourneyBoard,#map.overlay>.modal) :is(h1,h2,h3,p,span,strong,b,small,.small,.caption,.label){color:#f8f5ee!important;text-shadow:none!important}
+html[data-hajji-game=ivory] body .miniMap #locationName{color:#fff!important;max-width:none}
+html[data-hajji-game=ivory] body .miniMap #targetDistance{color:#fff!important}
+html[data-hajji-game=ivory] body .miniMap .cityStarCounter{color:#f5ca70!important;border-color:#d6b46b66}
+body .miniMap svg{background:#141414;border-radius:5px}
+body .miniMap svg>rect[fill="#24473e"]{fill:#141414}
+body .miniMap svg>path[stroke="#778178"],body .miniMap svg>path[stroke="#60756a"]{stroke:#777772}
+body .miniMap svg>rect[fill="#afa68e"]{fill:#454545;stroke:#888278;stroke-width:.5}
+body .miniMap #mapRoute{stroke:#f5ca70}
+body .miniMap #mapGoal{fill:#f5ca70;stroke:#141414}
+body .miniMap #mapPlayer{fill:#fff;stroke:#141414}
+body svg.map,body svg.minimap{background:#141414;border-radius:10px;border:1px solid #d6b46b}
+body svg.map [fill="#254c40"],body svg.minimap [fill="#315d4e"]{fill:#292929}
+body svg.map [fill="#101817"]{fill:#0a0a0a}
+body svg.map [fill="#20bd76"]{fill:#d6b46b}
+body svg.map [fill="#9bd8b2"]{fill:#d6b46b}
+body svg.map #mapPlayer circle:last-child,body svg.minimap #minPlayer{fill:#fff;stroke:#141414}
+body svg.minimap #minTarget{fill:#f5ca70;stroke:#141414}
+body svg.map text,body svg.minimap text{fill:#fff}
+html[data-hajji-game=ivory] body .districtJourneyBoard{outline-color:#333!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard :is(.boardBrand,.boardProgress){color:#f5ca70!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardLevel{background:#292929!important;color:#fff!important;border-color:#77716a!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardLevel.locked{background:#292929!important;color:#fff!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardLevel.done{background:#42351e!important;border-color:#d6b46b!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardLevel.done .boardLevelStatus{color:#f5ca70!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardLevel.available{background:#e9c77c!important;border-color:#d6b46b!important;color:#25211b!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardLevel.available :is(span,strong,small){color:#25211b!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardBack{background:#292929!important;color:#fff!important;border-color:#d6b46b!important}
+html[data-hajji-game=ivory] body .districtJourneyBoard .boardBonus{background:#d6b46b!important;color:#25211b!important}
+html[data-hajji-game=ivory] body #map.map{background:#141414!important;border:1px solid #d6b46b;padding:9px;border-radius:10px}
+html[data-hajji-game=ivory] body #map.map span,html[data-hajji-game=ivory] body #map.overlay .node{background:#292929!important;color:#fff!important;border-color:#77716a!important}
+html[data-hajji-game=ivory] body #map.map .done,html[data-hajji-game=ivory] body #map.overlay .node.done{background:#42351e!important;color:#f5ca70!important;border-color:#d6b46b!important}
+html[data-hajji-game=ivory] body #map.map .active,html[data-hajji-game=ivory] body #map.overlay .node.next{background:#e9c77c!important;color:#25211b!important;border-color:#d6b46b!important}
+html[data-hajji-game=ivory] body #map.overlay .node.next strong{color:#25211b!important}
+html[data-hajji-game=ivory] body.mapPage{background:#141414!important;color:#fff!important;color-scheme:dark}
+html[data-hajji-game=ivory] body.mapPage :is(.mapWorld,.mapSummary,.mapExtras){background:#202020!important;color:#fff!important;border-color:#776749!important}
+html[data-hajji-game=ivory] body.mapPage :is(.mapHero h1,.level strong,.level p,.levelWhen,.levelState,.levelAction,.mapLegend,.worldLabel,#mapSetup,#statusText,.mapHero>div>p:last-child,.mapFooter){color:#f8f5ee!important}
+html[data-hajji-game=ivory] body.mapPage :is(.mapLogo span,.mapKicker,.mapHero h1 em,.mapLegend a,.level.done .levelState){color:#f5ca70!important}
+html[data-hajji-game=ivory] body.mapPage .levelNumber{background:#292929!important;border-color:#888278!important;color:#fff!important;box-shadow:none}
+html[data-hajji-game=ivory] body.mapPage .level.done .levelNumber{background:#42351e!important;color:#f5ca70!important;border-color:#d6b46b!important}
+html[data-hajji-game=ivory] body.mapPage .level.active .levelNumber,html[data-hajji-game=ivory] body.mapPage .mapStart{background:#d6b46b!important;color:#25211b!important;border-color:#f5ca70!important}
+html[data-hajji-game=ivory] body.mapPage .worldPath path{stroke:#d6b46b}
