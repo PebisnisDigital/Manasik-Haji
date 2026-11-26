@@ -92,7 +92,7 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
   function chooseMethod(value:string){method=value;void create();}
   function payment(){
    const total=fmt(quote?.amount??100000);
-   ask('Data '+sapaan+' belum terdaftar. Biaya pendaftarannya '+total+'. Mau bayar lewat transfer bank atau QRIS?');
+   ask('Total tagihan pendaftarannya '+total+'. '+sapaan+' mau bayar lewat transfer bank atau QRIS?');
    const info=document.createElement('p');info.className='gateAnswerConsent';info.textContent='Dengan memilih metode pembayaran, Anda menyetujui penggunaan data untuk pendaftaran, pembayaran dan referral.';host.append(info);
    const items:{label:string;run:()=>void}[]=[];
    if(banks.length)items.push({label:'TRANSFER BANK',run:()=>banks.length===1?chooseMethod('bank:'+banks[0].id):selectBank()});
@@ -100,7 +100,6 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
    if(!items.length){notice.textContent='Metode pembayaran belum tersedia. Coba kembali nanti.';host.append(button('Periksa kembali',()=>void load()),back());return;}
    choices(items);
    if(data.ticket.qris_enabled&&data.ticket.qris_test){const sandbox=document.createElement('small');sandbox.className='gateAnswerConsent';sandbox.textContent='QRIS masih mode uji coba. Untuk pembayaran sungguhan, gunakan transfer bank.';host.append(sandbox);}
-   if(!quote)host.append(button('Punya kode kupon?',coupon));else host.append(button('Ganti kode kupon',coupon));
   }
   function selectBank(){
    ask('Mau transfer melalui bank mana, '+sapaan+'? Totalnya '+fmt(quote?.amount??100000)+'.');
@@ -124,8 +123,8 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
    }finally{busy=false;schedule();}
   }
   function coupon(){let pref=new URLSearchParams(location.search).get('ref')?.slice(0,30)??'';if(!pref)try{pref=sessionStorage.getItem('hajji-referral-code')??'';}catch{}inputAnswer('Boleh sebutkan kode kuponnya?','Kode kupon','text',pref,v=>v.length>0,v=>{reply('Ini kode kupon saya: '+v.toUpperCase()+'.',()=>void verifyCoupon(v));},30);}
-  async function verifyCoupon(value:string){if(disposed||busy)return;busy=true;ask('Sebentar, saya periksa kuponnya dulu.');try{const d=await request('/coupon',{code:value.trim().toUpperCase()});if(disposed)return;if(!d.coupon)throw Error('Kupon belum dapat digunakan.');quote=d.coupon;ask('Alhamdulillah, kupon berhasil! Potongan '+fmt(quote.discount)+'. Jadi totalnya '+fmt(quote.amount)+'.');choices([{label:'Lanjut pembayaran',run:payment}]);}catch(err){if(disposed)return;quote=null;ask('Kupon belum dapat digunakan. Harga normalnya Rp100.000.');message(err);choices([{label:'Bayar Rp100.000',run:payment},{label:'Coba kode lain',run:coupon}]);}finally{busy=false;}}
-  payment();
+  async function verifyCoupon(value:string){if(disposed||busy)return;busy=true;ask('Sebentar, saya periksa kuponnya dulu.');try{const d=await request('/coupon',{code:value.trim().toUpperCase()});if(disposed)return;if(!d.coupon||!d.coupon.code||!Number.isInteger(d.coupon.amount)||!Number.isInteger(d.coupon.discount)||d.coupon.amount<=0||d.coupon.discount<0||d.coupon.amount+d.coupon.discount!==100000)throw Error('Kupon belum dapat digunakan.');quote=d.coupon;ask('Alhamdulillah, kuponnya valid! Harga awal Rp100.000, potongan '+fmt(quote.discount)+'. Total bayar '+fmt(quote.amount)+'.');const summary=document.createElement('div');summary.className='gateBank';summary.setAttribute('aria-label','Ringkasan diskon');for(const line of ['Harga awal: Rp100.000','Potongan: −'+fmt(quote.discount),'Total bayar: '+fmt(quote.amount)]){const p=document.createElement('p');p.textContent=line;summary.append(p);}host.append(summary);choices([{label:'LANJUT PEMBAYARAN',run:payment}]);}catch(err){if(disposed)return;quote=null;ask('Kupon belum dapat digunakan. Harga normalnya Rp100.000.');message(err);choices([{label:'Coba kode lain',run:coupon},{label:'Tanpa kupon',run:()=>{quote=null;payment();}}]);}finally{busy=false;}}
+  ask('Data '+sapaan+' belum terdaftar. Biaya pendaftarannya Rp100.000. Apakah punya kode kupon?');choices([{label:'PUNYA KUPON',run:()=>reply('Saya punya kode kupon.',coupon)},{label:'TIDAK PUNYA',run:()=>{quote=null;reply('Saya tidak punya kode kupon.',payment);}}]);
  }
  function paint(data:ResponseData){
   if(!checked){checkIdentity(data);return;}
