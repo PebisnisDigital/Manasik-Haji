@@ -2,7 +2,7 @@ import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
-import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_COUPON,type SalesJob} from './buburMarket.ts';
+import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,escortDestination,planEscortRoute,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_COUPON,type SalesJob} from './buburMarket.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
@@ -40,8 +40,9 @@ let chosenProgram:Program='umrah';let avatar:Avatar='male',selected=false,modal=
 type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:ReturnType<typeof createRenderBudget>;let r:THREE.WebGLRenderer,s:THREE.Scene,cam:THREE.PerspectiveCamera,hero:Actor;const guides={} as Record<Program,Actor>;const keys=new Set<string>();let joy=new THREE.Vector2(),last=0,walkPhase=0;const start=new THREE.Vector3(0,0,4.1);const placements={hajj:new THREE.Vector3(-2.5,0,-1.8),umrah:new THREE.Vector3(2.5,0,-1.8)};
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
 let buburMarket:ReturnType<typeof createBuburMarket>|undefined;
-const sales=loadSales();let salesHold:THREE.Group|null=null;
-function salesHud(){if(sales.job)$('instruction').textContent=sales.pending!==null?'Antar '+(buburMarket?.prospects[sales.pending]?.name??'pembeli')+' ke '+(sales.job==='hijab'?'kasir KOKOSALAMA':'gerobak bubur')+' · lalu lapor ke penjual':sales.claimed?'Hadiah MAUHAJJI sudah diklaim · menuju loket':sales.accepted.length>=10?'Target tercapai! Kembali ke pemilik '+salesNames[sales.job]:'Sales '+salesNames[sales.job]+' · '+sales.accepted.length+'/10 pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[sales.job]).toLocaleString('id-ID');}
+const sales=loadSales();let salesHold:THREE.Group|null=null;let escortRoute:THREE.Vector3[]|null=null,escortArrived=false,escortManual=false,escortStall=0,escortLastDistance=Infinity;
+function resetEscortRoute(){escortRoute=null;escortArrived=false;escortManual=false;escortStall=0;escortLastDistance=Infinity;}
+function salesHud(){if(sales.job)$('instruction').textContent=sales.pending!==null?(escortManual?'Antar manual ':escortArrived?'Tiba · laporkan ':'Mengantar otomatis ')+ (buburMarket?.prospects[sales.pending]?.name??'pembeli')+' ke '+(sales.job==='hijab'?'kasir KOKOSALAMA':'gerobak bubur')+' · lalu lapor ke penjual':sales.claimed?'Hadiah MAUHAJJI sudah diklaim · menuju loket':sales.accepted.length>=10?'Target tercapai! Kembali ke pemilik '+salesNames[sales.job]:'Sales '+salesNames[sales.job]+' · '+sales.accepted.length+'/10 pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[sales.job]).toLocaleString('id-ID');}
 function openSales(title:string,build:Parameters<typeof salesDialog>[1],hold:THREE.Group|null=null){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();salesHold=hold;salesDialog(title,build,()=>{modal=false;salesHold=null;stopMotion();salesHud();});}
 function talkOwner(job:SalesJob){
  openSales(job==='bubur'?'Pemilik Bubur Ayam':'Kasir KOKOSALAMA',(say,button,close,clear)=>{
@@ -50,9 +51,9 @@ function talkOwner(job:SalesJob){
    else{const id=sales.pending,customer=buburMarket?.prospects[id];
     say('Ada yang bisa saya bantu?');
     if(customer&&buburMarket?.escortReady(id,hero.root.position)&&(job!=='hijab'||insideHijab(customer.actor.position.x,customer.actor.position.z))){
-     button('Saya membawa pembeli',()=>{clear();say('Pak/Bu, saya membawa '+customer.name+'. Beliau ingin membeli '+salesNames[job]+'.','player');say('Terima kasih! Silakan, kami layani pembelinya.');if(buburMarket?.handoff(id,job)){sales.accepted.push(id);sales.pending=null;saveSales(sales);say('Closing berhasil · +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/10 pembeli','system');}button('Lanjut',close,true);},true);
+     button('Saya membawa pembeli',()=>{clear();say('Pak/Bu, saya membawa '+customer.name+'. Beliau ingin membeli '+salesNames[job]+'.','player');say('Terima kasih! Silakan, kami layani pembelinya.');if(buburMarket?.handoff(id,job,hero.root.position)){sales.accepted.push(id);sales.pending=null;resetEscortRoute();saveSales(sales);say('Komisi diterima · +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/10 pembeli','system');if(sales.accepted.length>=10){say('Alhamdulillah, target 10 pembeli tercapai! Ini hadiah voucher manasik khusus untukmu.');button('Terima voucher',()=>{clear();sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}say('Kode kupon: '+SALES_COUPON+' · Diskon Rp25.000','system');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);button('Nanti dulu',close);},true);}else button('Cari pembeli berikutnya',close,true);}else{say('Pembeli belum sampai. Tunggu sebentar lalu laporkan lagi.');button('Kembali',close,true);}},true);
     }else{say('Tunggu pembeli sampai di dekatmu, lalu laporkan kepada saya.');}
-    button('Batalkan antar pembeli',()=>{clear();say('Baik, saya batalkan dulu.','player');buburMarket?.cancelEscort();sales.pending=null;saveSales(sales);button('Kembali',close,true);});
+    button('Batalkan antar pembeli',()=>{clear();say('Baik, saya batalkan dulu.','player');buburMarket?.cancelEscort();sales.pending=null;resetEscortRoute();saveSales(sales);button('Kembali',close,true);});
    }
   }
   else if(sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
@@ -73,7 +74,7 @@ function offerProspect(p:{id:number;name:string;actor:THREE.Group}){
   say('Iya, ada apa ya?');
   const pitches=job==='bubur'?['Permisi, mau bubur ayam hangat?','Sudah sarapan? Ada bubur ayam di depan Alfamart.','Pokoknya harus beli bubur saya!']:['Permisi, sedang mencari hijab?','Boleh lihat koleksi hijab KOKOSALAMA?','Pokoknya harus beli hijab saya!'];
   let answered=false;
-  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;clear();say(pitch,'player');const result=salesResponse(p.id,i,job);if(result.ok){sales.pending=p.id;buburMarket?.startEscort(p.id,hero.root.position);}else sales.rejected.push(p.id);saveSales(sales);say(result.line);say(result.ok?'Antarkan pembeli ke penjual untuk mendapatkan komisi.':'Tetap semangat. Hormati keputusan calon pembeli.','system');button(result.ok?'Ayo, saya antar!':'Baik, terima kasih.',()=>{clear();say(result.ok?'Mari, ikuti saya.':'Baik, terima kasih waktunya.','player');button(result.ok?'Mulai antar pembeli':'Lanjut mencari pembeli',close,true);},true);}));
+  pitches.forEach((pitch,i)=>button(pitch,()=>{if(answered)return;answered=true;clear();say(pitch,'player');const result=salesResponse(p.id,i,job);if(result.ok){sales.pending=p.id;resetEscortRoute();buburMarket?.startEscort(p.id,hero.root.position);}else sales.rejected.push(p.id);saveSales(sales);say(result.line);say(result.ok?'Antarkan pembeli ke penjual untuk mendapatkan komisi.':'Tetap semangat. Hormati keputusan calon pembeli.','system');button(result.ok?'Ayo, saya antar!':'Baik, terima kasih.',()=>{clear();say(result.ok?'Mari, ikuti saya.':'Baik, terima kasih waktunya.','player');close();},true);}));
   button('Batal',close);
  },p.actor);
 }
@@ -200,7 +201,7 @@ const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();ray.layers.enable(1);con
 const touchInput=(e:PointerEvent)=>e.pointerType==='touch'||e.pointerType==='pen';
 const menuOpen=()=>!!document.querySelector('.menu[open]');
 const canLook=()=>sceneReady&&selected&&!modal&&gateEncounter!=='clerk'&&(!encounter||guideMode)&&!portraitBlocked&&!introPlaying&&!paused&&!menuOpen();
-const canWalk=()=>sceneReady&&selected&&!modal&&!encounter&&!portraitBlocked&&!queueJoining&&!queueAuthorized&&!departure&&!introPlaying&&!paused&&!menuOpen();
+const canWalk=()=>sceneReady&&selected&&!modal&&!encounter&&!portraitBlocked&&!queueJoining&&!queueAuthorized&&!departure&&!introPlaying&&!paused&&!menuOpen()&&(sales.pending===null||escortManual);
 canvas.addEventListener('pointerdown',e=>{
  if(e.button!==0)return;
  if(touchInput(e)){
@@ -276,6 +277,7 @@ function currentGateAction():GateAction|null{
  if(queueAuthorized){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'PETUGAS PENDAFTARAN',line:'Silakan, sekarang giliran Anda.',label:'DAFTAR',point,run:()=>greet(p)};}
  if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'BATALKAN ANTREAN',point,run:()=>{leaveRegistrationQueue();$('instruction').textContent='Antrean dibatalkan.';}};}
  if(buburMarket){
+  if(sales.pending!==null&&!escortArrived&&!escortManual)return null;
   const owners=buburMarket.owners;
   for(const job of ['bubur','hijab'] as const){const owner=owners[job],point=job==='bubur'?BUBUR_POINT.clone():owner.position.clone().add(new THREE.Vector3(0,1.9,0));if((job==='bubur'||insideHijab(pos.x,pos.z))&&Math.hypot(pos.x-point.x,pos.z-point.z)<=(job==='bubur'?2.7:2.4))return {id:job,title:job==='hijab'?'KASIR KOKOSALAMA':salesNames[job],line:sales.job===job&&sales.pending!==null?'Laporkan pembeli yang kamu antar.':sales.job===job&&sales.accepted.length>=10?'Target tercapai! Ambil hadiah.':'Mau membantu menjual produk?',label:sales.job===job&&sales.pending!==null?'LAPOR PEMBELI':sales.job===job&&sales.accepted.length>=10?'AMBIL HADIAH':job==='hijab'?'BICARA KASIR':'BICARA PEMILIK',point,run:()=>talkOwner(job)};}
   if(sales.job&&sales.pending===null&&!sales.claimed&&sales.accepted.length<10){
@@ -327,10 +329,16 @@ function frame(now:number){
  if(selected&&!modal&&!encounter&&!queueAuthorized){
   if(departure){if(!departure.arrived){automatic=true;const points=[new THREE.Vector3(departure.side*5.65,0,-2.77),new THREE.Vector3(departure.side*5.9,0,-4.55),new THREE.Vector3(departure.side*6,0,-6.5)];const dest=points[departure.stage]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(departure.stage===0){registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);}if(departure.stage<2)departure.stage++;else{departure.arrived=true;stopMotion();$('instruction').textContent='Pilih MASUK di pintu keberangkatan';}dx=dz=0;}}}
   else if(queueJoining&&registrationHall){automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female);const side=female?1:-1;const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(queueStage<2)queueStage++;else if(registrationHall.ahead(female)===0){queueJoining=false;queueAuthorized=true;registrationHall.setRegistrationBusy(true);$('instruction').textContent='Giliran Anda. Pilih DAFTAR di dekat petugas.';}dx=dz=0;}}
+  else if(sales.pending!==null&&sales.job&&buburMarket&&!escortManual){
+   automatic=true;const dest=escortDestination(sales.job);
+   if(!escortRoute){escortRoute=planEscortRoute(pos,sales.job);if(!escortRoute.length&&pos.distanceTo(dest)>.3)escortManual=true;}
+   if(escortRoute.length){const next=escortRoute[0]!;const d=pos.distanceTo(next);if(d<.18){escortRoute.shift();escortStall=0;escortLastDistance=Infinity;}else{dx=next.x-pos.x;dz=next.z-pos.z;if(d<escortLastDistance-.025){escortStall=0;escortLastDistance=d;}else escortStall+=dt;if(escortStall>3){escortManual=true;dx=dz=0;}}}
+   else if(!escortManual&&pos.distanceTo(dest)<.45&&buburMarket.escortReady(sales.pending,pos)&&(sales.job!=='hijab'||insideHijab(buburMarket.prospects[sales.pending]!.actor.position.x,buburMarket.prospects[sales.pending]!.actor.position.z))){if(!escortArrived){escortArrived=true;stopMotion();talkOwner(sales.job);}}
+  }
   else if(target){automatic=true;const t=placements[target];dx=t.x-pos.x;dz=t.z+.96-pos.z;if(Math.hypot(dx,dz)<.10){greet(target);dx=dz=0;}}
   else{const side=joy.x+Number(keys.has('d')||keys.has('arrowright'))-Number(keys.has('a')||keys.has('arrowleft')),forward=-joy.y+Number(keys.has('w')||keys.has('arrowup'))-Number(keys.has('s')||keys.has('arrowdown'));dx=-Math.cos(cameraYaw)*side+Math.sin(cameraYaw)*forward;dz=Math.sin(cameraYaw)*side+Math.cos(cameraYaw)*forward;}
  }
- const n=Math.hypot(dx,dz),speed=2.6*walkFactor(automatic);const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
+ const n=Math.hypot(dx,dz),speed=(sales.pending!==null&&!escortManual?2.05:2.6)*walkFactor(automatic);const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
  if(modal||encounter||queueAuthorized)velocity.set(0,0);
  const moving=velocity.length()>.055;
  if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-30.1:-5.6,guideMode?21.0:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,departure?-6.6:guideMode&&Math.abs(pos.x+26)<1.2?-5.65:-3,guideMode?10.2:5.8);
@@ -342,7 +350,7 @@ function frame(now:number){
  hero.root.rotation.y=heading;
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
  // Free exploration orbit stays untouched; only the seated clerk has a temporary cinematic shot.
- if(!guideMode&&cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
+ if((!guideMode||sales.pending!==null&&automatic&&moving)&&cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
  const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const shopInterior=guideMode&&insideHijab(pos.x,pos.z),firstPerson=cameraPrefs.mode==='first',radius=(shopInterior&&cameraPrefs.indoor?Math.min(cameraRadius,2.85):cameraPrefs.mode==='near'?Math.min(cameraRadius,3.5):cameraRadius)+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
  // The rear arcade is solid. Shorten the camera boom rather than letting it cross the wall.
