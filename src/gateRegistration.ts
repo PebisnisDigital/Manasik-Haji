@@ -89,12 +89,43 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
  function conversationalCheckout(data:ResponseData){
   let quote:Quote|null=null;let method='';const setup=readSetup()??defaultSetup();
   const banks=data.ticket.bank_options??(data.ticket.manual_enabled!==false&&data.ticket.account?[{id:'primary',bank:data.ticket.bank,account:data.ticket.account,holder:data.ticket.holder}]:[]);
-  function payment(){ask('Totalnya '+fmt(quote?.amount??100000)+'. '+sapaan+' mau bayar lewat bank mana atau QRIS?');const items=banks.map(bank=>({label:bank.bank,run:()=>{method='bank:'+bank.id;reply('Saya pilih '+bank.bank+'.',confirmPayment);}}));if(data.ticket.qris_enabled)items.push({label:data.ticket.qris_test?'QRIS (Sandbox)':'QRIS',run:()=>{method='qris';reply('Saya pilih QRIS.',confirmPayment);}});if(!items.length){notice.textContent='Belum ada metode pembayaran aktif. Hubungi admin.';host.append(button('Periksa kembali',()=>void load()));return;}choices(items);}
-  function confirmPayment(){const bank=banks.find(b=>'bank:'+b.id===method),total=fmt(quote?.amount??100000);ask('Baik, silakan '+(bank?'transfer ke '+bank.bank:'bayar melalui QRIS')+' sebesar '+total+'. Saya siapkan tagihannya, ya.');const info=document.createElement('p');info.className='gateAnswerConsent';info.textContent='Dengan mendaftar, Anda menyetujui penggunaan data untuk pendaftaran, pembayaran dan referral.'+(bank?' Data dikirim ke admin saat konfirmasi melalui WA.':'');host.append(info);choices([{label:'YA, DAFTAR AJA!',run:()=>void create()},{label:'Ganti metode',run:payment}]);}
-  async function create(){if(disposed||busy)return;busy=true;for(const b of host.querySelectorAll('button'))b.disabled=true;notice.textContent='Menyiapkan tagihan…';try{if(!saveSetup(setup))throw Error('Persiapan belum tersimpan.');const next=await request('',{...identity,program:setup.program,avatar:setup.avatar,consent:true,method:method.startsWith('bank:')?'transfer':method,bank_id:method.startsWith('bank:')?method.slice(5):undefined,coupon:quote?.code??'',expected_amount:quote?.amount??100000});if(disposed)return;try{sessionStorage.removeItem('hajji-referral-code');}catch{}paint(next);if(next.registration?.status==='pending'&&next.registration.payment_method==='qris'){try{const paid=await request('/qris-create',{});if(!disposed)paint(paid);}catch(err){if(!disposed)message(err);}}}catch(err){if(!disposed){message(err);for(const b of host.querySelectorAll('button'))b.disabled=false;}}finally{busy=false;schedule();}}
+  function chooseMethod(value:string){method=value;void create();}
+  function payment(){
+   const total=fmt(quote?.amount??100000);
+   ask('Data '+sapaan+' belum terdaftar. Biaya pendaftarannya '+total+'. Mau bayar lewat transfer bank atau QRIS?');
+   const info=document.createElement('p');info.className='gateAnswerConsent';info.textContent='Dengan memilih metode pembayaran, Anda menyetujui penggunaan data untuk pendaftaran, pembayaran dan referral.';host.append(info);
+   const items:{label:string;run:()=>void}[]=[];
+   if(banks.length)items.push({label:'TRANSFER BANK',run:()=>banks.length===1?chooseMethod('bank:'+banks[0].id):selectBank()});
+   if(data.ticket.qris_enabled)items.push({label:data.ticket.qris_test?'QRIS (UJI COBA)':'QRIS',run:()=>chooseMethod('qris')});
+   if(!items.length){notice.textContent='Metode pembayaran belum tersedia. Coba kembali nanti.';host.append(button('Periksa kembali',()=>void load()),back());return;}
+   choices(items);
+   if(data.ticket.qris_enabled&&data.ticket.qris_test){const sandbox=document.createElement('small');sandbox.className='gateAnswerConsent';sandbox.textContent='QRIS masih mode uji coba. Untuk pembayaran sungguhan, gunakan transfer bank.';host.append(sandbox);}
+   if(!quote)host.append(button('Punya kode kupon?',coupon));else host.append(button('Ganti kode kupon',coupon));
+  }
+  function selectBank(){
+   ask('Mau transfer melalui bank mana, '+sapaan+'? Totalnya '+fmt(quote?.amount??100000)+'.');
+   choices(banks.map(bank=>({label:bank.bank,run:()=>chooseMethod('bank:'+bank.id)})));host.append(button('Ganti metode',payment));
+  }
+  async function create(){
+   if(disposed||busy)return;busy=true;ask(method==='qris'?'Baik, saya siapkan QRIS pembayarannya, ya.':'Baik, saya siapkan tagihan transfer banknya, ya.');mode('bill');
+   const pending=document.createElement('p');pending.setAttribute('role','status');pending.textContent='Menyiapkan tagihan '+fmt(quote?.amount??100000)+'…';host.append(pending);
+   try{
+    if(!saveSetup(setup))throw Error('Persiapan belum tersimpan.');
+    const next=await request('',{...identity,program:setup.program,avatar:setup.avatar,consent:true,method:method.startsWith('bank:')?'transfer':method,bank_id:method.startsWith('bank:')?method.slice(5):undefined,coupon:quote?.code??'',expected_amount:quote?.amount??100000});
+    if(disposed)return;
+    try{sessionStorage.removeItem('hajji-referral-code');}catch{}
+    paint(next);
+    if(next.registration?.status==='pending'&&next.registration.payment_method==='qris'){
+     notice.textContent='Menyiapkan kode QRIS…';
+     try{const paid=await request('/qris-create',{});if(!disposed)paint(paid);}catch(err){if(!disposed)message(err);}
+    }
+   }catch(err){
+    if(!disposed){ask('Tagihan belum berhasil disiapkan. Silakan coba lagi.');message(err);choices([{label:'Coba lagi',run:()=>void create()},{label:'Ganti metode',run:payment}]);}
+   }finally{busy=false;schedule();}
+  }
   function coupon(){let pref=new URLSearchParams(location.search).get('ref')?.slice(0,30)??'';if(!pref)try{pref=sessionStorage.getItem('hajji-referral-code')??'';}catch{}inputAnswer('Boleh sebutkan kode kuponnya?','Kode kupon','text',pref,v=>v.length>0,v=>{reply('Ini kode kupon saya: '+v.toUpperCase()+'.',()=>void verifyCoupon(v));},30);}
   async function verifyCoupon(value:string){if(disposed||busy)return;busy=true;ask('Sebentar, saya periksa kuponnya dulu.');try{const d=await request('/coupon',{code:value.trim().toUpperCase()});if(disposed)return;if(!d.coupon)throw Error('Kupon belum dapat digunakan.');quote=d.coupon;ask('Alhamdulillah, kupon berhasil! Potongan '+fmt(quote.discount)+'. Jadi totalnya '+fmt(quote.amount)+'.');choices([{label:'Lanjut pembayaran',run:payment}]);}catch(err){if(disposed)return;quote=null;ask('Kupon belum dapat digunakan. Harga normalnya Rp100.000.');message(err);choices([{label:'Bayar Rp100.000',run:payment},{label:'Coba kode lain',run:coupon}]);}finally{busy=false;}}
-  ask('Data belum terdaftar. Biaya pendaftaran Rp100.000. Sudah punya kode kupon, '+sapaan+'?');choices([{label:'Punya kupon',run:()=>reply('Saya punya kode kupon.',coupon)},{label:'Tidak punya',run:()=>reply('Saya tidak punya kupon.',payment)}]);
+  payment();
  }
  function paint(data:ResponseData){
   if(!checked){checkIdentity(data);return;}
@@ -112,9 +143,9 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
    async function access(){if(disposed)return;open.disabled=true;try{if(!href){const link=data.href??(await request('/magic-link',{})).href;if(disposed)return;if(!link)throw Error('Akses belum tersedia.');const url=new URL(link,location.href);if(url.origin!==location.origin||url.searchParams.get('access')!=='1'||!/^#token=[a-f0-9]{64}$/.test(url.hash))throw Error('Magic Link tidak valid.');href=url.href;enter.href=href;enter.hidden=false;}if(onReady){onReady(href);return;}disposePopup?.();disposePopup=showMagicLinkPopup(href,guide);}catch(error){if(!disposed)message(error);}finally{open.disabled=false;}}
    const affiliate=document.createElement('a');affiliate.href='./affiliate.html';affiliate.textContent='Kode referral & komisi saya';if(onReady){open.textContent='LANJUT KE PINTU';host.append(open);void access();}else{host.append(enter,open,affiliate,back());void access();}return;
   }
-  onDialogue?.(r.status==='reported'?'Pembayaran masih diperiksa admin. Setelah aktif, tiket bisa digunakan.':'Data sudah terdaftar, tetapi tiket belum lunas. Silakan '+(r.payment_method==='qris'?'bayar melalui QRIS':'transfer ke '+data.ticket.bank)+' sebesar '+fmt(r.amount??100000)+'.');
+  onDialogue?.(r.status==='reported'?'Pembayaran masih diperiksa admin. Setelah aktif, tiket bisa digunakan.':'Ini tagihan pendaftaran '+sapaan+'. Silakan '+(r.payment_method==='qris'?'bayar melalui QRIS':'transfer ke '+data.ticket.bank)+' sebesar '+fmt(r.amount??100000)+'.');
   if(r.status==='pending'&&r.payment_method!=='transfer'&&(data.ticket.qris_enabled||data.qris)){
-   const q=data.qris,box=document.createElement('div');box.className='gateBank gateInvoiceQris';const title=document.createElement('strong');title.textContent='QRIS · BuatQRIS';box.append(title);
+   const q=data.qris,box=document.createElement('div');box.className='gateBank gateInvoiceQris';const title=document.createElement('strong');title.textContent='TAGIHAN QRIS';box.append(title);
    const msg=document.createElement('p');msg.textContent=(q?.is_test??data.ticket.qris_test)?'SANDBOX · Tidak menggunakan uang asli dan tidak membuka tiket berbayar.':'Scan QRIS dengan aplikasi bank atau dompet digital. Tiket aktif otomatis setelah pembayaran terverifikasi.';box.append(msg);
    if(q?.status==='pending'){const amt=document.createElement('strong');amt.textContent='Total bayar: Rp'+(q.total_amount??q.amount).toLocaleString('id-ID');box.append(amt);if(q.qr_url||q.qr_image){const img=document.createElement('img');img.src=q.qr_url??q.qr_image!;img.referrerPolicy='no-referrer';img.onerror=()=>{if(q.qr_image&&img.getAttribute('src')!==q.qr_image){img.src=q.qr_image;return;}img.onerror=null;img.hidden=true;const warning=document.createElement('p');warning.textContent=q.payment_url?'Gambar QR tidak termuat. Gunakan halaman pembayaran BuatQRIS.':'Gambar QR belum tersedia. Hubungi admin; jangan membuat pembayaran ganda.';box.append(warning);};img.alt='QRIS pembayaran tiket';img.style.cssText='width:min(240px,100%);display:block;margin:12px auto;background:white;padding:10px;border-radius:8px';box.append(img);}if(!q.qr_url&&!q.qr_image&&!q.payment_url){const warning=document.createElement('p');warning.textContent='Transaksi sudah tercatat, tetapi gambar QR belum tersedia. Hubungi admin sebelum membuat pembayaran lain.';box.append(warning);}if(q.payment_url){const a=document.createElement('a');a.href=q.payment_url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Buka halaman pembayaran';box.append(a);}if(q.expires_at){const p=document.createElement('p');p.textContent='Berlaku hingga '+new Date(q.expires_at).toLocaleString('id-ID',{timeZone:'Asia/Jakarta'})+' WIB';box.append(p);}}
    async function pay(action:string){if(disposed||busy)return;busy=true;notice.textContent='Memeriksa QRIS…';try{const next=await request(action,{});if(!disposed)paint(next);}catch(e){if(!disposed)message(e);}finally{busy=false;schedule();}}
@@ -134,7 +165,7 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
   for(const [key,value] of registrationSummary(r)){const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=key;detail.textContent=value;details.append(term,detail);}
   const total=document.createElement('div');total.className='gateReceiptTotal';const totalLabel=document.createElement('span'),totalValue=document.createElement('strong');totalLabel.textContent='TOTAL BAYAR';totalValue.textContent='Rp'+(r.amount??100000).toLocaleString('id-ID');total.append(totalLabel,totalValue);summary.append(summaryTitle,details,total);receiptLayout.append(summary);
   const bank=document.createElement('div');bank.className='gateBank gateReceiptBank';const label=document.createElement('span');label.textContent='Transfer manual · '+data.ticket.bank;const account=document.createElement('strong');account.textContent=data.ticket.account;const holder=document.createElement('p');holder.textContent='a.n. '+data.ticket.holder+' · Rp'+(r.amount??100000).toLocaleString('id-ID');const copy=button('Salin nomor rekening',()=>{if(!navigator.clipboard){notice.textContent='Pilih dan salin nomor rekening di atas.';return;}void navigator.clipboard.writeText(data.ticket.account).then(()=>{notice.textContent='Nomor rekening disalin.';},()=>{notice.textContent='Pilih dan salin nomor rekening di atas.';});});bank.append(label,account,holder,copy);paymentLayout.append(bank);
-  const help=document.createElement('p');help.className='gateReceiptInstruction';help.textContent='Setelah transfer, kirim bukti lewat tombol konfirmasi. Admin memeriksa pembayaran dan mengirim Magic Link.';
+  const help=document.createElement('p');help.className='gateReceiptInstruction';help.textContent='Setelah transfer, tekan Konfirmasi Transfer dan kirim bukti pembayaran. Tiket aktif setelah admin memverifikasi.';
   const confirmation=document.createElement('a');confirmation.className='travelPrimary gateEnterDistrict';confirmation.href=manualConfirmationUrl(r,data.ticket);confirmation.target='_blank';confirmation.rel='noopener noreferrer';confirmation.textContent='KONFIRMASI TRANSFER →';confirmation.id='confirmTransferWhatsApp';
   paymentLayout.append(help,confirmation);receiptLayout.append(paymentLayout);host.append(receiptLayout);
  }
