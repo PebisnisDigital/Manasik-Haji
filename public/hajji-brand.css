@@ -66,3 +66,79 @@ body .npcTag small,body .npcName small{color:#65502b;font-size:10px;font-weight:
 html.guideMode body .npcTag.guideIsCalling{background:linear-gradient(135deg,#fff,#eed9a7);border-color:#b38b42;color:#25211b;box-shadow:none}
 html.guideMode body .npcTag.guideIsPassive{opacity:.85}
 @media(max-height:520px){body .npcTag,body .npcName{padding:4px 7px;font-size:11px}body .npcTag strong,body .npcName strong{font-size:11px}}
+
+/* FINAL GAMEPLAY STYLE SYSTEM — light interactions on the black/gold world.
+   Public stylesheet is not color-remapped by the Vite brand plugin. */
+:root{
+ --hajji-ivory:#fffdf8;--hajji-ivory-soft:#f8f5ee;--hajji-ink:#25211b;--hajji-ink-muted:#5e564c;
+ --hajji-gold-soft:#e7c77d;--hajji-gold-deep:#805c22;--hajji-line:#d8ccb4;
+ --hajji-radius-sm:8px;--hajji-radius-md:12px;--hajji-radius-lg:16px;--hajji-radius-xl:18px;
+ --hajji-shadow-soft:0 4px 18px #00000014;--hajji-font:Inter,system-ui,sans-serif;
+}
+body :is(.gateWorldBubble,.districtSpeech,.gateContextPrompt,.simpleWorldPrompt,.guideCallBubble,.bubble){
+ background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important;
+ border:1px solid var(--hajji-gold)!important;border-radius:var(--hajji-radius-lg);
+ box-shadow:none;text-shadow:none!important;font-family:var(--hajji-font);line-height:1.45;
+}
+body :is(.gateWorldBubble,.districtSpeech,.gateContextPrompt,.simpleWorldPrompt,.guideCallBubble)::after{
+ background:var(--hajji-ivory)!important;border-color:var(--hajji-gold)!important;
+}
+body :is(.gateWorldBubble,.districtSpeech)[data-side=player]{
+ background:var(--hajji-ivory-soft)!important;border-color:#d9c08a!important;
+}
+body :is(.gateWorldBubble,.districtSpeech)[data-side=player]::after{background:var(--hajji-ivory-soft)!important;border-color:#d9c08a!important}
+body :is(.gateWorldBubble,.districtSpeech,.gateContextPrompt,.simpleWorldPrompt,.guideCallBubble) strong{
+ color:var(--hajji-gold-deep)!important;font-weight:750;text-shadow:none!important;
+}
+body :is(.gateWorldBubble,.districtSpeech,.gateContextPrompt,.simpleWorldPrompt,.guideCallBubble) p{color:var(--hajji-ink)!important;text-shadow:none!important}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.gateReceipt,.gateBank,.miqatDialog,#giftDialog,.gateClerkDialogue .gateWorldPanel){
+ color-scheme:light;background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important;
+ border-color:var(--hajji-gold)!important;border-radius:var(--hajji-radius-xl);font-family:var(--hajji-font);text-shadow:none!important;
+}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.miqatDialog,#giftDialog) :is(h1,h2,h3,h4,p,dt,dd,label,strong,span,small,summary,details,.fine,.muted,.caption,.gateAnswerConsent,.gateWorldNotice,.gateReceiptInstruction,.gateTestNotice){
+ color:var(--hajji-ink)!important;text-shadow:none!important;
+}
+body :is(.gateWorldPanel,.salmaWelcome) :is(.gateReceipt h4,.gateReceiptTotal span,.gateBank span,.gateReceipt dt,.gateWorldNotice){color:var(--hajji-ink-muted)!important}
+body :is(.gateReceiptTotal,.gateReceiptBank) strong{color:var(--hajji-ink)!important;font-variant-numeric:tabular-nums}
+body :is(.gateReceipt,.gateBank,.gateReceiptBank,.gateStatus){background:var(--hajji-ivory-soft)!important;border-color:var(--hajji-line)!important}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.simpleMenu,.missionDialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea){
+ background:#fff!important;color:var(--hajji-ink)!important;border:1px solid var(--hajji-line)!important;border-radius:var(--hajji-radius-md);
+ font-family:var(--hajji-font);font-size:16px;min-height:44px;color-scheme:light;
+}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.simpleMenu,.missionDialog) :is(input,textarea)::placeholder{color:#80776b!important;opacity:1}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.simpleMenu,.missionDialog) option{background:#fff;color:var(--hajji-ink)}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.simpleMenu,.missionDialog) :is(input,textarea,select):focus-visible{outline:2px solid #b88b2e;outline-offset:1px}
+body :is(.gateWorldPanel,.districtGuardAnswer,.gateContextPrompt,.districtContextPrompt,.simpleWorldPrompt,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.missionDialog) :is(button,a.primary,a.travelPrimary){
+ background:var(--hajji-gold)!important;color:#17130d!important;border:1px solid var(--hajji-gold)!important;
+ border-radius:var(--hajji-radius-md);font-weight:750;text-shadow:none!important;
+}
+body :is(.gateWorldPanel,.districtGuardAnswer,.gateContextPrompt,.districtContextPrompt,.simpleWorldPrompt,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.missionDialog) :is(button,a.primary,a.travelPrimary):hover:not(:disabled){background:var(--hajji-gold-soft)!important}
+body :is(.gateWorldPanel,.districtGuardAnswer,.gateContextPrompt,.districtContextPrompt,.simpleWorldPrompt,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.missionDialog) :is(.secondary,.ghost,.gateDemoAccess,.gateGuideActions button:not(.travelPrimary),.gateContextActions button+button,button.close,#giftClose){
+ background:#fffdf8!important;color:var(--hajji-ink)!important;border:1px solid var(--hajji-gold)!important;
+}
+body :is(.gateWorldClose,.districtGuardClose){background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important;border-color:var(--hajji-gold)!important;box-shadow:none}
+body :is(.gateWorldPanel,.salmaWelcome,#giftDialog,.modal,.districtModal,.missionDialog) a:not(.primary):not(.travelPrimary):not(.secondary){color:var(--hajji-gold-deep)!important}
+body :is(.gateWorldPanel,.districtGuardAnswer,.salmaWelcome,.miqatDialog,#giftDialog,.modal,.districtModal,.missionDialog) :is(button,a) :is(span,strong,small){color:inherit!important}
+body :is(.gateWorldPanel,.districtGuardAnswer,.gateContextPrompt,.districtContextPrompt,.simpleWorldPrompt,.miqatDialog,#giftDialog) button:disabled{opacity:.5;cursor:default}
+body .gateClerkDialogue[data-line=bill] .gateWorldPanel{max-height:none;overflow:visible;box-shadow:var(--hajji-shadow-soft)}
+body .gateInvoiceQris img{background:#fff!important;border-color:var(--hajji-line)!important}
+body #giftDialog header{background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important}
+body #giftDialog.giftGuideTalk header{background:transparent!important}
+body #giftDialog :is(.giftGrid button:not(#giftClose),.ledger td,.ledger th){background:var(--hajji-ivory-soft)!important;color:var(--hajji-ink)!important;border-color:var(--hajji-line)!important}
+body #giftDialog :is(#giftEyebrow,.giftGrid small,.fine){color:var(--hajji-ink-muted)!important}
+body .miqatDialog :is(.miqatEyebrow,#miqatDialogNotice){color:var(--hajji-gold-deep)!important}
+/* Only the inner content cards turn light; overlay positioning and dimming remain unchanged. */
+body :is(.overlay,.layer)>.modal,body dialog.overlay:has(.districtModal),body .districtModal,body .missionDialog,
+body.simplePlay :is(.missionGuide,.guidePanel,.cutControls),body.simplePlay #card{
+ background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important;border-color:var(--hajji-gold)!important;
+ border-radius:var(--hajji-radius-xl);color-scheme:light;text-shadow:none!important;font-family:var(--hajji-font);
+}
+body :is(.modal,.districtModal,.missionDialog,.missionGuide,.guidePanel,.cutControls,#card) :is(h1,h2,h3,p,li,label,.small,.fine,.sub,.muted,.meaning,.latin,.arabic,.objective,.status){color:var(--hajji-ink)!important;text-shadow:none!important}
+body :is(.modal,.districtModal,.missionDialog,.missionGuide,.guidePanel,#card) :is(.eyebrow,.kicker,.label,strong){color:var(--hajji-gold-deep)!important;text-shadow:none!important}
+body :is(.modal,.districtModal,.missionDialog,#card) :is(.objective,.objectives,.throwMeters>div){background:var(--hajji-ivory-soft)!important;border-color:var(--hajji-line)!important}
+body.simplePlay #card :is(.primary,.secondary){border-radius:var(--hajji-radius-md);color:var(--hajji-ink)!important}
+body.simplePlay #card .secondary{background:#fffdf8!important;border:1px solid var(--hajji-gold)!important}
+body :is(.walkJoy,.joystick,.districtJoy,.gateCameraPad,.arenaLookPad,.districtLookStick){background:#15151588;border-color:#d6b46b99}
+body :is(.walkJoy span,.joystick .knob,.districtJoy>span,.arenaLookPad>span,.gateCameraPad>span){background:#d6b46bc7;border-color:#e7c77d99}
+@media(prefers-reduced-motion:no-preference){body :is(.gateWorldPanel,.districtGuardAnswer,.miqatDialog,#giftDialog,.modal,.districtModal) button{transition:background-color .16s,border-color .16s,color .16s}}
+/* Keep native media, diagrams, QR codes, the camera and the scene geometry untouched. */
