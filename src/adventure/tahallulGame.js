@@ -33,7 +33,7 @@ const hajjEarly=(readSetup()?.program??params.get('program')??params.get('campai
 function saIComplete(){return loadProgress(SAI_KEY,raw=>decodeRoute(raw,'sai'))?.stage===3;}
 if(!saIComplete()&&!demo)location.replace('./adventure-map.html');
 let state={version:1,stage:0,avatar:'male',method:'trim',cuts:0},active=false,scene,renderer,camera,player,guide,beacon,blade,scalp,headCover;
-let px=-16,pz=7,camYaw=-Math.PI/2,heading=0,fr=0,last=0,voice=journeyVoice(),toastEnd=0,particles=[],walkers=[];
+let px=-16,pz=7,camYaw=-Math.PI/2,heading=0,fr=0,last=0,voice=journeyVoice(),toastEnd=0,particles=[],walkers=[];window.addEventListener('hajji-game-audio-change',()=>{voice=journeyVoice();});
 let haircut=null,salonLife;
 const keys=new Set(),joy={x:0,y:0};
 const POS=[[-8,0],[9,-5],[9,-5],[18,7],[18,7]];
