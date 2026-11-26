@@ -1,4 +1,4 @@
-import {journeyVolume} from '../frontSettings.ts';
+import {journeyVolume,journeyAmbience} from '../frontSettings.ts';
 /** All effects are original filtered noise, not recordings, music, prayer or simulated sacred recitation. */
 export type SoundScene='lobby'|'prep'|'post'|'trim'|'tawaf'|'sai'|'arafah'|'muzdalifah'|'mina'|'jamarat'|'complete';
 type Profile={air:number;airHz:number;crowd:number;crowdHz:number;floor:'hard'|'sand'};
@@ -22,9 +22,10 @@ export class ImmersiveSound{
  private sources:AudioBufferSourceNode[]=[];private scene:SoundScene;private preferred=false;private active=false;private pending=false;private paused=false;private ducked=false;private disposed=false;private generation=0;private distance=0;private lastStep=-1;
  private readonly abort=new AbortController();private readonly button:HTMLButtonElement;
  constructor(scene:SoundScene,host:HTMLElement|null){
-  this.scene=scene;try{this.preferred=localStorage.getItem(PREF)==='on';}catch{}
+  this.scene=scene;this.preferred=journeyAmbience();
   this.button=document.createElement('button');this.button.type='button';this.button.className='ambienceToggle';host?.append(this.button);this.render();
   const signal=this.abort.signal;
+  window.addEventListener('hajji-game-audio-change',()=>{const on=journeyAmbience();this.preferred=on;if(!on){this.generation++;this.pending=false;this.active=false;this.mix();this.render();}else if(!this.active&&!this.pending){void this.unlock();}else this.mix();},{signal});
   this.button.addEventListener('click',()=>{if(this.active||this.pending){this.preferred=false;this.active=false;this.generation++;this.pending=false;this.save();this.mix();this.render();}else{this.preferred=true;this.save();void this.unlock();}},{signal});
   const resume=(e:Event)=>{if(!e.isTrusted||!this.preferred||this.active||this.pending||document.hidden||this.paused||(e.target instanceof Element&&e.target.closest('.ambienceToggle,a,#voiceToggle,#voiceReplay')))return;void this.unlock();};
   document.addEventListener('click',resume,{capture:true,signal});document.addEventListener('keydown',resume,{capture:true,signal});
