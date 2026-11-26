@@ -1,3 +1,4 @@
+import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
@@ -168,7 +169,7 @@ function currentGateAction():GateAction|null{
  const p=gateGuide(avatar).slot,female=avatar==='female',pos=hero.root.position;
  if(departure){if(!departure.arrived)return null;const point=new THREE.Vector3(departure.side*6,2.1,-5.68);return {id:'door',title:'PINTU KEBERANGKATAN',line:'Tiket aktif. Selamat memulai perjalanan!',label:'MASUK',point,run:()=>{if(departure?.arrived)location.assign(departure.href);}};}
  if(queueAuthorized){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'PETUGAS PENDAFTARAN',line:'Silakan, sekarang giliran Anda.',label:'DAFTAR',point,run:()=>greet(p)};}
- if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'',point};}
+ if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'BATALKAN ANTREAN',point,run:()=>{leaveRegistrationQueue();$('instruction').textContent='Antrean dibatalkan.';}};}
  const g=placements[p],q=new THREE.Vector3(female?4.15:-4.15,0,5.34);
  const dg=Math.hypot(pos.x-g.x,pos.z-g.z),dq=Math.hypot(pos.x-q.x,pos.z-q.z);
  if(dg<=2.1&&dg<=dq){const point=g.clone();point.y=2.12;return {id:'guide',title:gateGuide(avatar).name,line:'Assalamualaikum! Mau tahu tentang HAJJI.DIGITAL?',label:'BICARA',point,run:()=>greet(p)};}
@@ -332,3 +333,12 @@ if(guideMode){
  for(const element of document.querySelectorAll('#avatarModal #comfortIntro, #avatarModal .fine, #avatarModal .pwaInstall, #avatarModal .accountLink'))element.remove();
  if(entranceMode){modal=true;$('avatarModal').hidden=true;$('instruction').textContent='Pilih karakter · antre · daftar · berangkat';}else{selectAtGate(readSetup()?.avatar??'male');document.documentElement.dataset.guideReady='true';}
 }
+
+// Existing legacy controls are retained for internal callbacks but never exposed in settings.
+const gameMenu=document.querySelector<HTMLDetailsElement>('.menu')!;
+const gameNav=gameMenu.querySelector('nav')!;gameNav.classList.add('minimalGameMenu');
+const gameSummary=gameMenu.querySelector('summary')!;gameSummary.innerHTML=gearIcon;gameSummary.setAttribute('aria-label','Pengaturan');gameSummary.title='Pengaturan';
+mountGameplaySettings(gameNav);document.querySelector('.headerRight')?.classList.add('onlyGameplayGear');
+gameMenu.addEventListener('toggle',()=>{stopMotion();cameraPointer=null;});
+document.addEventListener('pointerdown',e=>{if(gameMenu.open&&e.target instanceof Node&&!gameMenu.contains(e.target))gameMenu.open=false;});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gameMenu.open){gameMenu.open=false;gameSummary.focus();}});
