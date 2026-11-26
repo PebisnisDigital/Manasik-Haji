@@ -11,9 +11,25 @@ function sign(parent:THREE.Object3D,title:string,sub:string,x:number,y:number,z:
  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t}));m.position.set(x,y,z);parent.add(m);
 }
 const shops=[{x:16.5,name:'ALFAMART',sub:'MINIMARKET',bg:'#d52a28',fg:'#fff8d4',stripe:0xffd331},{x:-16.5,name:'INDOMARET',sub:'MINIMARKET',bg:'#ffffff',fg:'#204f9e',stripe:0xe63835},{x:-26,name:'KOKOSALAMA',sub:'TOKO HIJAB',bg:'#6f526a',fg:'#fff2df',stripe:0xd4a78b}];
+// Shared static collision volumes for walking and camera obstruction, padded for body clearance.
+const marketSolids=[
+ ...shops.map(shop=>new THREE.Box3(new THREE.Vector3(shop.x-4.32,0,-9.72),new THREE.Vector3(shop.x+4.32,4.2,-2.86))),
+ new THREE.Box3(new THREE.Vector3(13.38,0,5.57),new THREE.Vector3(16.03,2.48,7.23)),
+ ...[-19,19].map(x=>new THREE.Box3(new THREE.Vector3(x-1.05,0,-.82),new THREE.Vector3(x+1.05,1.49,3.42))),
+ ...[-1,1].map(side=>new THREE.Box3(new THREE.Vector3(side*10-1.02,0,-2.35),new THREE.Vector3(side*10+1.02,1.65,1.85))),
+];
 export function marketWalkable(x:number,z:number){
- // Keep the cart and new parked vehicles solid; storefronts are behind the player bounds.
- return !(x>13.45&&x<15.95&&z>5.65&&z<7.15)&&!(x>17.9&&x<20.1&&z>-.9&&z<3.5)&&!(x< -18&&x> -20.2&&z>-.9&&z<3.5);
+ const pad=.32;
+ return !marketSolids.some(b=>x>b.min.x-pad&&x<b.max.x+pad&&z>b.min.z-pad&&z<b.max.z+pad);
+}
+const cameraRay=new THREE.Ray(),cameraHit=new THREE.Vector3(),cameraDir=new THREE.Vector3();
+// Shorten the orbit before a solid object can hide the player or contain the camera.
+export function keepMarketCameraClear(pivot:THREE.Vector3,goal:THREE.Vector3){
+ cameraDir.subVectors(goal,pivot);const length=cameraDir.length();if(length<.001)return goal;
+ cameraRay.set(pivot,cameraDir.multiplyScalar(1/length));let nearest=length;
+ for(const b of marketSolids){if(b.containsPoint(pivot))continue;const hit=cameraRay.intersectBox(b,cameraHit);if(hit){const d=hit.distanceTo(pivot);if(d<nearest)nearest=d;}}
+ if(nearest<length)goal.copy(pivot).addScaledVector(cameraDir,Math.max(.16,nearest-.23));
+ return goal;
 }
 export function createBuburMarket(scene:THREE.Scene){
  const root=new THREE.Group();root.name='bubur-market';scene.add(root);
@@ -35,7 +51,7 @@ export function createBuburMarket(scene:THREE.Scene){
   box(root,8.6,.09,1.1,x,.045,3.65,0xbeb5a2);
   for(let i=0;i<3;i++){
    const female=shop.name==='KOKOSALAMA'||i%2===1;
-   const actor=humanActor(scene,[0x739385,0xb28b84,0x9f9b75][i]!,female,undefined,'casual',{palette:i+3,build:1,brightness:1,cull:true});
+   const actor=humanActor(scene,[0x739385,0xb28b84,0x9f9b75][i]!,female,undefined,undefined,{palette:i+3,build:1,brightness:1,cull:true,registration:true});
    actor.userData.noCollision=true;
    const path=[new THREE.Vector3(x-3+i*.6,0,4.25+i*.36),new THREE.Vector3(x+.2,0,3.6),new THREE.Vector3(x+.2,0,-2.65),new THREE.Vector3(x+.2,0,-5.3),new THREE.Vector3(x+.2,0,-2.65),new THREE.Vector3(x+.2,0,3.6),new THREE.Vector3(x+3-i*.6,0,4.25+i*.36)];
    const index=i*2;actor.position.copy(path[index]!);walkers.push({actor,points:path,index:(index+1)%path.length,wait:i*.8});
@@ -52,9 +68,9 @@ export function createBuburMarket(scene:THREE.Scene){
  cylinder(cart,.33,.40,x-.7,1.31,z,0xb5bfc2);cylinder(cart,.35,.055,x-.7,1.54,z,0xd5dadd);cylinder(cart,.08,.06,x-.7,1.59,z,0x222222);
  for(let i=0;i<4;i++){cylinder(cart,.15,.075,x-.1+i*.28,1.18,z+.22,[0xffe5b3,0xb78851,0xf2cf92,0x8eac6d][i]!);}
  cylinder(cart,.21,.42,x+.85,1.37,z-.2,0xd0ae54);
- const vendor=humanActor(scene,0x547e64,false,undefined,'casual',{palette:8,build:1,brightness:1,registration:true});vendor.position.set(x,0,z-.92);vendor.rotation.y=0;
- for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,'casual',{palette:5+i,build:1,brightness:1,cull:true});a.position.set(x+.18+i*.7,0,z+1.3+i*.12);a.rotation.y=Math.PI;a.userData.noCollision=true;}
- for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,'casual',{palette:i+4,build:1,brightness:1,cull:true});actor.userData.noCollision=true;const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
+ const vendor=humanActor(scene,0x547e64,false,undefined,undefined,{palette:8,build:1,brightness:1,registration:true});vendor.position.set(x,0,z-.92);vendor.rotation.y=0;
+ for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x+.18+i*.7,0,z+1.3+i*.12);a.rotation.y=Math.PI;a.userData.noCollision=true;}
+ for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});actor.userData.noCollision=true;const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
  return {update(dt:number){for(const w of walkers){if(w.wait>0){w.wait-=dt;continue;}const p=w.actor.position,t=w.points[w.index]!;const dx=t.x-p.x,dz=t.z-p.z,d=Math.hypot(dx,dz);if(d<.08){w.index=(w.index+1)%w.points.length;w.wait=.45;continue;}const step=Math.min(d,dt*1.1);p.x+=dx/d*step;p.z+=dz/d*step;w.actor.rotation.y=Math.atan2(dx,dz);}}};
 }
 
