@@ -1,11 +1,9 @@
 import {worldActionAnchor,isNavigationAction} from './worldInteraction.ts';
 import {choiceActionLabel} from './contextualAction.ts';
-import {districtReturnUrl} from './adventure/districtReturn.ts';
-import {mountGraphics} from './graphicsQuality.ts';
+import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {NUSUK_LEVELS} from './adventure/nusukModel.ts';
 import {nusukHajjActive} from './adventure/nusukMode.ts';
 import {clearSimpleInput,setSimpleMenu,setSimpleShift,simpleMenuOpen,simpleSprinting,toggleSimpleRun} from './simpleInput.ts';
-import {tenantUrl} from './tenant.ts';
 import './simplePlayHud.css';
 type Kind='field'|'miqat'|'tawaf'|'sai'|'adventure'|'district';
 const text=(s:string)=>document.querySelector<HTMLElement>(s)?.textContent?.trim()??'';
@@ -15,7 +13,7 @@ export function mountSimplePlayHud(kind:Kind){
  if(document.getElementById('simplePlay'))return;
  document.body.classList.add('simplePlay');document.body.dataset.simpleKind=kind;
  const root=document.createElement('div');root.id='simplePlay';root.innerHTML='<header class="simpleTop"><div><strong id="simpleLevel"></strong><small id="simpleCount"></small></div><button id="simpleGear" type="button" aria-label="Pengaturan" aria-haspopup="dialog">⚙</button></header><div id="simpleGuide" class="simpleGuide" role="status" aria-live="polite"></div><div class="simpleButtons"><button id="simpleRun" type="button" aria-pressed="false">Lari</button><button id="simpleAction" type="button" hidden></button></div>';
- document.body.append(root);if(!document.querySelector('.graphicsControl')){const host=document.createElement('div');host.hidden=true;root.append(host);mountGraphics(host);}
+ document.body.append(root);root.querySelector('#simpleGear')!.innerHTML=gearIcon;
  const dialog=document.createElement('dialog');dialog.id='simpleSettings';dialog.setAttribute('aria-labelledby','simpleSettingsTitle');dialog.innerHTML='<section><header><h2 id="simpleSettingsTitle">Pengaturan</h2><button id="simpleClose" type="button" aria-label="Tutup menu">×</button></header><p id="simpleContext" hidden></p><div id="simpleOptions"></div><button id="simpleResume" type="button">Lanjut bermain</button></section>';document.body.append(dialog);
  const el=(id:string)=>document.getElementById(id)!;
  const action=el('simpleAction') as HTMLButtonElement,run=el('simpleRun') as HTMLButtonElement,options=el('simpleOptions');
@@ -69,18 +67,8 @@ export function mountSimplePlayHud(kind:Kind){
  el('simpleClose').onclick=el('simpleResume').onclick=close;
  function open(title:string,context=''){dialog.returnValue='';assign(el('simpleSettingsTitle'),title);assign(el('simpleContext'),context);el('simpleContext').hidden=!context;setSimpleMenu(true);window.dispatchEvent(new Event('blur'));dialog.showModal();(options.querySelector('button,select,a') as HTMLElement|null)?.focus();paint();}
  function proxy(source:HTMLElement){const b=document.createElement('button');b.type='button';b.textContent=(source.textContent??'').trim();b.onclick=()=>{close();source.click();queue();};options.append(b);}
- el('simpleGear').onclick=()=>{
-  if(overlay())return;options.replaceChildren();
-  const links=[['Peta level','./adventure-map.html?journey='+(nusukHajjActive()?'hajj':'umrah')],['Menu utama','./index.html?lobby=1'],['Referral & komisi','./affiliate.html']];
-  for(const source of candidates(true).filter(e=>isNavigationAction(e.textContent??'')))proxy(source);
-  const help=document.createElement('button');help.type='button';help.textContent='Cara main';help.onclick=()=>{assign(el('simpleSettingsTitle'),'Cara main');const p=document.createElement('p');p.textContent='Joystick kiri untuk berjalan, joystick kanan untuk melihat. Dekati penanda atau objek untuk berinteraksi. Bantuan berjalan tersedia di menu jika ada. PC: WASD/panah, Shift; E untuk kegiatan.';options.replaceChildren(p);};options.append(help);
-  const district=districtReturnUrl();if(district)links.unshift(['Kembali ke distrik',district]);
-  for(const [label,href]of links){const a=document.createElement('a');a.textContent=label;a.href=tenantUrl(href);options.append(a);}
-  const selectors=kind==='field'?'.coreVoice button,.coreVoice select':kind==='miqat'?'#miqatPause,#arrivalLook,.tawafRadio button':kind==='district'?'#pauseButton,#cameraButton':kind==='tawaf'||kind==='sai'?'.hud button:not(#auto):not(#pause):not(#brisk),.hud select:not(#avatar)':'#sound,#voice,#camera,#focus,#helpButton,#helpBtn,#guide';
-  for(const source of new Set(document.querySelectorAll<HTMLElement>(selectors+',.graphicsControl select,.companionButton,.missionTrigger'))){if(source instanceof HTMLSelectElement){const label=document.createElement('label');label.textContent=source.id==='cameraMode'?'Kamera':'Grafis';const select=source.cloneNode(true) as HTMLSelectElement;select.removeAttribute('id');select.value=source.value;select.onchange=()=>{source.value=select.value;source.dispatchEvent(new Event('change',{bubbles:true}));};label.append(select);options.append(label);}else if(!source.closest('[hidden]'))proxy(source);}
-  for(const source of document.querySelectorAll<HTMLElement>('.walkReset,.coreFull'))proxy(source);
-  open('Pengaturan');
- };
+ const settingsHost=document.createElement('div');mountGameplaySettings(settingsHost);
+ el('simpleGear').onclick=()=>{if(overlay())return;options.replaceChildren(settingsHost);open('Pengaturan');};
  action.onclick=()=>{if(action.disabled)return;const list=candidates();if(list.length>1){options.replaceChildren();list.forEach(proxy);open(kind==='field'?text('#title')||'Pilih kegiatan':'Pilih kegiatan',kind==='field'?[level(),text('#body')].filter(Boolean).join(' — '):'');}else list[0]?.click();queue();};
  run.onclick=()=>{toggleSimpleRun();paint();};
  const reset=()=>{clearSimpleInput();queue();};
