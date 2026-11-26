@@ -9,3 +9,10 @@
 #resumeTraining{display:block;width:100%;height:auto;min-height:44px;border:1px solid #ffffff40;font-size:13px}#resumeTraining[hidden]{display:none!important}
 
 .menu nav .ambienceToggle[aria-pressed=true]{color:#c9edb9}
+
+/* Touch gameplay: independent two-thumb controls, no browser gesture zoom. Keep text forms scrollable. */
+html.touchMode:has(#lobby:not([hidden])),html.touchMode:has(#lobby:not([hidden])) body{overscroll-behavior:none;}
+.touchMode #world,.touchMode #joystick,.touchMode .gateCameraPad,.touchMode .bottom,.touchMode .gateContextPrompt{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+.touchMode #lobby button,.touchMode #lobby summary,.touchMode #lobby a{touch-action:manipulation;}
+.touchMode #lobby .gateContextPrompt button,.touchMode #lobby .bottom button{touch-action:none;}
+.touchMode dialog,.touchMode .gateClerkDialogue,.touchMode .gateGuideDialogue{touch-action:pan-y pinch-zoom;overscroll-behavior:contain;}
