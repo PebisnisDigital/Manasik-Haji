@@ -302,7 +302,7 @@ function paintGateAction(a:GateAction|null){
  gatePrompt.style.left=Math.round(left)+'px';gatePrompt.style.top=Math.round(top)+'px';gatePrompt.style.setProperty('--gate-tail',Math.round(Math.max(15,Math.min(w-15,x-left)))+'px');
  gatePrompt.classList.toggle('detached',offscreen||Math.abs(top-(y-h-12))>20);
 }
-function resetCameraStick(){cameraStickPointer=null;cameraStick.set(0,0);const knob=gateCameraPad?.firstElementChild as HTMLElement|undefined;if(knob)knob.style.transform='translate(-50%,-50%)';}
+function resetCameraStick(){cameraStickPointer=null;cameraStick.set(0,0);const knob=gateCameraPad?.firstElementChild as HTMLElement|undefined;if(knob&&!gateCameraPad?.classList.contains('swipeLookHint'))knob.style.transform='translate(-50%,-50%)';}
 function mountGateControls(){
  const pad=document.createElement('div');pad.className='gateCameraPad joy';pad.setAttribute('aria-label','Joystick kamera');pad.title='Geser untuk memutar kamera';pad.append(document.createElement('div'));document.querySelector('.bottom')!.append(pad);gateCameraPad=pad;if(touchMode){pad.classList.add('swipeLookHint');pad.setAttribute('aria-hidden','true');pad.title='';pad.replaceChildren();const mark=document.createElement('span');mark.textContent='↔';pad.append(mark);const note=document.createElement('small');note.textContent='KAMERA';pad.append(note);}
  function move(e:PointerEvent){const b=pad.getBoundingClientRect();cameraStick.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(cameraStick.length()>1)cameraStick.normalize();(pad.firstElementChild as HTMLElement).style.transform='translate(calc(-50% + '+cameraStick.x*b.width*.28+'px),calc(-50% + '+cameraStick.y*b.height*.28+'px))';}
