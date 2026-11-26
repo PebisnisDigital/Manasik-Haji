@@ -121,10 +121,14 @@ function dismissGuideCall(){
  stopGuideVoice();$('bubble').hidden=true;
 }
 
-let cameraYaw=Math.PI,cameraPitch=.19,cameraRadius=guideMode?9.65:3.75,heading=Math.PI,lookedAt=-1e8,encounterProgram:Program|null=null;
+const cameraDefaults={distance:guideMode?9.65:3.75,pitch:.19,sensitivity:1,indoor:true};
+const cameraPrefs={...cameraDefaults};
+try{const saved=JSON.parse(localStorage.getItem('hajji-lobby-camera-v1')??'null');if(saved){if(Number.isFinite(saved.distance))cameraPrefs.distance=THREE.MathUtils.clamp(saved.distance,2.5,10.6);if(Number.isFinite(saved.pitch))cameraPrefs.pitch=THREE.MathUtils.clamp(saved.pitch,.045,.75);if(Number.isFinite(saved.sensitivity))cameraPrefs.sensitivity=THREE.MathUtils.clamp(saved.sensitivity,.4,2);if(typeof saved.indoor==='boolean')cameraPrefs.indoor=saved.indoor;}}catch{}
+const saveCamera=()=>{try{localStorage.setItem('hajji-lobby-camera-v1',JSON.stringify(cameraPrefs));}catch{}};
+let cameraYaw=Math.PI,cameraPitch=cameraPrefs.pitch,cameraRadius=cameraPrefs.distance,heading=Math.PI,lookedAt=-1e8,encounterProgram:Program|null=null;
 const velocity=new THREE.Vector2(),cameraFocus=new THREE.Vector3();let cameraInitialized=false;
 const deltaAngle=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
-function resetCamera(){if(gateEncounter==='clerk')return;cameraYaw=heading;cameraPitch=.19;cameraRadius=guideMode?9.65:3.75;cameraInitialized=false;}
+function resetCamera(){if(gateEncounter==='clerk')return;cameraYaw=heading;cameraPitch=cameraPrefs.pitch;cameraRadius=cameraPrefs.distance;cameraInitialized=false;}
 btn('recenter').onclick=()=>{resetCamera();document.querySelector<HTMLDetailsElement>('.menu')!.open=false;};
 function resetPosition(preserveOrbit=false){if(sceneReady){hero.root.position.copy(start);heading=Math.PI;hero.root.rotation.y=heading;velocity.set(0,0);if(preserveOrbit){cameraInitialized=false;}else resetCamera();}}
 function stopMotion(){keys.clear();joy.set(0,0);velocity.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}
@@ -192,7 +196,7 @@ btn('fullscreen').onclick=()=>{if(document.fullscreenElement){void document.exit
 window.addEventListener('resize',syncOrientation);window.addEventListener('orientationchange',syncOrientation);document.addEventListener('fullscreenchange',()=>{btn('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Keluar layar penuh':'Layar penuh');syncOrientation();});
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();ray.layers.enable(1);const canvas=$<HTMLCanvasElement>('world');let cameraPointer:number|null=null,downX=0,downY=0,prevX=0,prevY=0,dragged=false;
 canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(!sceneReady||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked||cameraPointer!==null||e.button!==0)return;cameraPointer=e.pointerId;downX=prevX=e.clientX;downY=prevY=e.clientY;dragged=false;canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor(),.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor()*cameraPrefs.sensitivity;cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor()*cameraPrefs.sensitivity,.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
 canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
 canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
 canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();if(touchMode||e.ctrlKey)return;cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
@@ -255,7 +259,7 @@ function mountGateControls(){
 }
 function frame(now:number){
  requestAnimationFrame(frame);const dt=Math.min(.05,last?(now-last)/1000:0);last=now;if(paused||document.querySelector('.menu[open]')||document.hidden||(portraitBlocked&&(!entranceMode||entranceFramePresented))||introPlaying||budget.lost()){videotron?.draw(cam,false);return;}tutorial.paint();
- if(guideMode&&gateCameraPad){gateCameraPad.hidden=!selected||modal||portraitBlocked||gateEncounter==='clerk';if(modal||portraitBlocked||gateEncounter==='clerk')resetCameraStick();if(cameraStick.lengthSq()>.006){cameraYaw-=cameraStick.x*dt*2.15*lookFactor();cameraPitch=THREE.MathUtils.clamp(cameraPitch+cameraStick.y*dt*1.35*lookFactor(),.045,.75);lookedAt=now;tutorial.event({type:'look',amount:cameraStick.length()*dt*90});}}
+ if(guideMode&&gateCameraPad){gateCameraPad.hidden=!selected||modal||portraitBlocked||gateEncounter==='clerk';if(modal||portraitBlocked||gateEncounter==='clerk')resetCameraStick();if(cameraStick.lengthSq()>.006){cameraYaw-=cameraStick.x*dt*2.15*lookFactor()*cameraPrefs.sensitivity;cameraPitch=THREE.MathUtils.clamp(cameraPitch+cameraStick.y*dt*1.35*lookFactor()*cameraPrefs.sensitivity,.045,.75);lookedAt=now;tutorial.event({type:'look',amount:cameraStick.length()*dt*90});}}
  const pos=hero.root.position;let dx=0,dz=0;let automatic=false;
  if(selected&&!modal&&!encounter&&!queueAuthorized){
   if(departure){if(!departure.arrived){automatic=true;const points=[new THREE.Vector3(departure.side*5.65,0,-2.77),new THREE.Vector3(departure.side*5.9,0,-4.55),new THREE.Vector3(departure.side*6,0,-6.5)];const dest=points[departure.stage]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(departure.stage===0){registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);}if(departure.stage<2)departure.stage++;else{departure.arrived=true;stopMotion();$('instruction').textContent='Pilih MASUK di pintu keberangkatan';}dx=dz=0;}}}
@@ -276,12 +280,12 @@ function frame(now:number){
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
  // Free exploration orbit stays untouched; only the seated clerk has a temporary cinematic shot.
  if(!guideMode&&cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
- const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const radius=cameraRadius+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
+ const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const shopInterior=guideMode&&insideHijab(pos.x,pos.z),radius=(shopInterior&&cameraPrefs.indoor?Math.min(cameraRadius,2.85):cameraRadius)+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
  // The rear arcade is solid. Shorten the camera boom rather than letting it cross the wall.
- if(cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
+ if(!shopInterior&&cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
  if(guideMode&&buburMarket)keepMarketCameraClear(pivot,cameraGoal);
- const plazaView=guideMode?Math.min(1.25,cameraGoal.distanceTo(pivot)*.13):0;
+ const plazaView=guideMode&&!shopInterior?Math.min(1.25,cameraGoal.distanceTo(pivot)*.13):0;
  const look=pivot.clone().add(new THREE.Vector3(fx*.82+rx*.34,.13+plazaView,fz*.82+rz*.34));
  const clerk=gateEncounter==='clerk'?registrationHall?.clerk(avatar==='female'):undefined;
  if(clerk){
@@ -302,10 +306,10 @@ function frame(now:number){
  const nextFov=Math.abs(cam.fov-targetFov)>.02?THREE.MathUtils.lerp(cam.fov,targetFov,blend):targetFov;
  const nextFilm=Math.abs(cam.filmOffset-targetFilm)>.02?THREE.MathUtils.lerp(cam.filmOffset,targetFilm,blend):targetFilm;
  if(nextFov!==cam.fov||nextFilm!==cam.filmOffset){cam.fov=nextFov;cam.filmOffset=nextFilm;cam.updateProjectionMatrix();}
- document.documentElement.dataset.gateCamera=clerk?'clerk':'free';
+ document.documentElement.dataset.gateCamera=clerk?'clerk':shopInterior?'shop':'free';
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
  if(!clerk&&guideMode&&buburMarket)keepMarketCameraClear(pivot,cam.position);
- cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
+ if(!shopInterior)cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
  hero.root.visible=!clerk;
  const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!guideIntroduced?gateGuide(avatar).slot:null;
  if(activeSlot){
@@ -397,7 +401,20 @@ if(guideMode){
 const gameMenu=document.querySelector<HTMLDetailsElement>('.menu')!;
 const gameNav=gameMenu.querySelector('nav')!;gameNav.classList.add('minimalGameMenu');
 const gameSummary=gameMenu.querySelector('summary')!;gameSummary.innerHTML=gearIcon;gameSummary.setAttribute('aria-label','Pengaturan');gameSummary.title='Pengaturan';
-mountGameplaySettings(gameNav);document.querySelector('.headerRight')?.classList.add('onlyGameplayGear');
+const settingsRows=mountGameplaySettings(gameNav);
+const cameraPanel=document.createElement('section');cameraPanel.className='gameplayCameraSettings';cameraPanel.style.cssText='display:grid;gap:7px;padding:9px 0;border-top:1px solid #ffffff30;max-width:100%';
+const cameraTitle=document.createElement('strong');cameraTitle.textContent='Kamera';cameraPanel.append(cameraTitle);
+function cameraSlider(label:string,min:number,max:number,step:number,value:number,format:(v:number)=>string,apply:(v:number)=>void){
+ const row=document.createElement('label');row.style.cssText='display:grid;grid-template-columns:1fr auto;gap:3px;font-size:13px';const name=document.createElement('span');name.textContent=label;const out=document.createElement('output');const range=document.createElement('input');range.type='range';range.min=String(min);range.max=String(max);range.step=String(step);range.value=String(value);range.setAttribute('aria-label',label);range.style.cssText='grid-column:1/-1;width:100%;touch-action:pan-x';
+ const sync=()=>{out.textContent=format(Number(range.value));};range.oninput=()=>{apply(Number(range.value));sync();saveCamera();};row.append(name,out,range);cameraPanel.append(row);sync();return {range,sync};
+}
+const distanceControl=cameraSlider('Jarak kamera',2.5,10.6,.1,cameraPrefs.distance,v=>v.toFixed(1)+' m',v=>{cameraRadius=cameraPrefs.distance=v;});
+const pitchControl=cameraSlider('Sudut kamera',3,43,1,Math.round(cameraPrefs.pitch*180/Math.PI),v=>v+'°',v=>{cameraPitch=cameraPrefs.pitch=v*Math.PI/180;});
+const sensitivityControl=cameraSlider('Sensitivitas kamera',.4,2,.1,cameraPrefs.sensitivity,v=>Math.round(v*100)+'%',v=>{cameraPrefs.sensitivity=v;});
+const indoorRow=document.createElement('label');indoorRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px';const indoorText=document.createElement('span');indoorText.textContent='Kamera dekat saat masuk toko';const indoorSwitch=document.createElement('input');indoorSwitch.type='checkbox';indoorSwitch.checked=cameraPrefs.indoor;indoorSwitch.onchange=()=>{cameraPrefs.indoor=indoorSwitch.checked;saveCamera();};indoorRow.append(indoorText,indoorSwitch);cameraPanel.append(indoorRow);
+const resetCam=document.createElement('button');resetCam.type='button';resetCam.textContent='Reset kamera';resetCam.onclick=()=>{Object.assign(cameraPrefs,cameraDefaults);distanceControl.range.value=String(cameraPrefs.distance);pitchControl.range.value=String(Math.round(cameraPrefs.pitch*180/Math.PI));sensitivityControl.range.value=String(cameraPrefs.sensitivity);indoorSwitch.checked=cameraPrefs.indoor;distanceControl.sync();pitchControl.sync();sensitivityControl.sync();saveCamera();resetCamera();};cameraPanel.append(resetCam);settingsRows.append(cameraPanel);
+settingsRows.style.maxHeight='min(70dvh,460px)';settingsRows.style.overflowY='auto';settingsRows.style.touchAction='pan-y';
+document.querySelector('.headerRight')?.classList.add('onlyGameplayGear');
 gameMenu.addEventListener('toggle',()=>{stopMotion();cameraPointer=null;});
 document.addEventListener('pointerdown',e=>{if(gameMenu.open&&e.target instanceof Node&&!gameMenu.contains(e.target))gameMenu.open=false;});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gameMenu.open){gameMenu.open=false;gameSummary.focus();}});
