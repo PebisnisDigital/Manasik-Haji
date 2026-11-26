@@ -121,9 +121,10 @@ function dismissGuideCall(){
  stopGuideVoice();$('bubble').hidden=true;
 }
 
-const cameraDefaults={distance:guideMode?9.65:3.75,pitch:.19,sensitivity:1,indoor:true};
+type CameraMode='far'|'near'|'first';
+const cameraDefaults={mode:'far' as CameraMode,distance:guideMode?9.65:3.75,pitch:.19,sensitivity:1,indoor:true};
 const cameraPrefs={...cameraDefaults};
-try{const saved=JSON.parse(localStorage.getItem('hajji-lobby-camera-v1')??'null');if(saved){if(Number.isFinite(saved.distance))cameraPrefs.distance=THREE.MathUtils.clamp(saved.distance,2.5,10.6);if(Number.isFinite(saved.pitch))cameraPrefs.pitch=THREE.MathUtils.clamp(saved.pitch,.045,.75);if(Number.isFinite(saved.sensitivity))cameraPrefs.sensitivity=THREE.MathUtils.clamp(saved.sensitivity,.4,2);if(typeof saved.indoor==='boolean')cameraPrefs.indoor=saved.indoor;}}catch{}
+try{const saved=JSON.parse(localStorage.getItem('hajji-lobby-camera-v1')??'null');if(saved){if(Number.isFinite(saved.distance))cameraPrefs.distance=THREE.MathUtils.clamp(saved.distance,2.5,10.6);if(Number.isFinite(saved.pitch))cameraPrefs.pitch=THREE.MathUtils.clamp(saved.pitch,.045,.75);if(Number.isFinite(saved.sensitivity))cameraPrefs.sensitivity=THREE.MathUtils.clamp(saved.sensitivity,.4,2);if(typeof saved.indoor==='boolean')cameraPrefs.indoor=saved.indoor;if(['far','near','first'].includes(saved.mode))cameraPrefs.mode=saved.mode;}}catch{}
 const saveCamera=()=>{try{localStorage.setItem('hajji-lobby-camera-v1',JSON.stringify(cameraPrefs));}catch{}};
 let cameraYaw=Math.PI,cameraPitch=cameraPrefs.pitch,cameraRadius=cameraPrefs.distance,heading=Math.PI,lookedAt=-1e8,encounterProgram:Program|null=null;
 const velocity=new THREE.Vector2(),cameraFocus=new THREE.Vector3();let cameraInitialized=false;
@@ -199,7 +200,7 @@ canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelab
 canvas.addEventListener('pointermove',e=>{if(e.pointerId!==cameraPointer||modal||gateEncounter==='clerk'||(encounter&&!guideMode)||portraitBlocked)return;if(Math.hypot(e.clientX-downX,e.clientY-downY)>5)dragged=true;if(dragged){tutorial.event({type:'look',amount:Math.hypot(e.clientX-prevX,e.clientY-prevY)});cameraYaw-=(e.clientX-prevX)*.005*lookFactor()*cameraPrefs.sensitivity;cameraPitch=THREE.MathUtils.clamp(cameraPitch+(e.clientY-prevY)*.0035*lookFactor()*cameraPrefs.sensitivity,.045,.75);lookedAt=performance.now();}prevX=e.clientX;prevY=e.clientY;});
 canvas.addEventListener('pointerup',e=>{if(e.pointerId!==cameraPointer)return;cameraPointer=null;if(dragged||modal||encounter||portraitBlocked)return;const bounds=canvas.getBoundingClientRect();ndc.set((e.clientX-bounds.left)/bounds.width*2-1,1-(e.clientY-bounds.top)/bounds.height*2);ray.setFromCamera(ndc,cam);for(const p of ['hajj','umrah'] as const){if(ray.intersectObject(guides[p].root,true).length){go(p);return;}}});
 canvas.addEventListener('pointercancel',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});canvas.addEventListener('lostpointercapture',e=>{if(e.pointerId===cameraPointer)cameraPointer=null;});
-canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();if(touchMode||e.ctrlKey)return;cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
+canvas.addEventListener('wheel',e=>{if(modal||gateEncounter==='clerk'||(encounter&&!guideMode))return;e.preventDefault();if(touchMode||e.ctrlKey||cameraPrefs.mode==='first')return;cameraRadius=THREE.MathUtils.clamp(cameraRadius+e.deltaY*.003,2.5,guideMode?10.6:5.2);lookedAt=performance.now();},{passive:false});
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.target as HTMLElement)?.closest('.minimalGameMenu')||document.querySelector('.menu[open]'))return;if(guideMode&&k==='e'&&!e.repeat&&!modal&&!encounter&&!portraitBlocked){e.preventDefault();currentGateAction()?.run?.();return;}if(!introPlaying&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!portraitBlocked&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();keys.add(k);target=null;}});window.addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));window.addEventListener('blur',()=>{stopMotion();cameraPointer=null;});document.addEventListener('visibilitychange',()=>{paused=document.hidden;stopMotion();cameraPointer=null;if(guideMode&&document.hidden)dismissGuideCall();});window.addEventListener('pagehide',stopGuideVoice);
 let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
 j.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&e.cancelable)e.preventDefault();if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
@@ -280,13 +281,14 @@ function frame(now:number){
  hero.legs.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI)*.43:0,1-Math.exp(-dt*17));});hero.arms.forEach((g,i)=>{g.rotation.x=THREE.MathUtils.lerp(g.rotation.x,moving?Math.sin(walkPhase+i*Math.PI+Math.PI)*.28:0,1-Math.exp(-dt*17));});
  // Free exploration orbit stays untouched; only the seated clerk has a temporary cinematic shot.
  if(!guideMode&&cameraPointer===null&&(encounter||automatic&&now-lookedAt>1800||!moving&&now-lookedAt>3500&&!modal)){cameraYaw+=deltaAngle(cameraYaw,heading)*(1-Math.exp(-dt*(encounter?4:2.6)));}
- const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const shopInterior=guideMode&&insideHijab(pos.x,pos.z),radius=(shopInterior&&cameraPrefs.indoor?Math.min(cameraRadius,2.85):cameraRadius)+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
+ const narrow=cam.aspect<.85;const fx=Math.sin(cameraYaw),fz=Math.cos(cameraYaw),rx=-Math.cos(cameraYaw),rz=Math.sin(cameraYaw);const shopInterior=guideMode&&insideHijab(pos.x,pos.z),firstPerson=cameraPrefs.mode==='first',radius=(shopInterior&&cameraPrefs.indoor?Math.min(cameraRadius,2.85):cameraPrefs.mode==='near'?Math.min(cameraRadius,3.5):cameraRadius)+(narrow?.35:touchMode?.12:0);const pivot=new THREE.Vector3(pos.x,1.32,pos.z);
  const cameraGoal=pivot.clone().add(new THREE.Vector3(-fx*Math.cos(cameraPitch)*radius+rx*.34,Math.sin(cameraPitch)*radius+.12,-fz*Math.cos(cameraPitch)*radius+rz*.34));
  // The rear arcade is solid. Shorten the camera boom rather than letting it cross the wall.
  if(!shopInterior&&cameraGoal.z< -5.48){const t=(-5.48-pivot.z)/(cameraGoal.z-pivot.z);cameraGoal.copy(pivot.clone().lerp(cameraGoal,Math.max(.12,t)));}cameraGoal.y=Math.max(1.5,cameraGoal.y);
  if(guideMode&&buburMarket)keepMarketCameraClear(pivot,cameraGoal);
  const plazaView=guideMode&&!shopInterior?Math.min(1.25,cameraGoal.distanceTo(pivot)*.13):0;
  const look=pivot.clone().add(new THREE.Vector3(fx*.82+rx*.34,.13+plazaView,fz*.82+rz*.34));
+ if(firstPerson){const eye=avatar==='female'?1.50:1.60;cameraGoal.set(pos.x,eye,pos.z);look.set(pos.x+fx*5,eye-Math.tan(cameraPitch-.19)*5,pos.z+fz*5);}
  const clerk=gateEncounter==='clerk'?registrationHall?.clerk(avatar==='female'):undefined;
  if(clerk){
   // First-person at the participant's eye line, facing the seated clerk across the ledger.
@@ -306,11 +308,11 @@ function frame(now:number){
  const nextFov=Math.abs(cam.fov-targetFov)>.02?THREE.MathUtils.lerp(cam.fov,targetFov,blend):targetFov;
  const nextFilm=Math.abs(cam.filmOffset-targetFilm)>.02?THREE.MathUtils.lerp(cam.filmOffset,targetFilm,blend):targetFilm;
  if(nextFov!==cam.fov||nextFilm!==cam.filmOffset){cam.fov=nextFov;cam.filmOffset=nextFilm;cam.updateProjectionMatrix();}
- document.documentElement.dataset.gateCamera=clerk?'clerk':shopInterior?'shop':'free';
+ document.documentElement.dataset.gateCamera=clerk?'clerk':firstPerson?'first-person':shopInterior?'shop':cameraPrefs.mode;
  if(!cameraInitialized){cam.position.copy(cameraGoal);cameraFocus.copy(look);cameraInitialized=true;}else{const ease=1-Math.exp(-dt*(clerk?5.5:8));cam.position.lerp(cameraGoal,ease);cameraFocus.lerp(look,guideMode?ease:1-Math.exp(-dt*12));}
- if(!clerk&&guideMode&&buburMarket)keepMarketCameraClear(pivot,cam.position);
- if(!shopInterior)cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
- hero.root.visible=!clerk;
+ if(!clerk&&!firstPerson&&guideMode&&buburMarket)keepMarketCameraClear(pivot,cam.position);
+ if(!shopInterior&&!firstPerson)cam.position.z=Math.max(-5.48,cam.position.z);cam.lookAt(cameraFocus);cam.updateMatrixWorld();
+ hero.root.visible=!clerk&&!firstPerson;
  const activeSlot=guideMode&&selected&&!modal&&!encounter&&!queueJoining&&!queueAuthorized&&!departure&&!guideIntroduced?gateGuide(avatar).slot:null;
  if(activeSlot){
   callClock+=dt;
@@ -404,6 +406,7 @@ const gameSummary=gameMenu.querySelector('summary')!;gameSummary.innerHTML=gearI
 const settingsRows=mountGameplaySettings(gameNav);
 const cameraPanel=document.createElement('section');cameraPanel.className='gameplayCameraSettings';cameraPanel.style.cssText='display:grid;gap:7px;padding:9px 0;border-top:1px solid #ffffff30;max-width:100%';
 const cameraTitle=document.createElement('strong');cameraTitle.textContent='Kamera';cameraPanel.append(cameraTitle);
+const modeRow=document.createElement('label');modeRow.style.cssText='display:grid;gap:5px;font-size:13px';modeRow.textContent='Sudut pandang';const modeSelect=document.createElement('select');modeSelect.setAttribute('aria-label','Sudut pandang kamera');modeSelect.style.cssText='width:100%;min-height:38px;background:#24483b;color:white;border:1px solid #ffffff55;border-radius:7px;padding:5px';for(const [value,label] of [['far','Kamera jauh'],['near','Kamera dekat'],['first','Mata pemain (first-person)']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;modeSelect.append(opt);}modeSelect.value=cameraPrefs.mode;modeRow.append(modeSelect);cameraPanel.append(modeRow);
 function cameraSlider(label:string,min:number,max:number,step:number,value:number,format:(v:number)=>string,apply:(v:number)=>void){
  const row=document.createElement('label');row.style.cssText='display:grid;grid-template-columns:1fr auto;gap:3px;font-size:13px';const name=document.createElement('span');name.textContent=label;const out=document.createElement('output');const range=document.createElement('input');range.type='range';range.min=String(min);range.max=String(max);range.step=String(step);range.value=String(value);range.setAttribute('aria-label',label);range.style.cssText='grid-column:1/-1;width:100%;touch-action:pan-x';
  const sync=()=>{out.textContent=format(Number(range.value));};range.oninput=()=>{apply(Number(range.value));sync();saveCamera();};row.append(name,out,range);cameraPanel.append(row);sync();return {range,sync};
@@ -411,9 +414,10 @@ function cameraSlider(label:string,min:number,max:number,step:number,value:numbe
 const distanceControl=cameraSlider('Jarak kamera',2.5,10.6,.1,cameraPrefs.distance,v=>v.toFixed(1)+' m',v=>{cameraRadius=cameraPrefs.distance=v;});
 const pitchControl=cameraSlider('Sudut kamera',3,43,1,Math.round(cameraPrefs.pitch*180/Math.PI),v=>v+'°',v=>{cameraPitch=cameraPrefs.pitch=v*Math.PI/180;});
 const sensitivityControl=cameraSlider('Sensitivitas kamera',.4,2,.1,cameraPrefs.sensitivity,v=>Math.round(v*100)+'%',v=>{cameraPrefs.sensitivity=v;});
+modeSelect.onchange=()=>{cameraPrefs.mode=modeSelect.value as CameraMode;cameraPrefs.distance=cameraPrefs.mode==='near'?3.2:cameraDefaults.distance;cameraRadius=cameraPrefs.distance;distanceControl.range.value=String(cameraRadius);distanceControl.range.disabled=cameraPrefs.mode==='first';distanceControl.sync();saveCamera();cameraInitialized=false;};distanceControl.range.disabled=cameraPrefs.mode==='first';
 const indoorRow=document.createElement('label');indoorRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px';const indoorText=document.createElement('span');indoorText.textContent='Kamera dekat saat masuk toko';const indoorSwitch=document.createElement('input');indoorSwitch.type='checkbox';indoorSwitch.checked=cameraPrefs.indoor;indoorSwitch.onchange=()=>{cameraPrefs.indoor=indoorSwitch.checked;saveCamera();};indoorRow.append(indoorText,indoorSwitch);cameraPanel.append(indoorRow);
-const resetCam=document.createElement('button');resetCam.type='button';resetCam.textContent='Reset kamera';resetCam.onclick=()=>{Object.assign(cameraPrefs,cameraDefaults);distanceControl.range.value=String(cameraPrefs.distance);pitchControl.range.value=String(Math.round(cameraPrefs.pitch*180/Math.PI));sensitivityControl.range.value=String(cameraPrefs.sensitivity);indoorSwitch.checked=cameraPrefs.indoor;distanceControl.sync();pitchControl.sync();sensitivityControl.sync();saveCamera();resetCamera();};cameraPanel.append(resetCam);settingsRows.append(cameraPanel);
-settingsRows.style.maxHeight='min(70dvh,460px)';settingsRows.style.overflowY='auto';settingsRows.style.touchAction='pan-y';
+const resetCam=document.createElement('button');resetCam.type='button';resetCam.textContent='Reset kamera';resetCam.onclick=()=>{Object.assign(cameraPrefs,cameraDefaults);modeSelect.value=cameraPrefs.mode;distanceControl.range.disabled=false;distanceControl.range.value=String(cameraPrefs.distance);pitchControl.range.value=String(Math.round(cameraPrefs.pitch*180/Math.PI));sensitivityControl.range.value=String(cameraPrefs.sensitivity);indoorSwitch.checked=cameraPrefs.indoor;distanceControl.sync();pitchControl.sync();sensitivityControl.sync();saveCamera();resetCamera();};cameraPanel.append(resetCam);settingsRows.append(cameraPanel);
+settingsRows.style.maxHeight='none';settingsRows.style.overflow='visible';settingsRows.style.touchAction='auto';gameNav.style.width='min(285px,calc(100vw - 24px))';gameNav.style.maxHeight='calc(100dvh - 72px)';gameNav.style.overflowY='auto';gameNav.style.touchAction='pan-y';
 document.querySelector('.headerRight')?.classList.add('onlyGameplayGear');
 gameMenu.addEventListener('toggle',()=>{stopMotion();cameraPointer=null;});
 document.addEventListener('pointerdown',e=>{if(gameMenu.open&&e.target instanceof Node&&!gameMenu.contains(e.target))gameMenu.open=false;});
