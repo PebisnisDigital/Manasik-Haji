@@ -4,7 +4,7 @@ export function buildSouvenirWorld(scene:THREE.Scene){
  const root=new THREE.Group();scene.add(root);root.name='ruang-oleh-oleh';
  const pickable:THREE.Mesh[]=[],spinners:THREE.Group[]=[];
  const mat=(color:number,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness:metalness?.3:.75,metalness});
- const marble=mat(0xece5d4),green=mat(0x164b39),gold=mat(0xe3b755,.75),dark=mat(0x26382f),cream=mat(0xfff2d8),wood=mat(0x846449),wall=mat(0xf4ebdb),red=mat(0x742c38),black=mat(0x111820),blue=mat(0x365e87);
+ const marble=mat(0xece5d4),green=mat(0x164b39),gold=mat(0xe3b755,.75),dark=mat(0x26382f),cream=mat(0xfff2d8),wood=mat(0x846449),wall=mat(0xf4ebdb),red=mat(0x742c38),black=mat(0x111820);
  const glass=new THREE.MeshPhysicalMaterial({color:0xdaf5ef,transparent:true,opacity:.13,roughness:.15,depthWrite:false});
  function mesh(geometry:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D=root){const o=new THREE.Mesh(geometry,m);o.position.set(x,y,z);o.receiveShadow=true;parent.add(o);return o;}
  function box(w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.Material,parent:THREE.Object3D=root){return mesh(new THREE.BoxGeometry(w,h,d),m,x,y,z,parent);}
