@@ -12,8 +12,10 @@ export function mountGameplaySettings(host:HTMLElement){
  const sound=document.createElement('input');sound.type='checkbox';sound.setAttribute('aria-label','Suara');sound.className='gameplaySoundSwitch';const state=document.createElement('span');state.className='gameplaySoundState';row.append(sound,state);
  const vol=document.createElement('label');vol.className='gameplayVolumeRow';vol.innerHTML='<span>Volume suara</span>';
  const output=document.createElement('output');const range=document.createElement('input');range.type='range';range.min='0';range.max='100';range.step='1';range.setAttribute('aria-label','Volume suara');vol.append(output,range);
- const sync=()=>{const pref=gameAudioPreferences();sound.checked=pref.enabled;state.textContent=pref.enabled?'Aktif':'Mati';range.disabled=!pref.enabled;range.value=String(pref.volume);output.textContent=pref.volume+'%';};
- sound.onchange=()=>{setGameAudioPreferences({enabled:sound.checked,volume:Number(range.value)});sync();};
- range.oninput=()=>{setGameAudioPreferences({enabled:sound.checked,volume:Number(range.value)});output.textContent=range.value+'%';};
+ const sync=()=>{const pref=gameAudioPreferences();sound.checked=pref.enabled;state.textContent=pref.enabled?'Aktif':'Mati';range.disabled=false;range.value=String(pref.volume);output.textContent=pref.volume+'%';};
+ sound.onchange=()=>{setGameAudioPreferences({enabled:sound.checked,volume:sound.checked&&Number(range.value)===0?70:Number(range.value)});sync();};
+ range.oninput=()=>{const v=Number(range.value);setGameAudioPreferences({enabled:v>0,volume:v});sync();};
+ range.style.touchAction='none';range.style.pointerEvents='auto';sound.style.pointerEvents='auto';sound.style.touchAction='manipulation';
+ for(const event of ['pointerdown','pointermove','pointerup'] as const)range.addEventListener(event,e=>e.stopPropagation());
  panel.append(row,vol);host.append(panel);sync();return panel;
 }
