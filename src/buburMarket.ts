@@ -77,7 +77,7 @@ export function createBuburMarket(scene:THREE.Scene){
  for(let i=0;i<4;i++){cylinder(cart,.15,.075,x-.1+i*.28,1.18,z+.22,[0xffe5b3,0xb78851,0xf2cf92,0x8eac6d][i]!);}
  cylinder(cart,.21,.42,x+.85,1.37,z-.2,0xd0ae54);
  const vendor=humanActor(scene,0x547e64,false,undefined,undefined,{palette:8,build:1,brightness:1,registration:true});vendor.position.set(x,0,z-.92);vendor.rotation.y=0;
- for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x+.18+i*.7,0,z+1.3+i*.12);a.rotation.y=Math.PI;a.userData.noCollision=true;addProspect(a,5+i);}
+ for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x-3.5-i*.65,0,z+2.8);a.rotation.y=Math.PI;a.userData.noCollision=true;addProspect(a,5+i);}
  for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});actor.userData.noCollision=true;addProspect(actor,i+4);const points=[new THREE.Vector3(-29,0,7.8+i*.45),new THREE.Vector3(-12,0,7.8+i*.45),new THREE.Vector3(12,0,7.8+i*.45),new THREE.Vector3(21,0,7.8+i*.45)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
  const hijabOwner=humanActor(scene,0x866b88,true,undefined,undefined,{palette:7,build:1,brightness:1,registration:true});
  hijabOwner.position.set(-26,0,-1.8);hijabOwner.rotation.y=0;
@@ -115,7 +115,7 @@ export function createBuburMarket(scene:THREE.Scene){
    const bowl=new THREE.Mesh(new THREE.SphereGeometry(.14,16,10,0,Math.PI*2,Math.PI/2,Math.PI/2),material(0xf3f0e5));g.add(bowl);cylinder(g,.13,.025,0,.005,0,0xe9d5ad);g.position.set(.06,1.12,.30);
   }else{
    const palette=Number(p.actor.userData.marketPalette??5);
-   const belly=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),material(fabric[palette]??0xb6a793));belly.scale.set(.30,.25,.27);belly.position.set(0,1.00,.17);g.add(belly);
+   const belly=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),material(fabric[palette]??0xb6a793));belly.scale.set(.30,.25,.27);g.position.set(0,1.00,.17);g.add(belly);
    g.scale.setScalar(.12);
   }
   return g;
@@ -129,7 +129,7 @@ export function createBuburMarket(scene:THREE.Scene){
   if(job==='bubur'){line.push(id);buy.route=outsideRoute(p.actor.position,v(14.7+Math.min(line.length-1,9)*.73,9.6));}
   else{buy.route=outsideRoute(p.actor.position,v(-25.8,-1.95));}
  }
- function resetPurchases(){for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p)delete p.actor.userData.marketPurchase;}purchases.clear();line.length=0;}
+ function resetPurchases(){for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;}}purchases.clear();line.length=0;}
  function updatePurchase(p:Prospect,buy:Purchase,dt:number){
   const a=p.actor;const id=p.id;
   if(buy.stage==='approach'&&follow(a,buy,dt)){
@@ -139,17 +139,18 @@ export function createBuburMarket(scene:THREE.Scene){
    const index=line.indexOf(id);if(index<0)return;
    const target=v(14.7+index*.73,8.13);
    // Queue from the pavement, then shuffle forwards in FIFO order.
-   if(advance(a,target,dt)){a.rotation.y=Math.PI;if(index===0){buy.time+=dt;if(buy.time>=2.2){line.shift();buy.stage='eating-walk';buy.time=0;buy.route=[v(13.1,8.45),v(12.05-(id%3)*.7,9.65)];buy.prop=propFor(p,'bowl');}}}
+   if(advance(a,target,dt)){a.rotation.y=Math.PI;if(index===0){buy.time+=dt;if(buy.time>=2.2){line.shift();buy.stage='eating-walk';buy.time=0;buy.route=[v(13.1,8.45),v(12.05-(id%5)*.72,8.95+Math.floor(id%10/5)*.95)];buy.prop=propFor(p,'bowl');}}}
   }else if(buy.stage==='eating-walk'&&follow(a,buy,dt)){buy.stage='eat';buy.time=0;a.rotation.y=Math.PI;}
   else if(buy.stage==='eat'){buy.time+=dt;if(buy.prop){const lift=(1+Math.sin(buy.time*5))*.5;buy.prop.position.set(.06,1.12+lift*.23,.30-lift*.10);}if(buy.time>=4.3){complete(p,buy);}}
   else if(buy.stage==='shop'&&follow(a,buy,dt)){buy.stage='shop-wait';buy.time=0;}
-  else if(buy.stage==='shop-wait'){buy.time+=dt;if(buy.time>=3.5){buy.prop=propFor(p,'bag');buy.stage='exit';buy.route=[v(-25.8,-3.5),v(-25.8,-1.7),v(-25.8,4.4)];}}
+  else if(buy.stage==='shop-wait'){buy.time+=dt;if(buy.time>=3.5){buy.prop=propFor(p,'bag');buy.stage='exit';buy.route=[v(-25.8,-3.5),v(-25.8,-1.7),v(-25.8,4.4),v(-25.8,9.65)];}}
   else if(buy.stage==='exit'&&follow(a,buy,dt)){buy.stage='done';buy.time=1;a.userData.marketPurchase='done';}
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
  return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,resetPurchases,update(dt:number,hold:THREE.Group|null=null){
   for(const p of prospects){const buy=purchases.get(p.id);if(buy&&p.actor!==hold)updatePurchase(p,buy,dt);}
   for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(buy&&buy.stage!=='done')continue;
+   if(buy?.stage==='done'&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[...outsideRoute(w.actor.position,v(w.actor.position.x,9.65)),v(-29,9.65),v(21,9.65)];w.index=0;w.wait=.6;}
    if(w.wait>0){w.wait-=dt;continue;}const t=w.points[w.index]!;if(advance(w.actor,t,dt,1.1)){w.index=(w.index+1)%w.points.length;w.wait=.45;}
   }
   // Previously stationary customers join a visible departure loop after eating or shopping.
@@ -172,7 +173,7 @@ export function salesResponse(id:number,pitch:number,job:SalesJob){
  // Others accept if approached respectfully; all ten sales are attainable.
  if(id%4===3)return {ok:false,line:job==='bubur'?'Maaf, saya sudah makan.':'Maaf, saya belum membutuhkan hijab.'};
  if(pitch===2)return {ok:false,line:'Maaf, saya kurang nyaman kalau ditawari seperti itu.'};
- return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Nanti saya ke gerobaknya.':'Boleh, saya mau beli hijab. Saya ke toko sekarang.'};
+ return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Saya ke gerobaknya sekarang.':'Boleh, saya mau beli hijab. Saya ke toko sekarang.'};
 }
 export function salesDialog(title:string,build:(say:(s:string,who?:'player'|'npc'|'system')=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void,clearChoices:()=>void)=>void,onClose:()=>void){
  const dlg=document.createElement('dialog');dlg.setAttribute('aria-label',title);
