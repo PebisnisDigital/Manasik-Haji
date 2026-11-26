@@ -220,7 +220,7 @@ export const GIFTS = [
 export type GiftId=typeof GIFTS[number]['id'];
 export const SOUVENIR_BOUNDS=[-15,15,-17,11] as const;
 export function souvenirObstacles(){
- const items=GIFTS.filter(g=>g.kind!=='guide'&&g.kind!=='cinema').map(g=>({x:g.x,z:g.z-1.35,w:2.65,d:1.1}));
+ const items:{x:number;z:number;w:number;d:number}[]=GIFTS.filter(g=>g.kind!=='guide'&&g.kind!=='cinema').map(g=>({x:g.x,z:g.z-1.35,w:2.65,d:1.1}));
  // Rear theater partitions, two open doors and unobstructed central aisles.
  for(const x of [-8,8]){
   for(const dx of [-4.25,4.25])items.push({x:x+dx,z:-9.65,w:5.5,d:.35});
