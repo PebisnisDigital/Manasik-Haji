@@ -259,3 +259,35 @@ html[data-hajji-game=ivory] body :is(.gateWorldBubble,.districtSpeech)[data-side
 html[data-hajji-game=ivory] body .simplePlay #simpleRun[aria-pressed=true],html[data-hajji-game=ivory] body #simpleAction{background:#d6b46b!important;color:#25211b!important}
 html[data-hajji-game=ivory] body .brand{color:#25211b}
 html[data-hajji-game=ivory] body .brand span{color:#805c22}
+
+/* One shared settings layout. Legacy nodes remain hidden for internal callbacks. */
+body .onlyGameplayGear > :not(.menu){display:none!important}
+body .onlyGameplayGear .menu summary,body #simpleGear,body #pauseButton[aria-label="Pengaturan"]{background:#fffdf8!important;color:#25211b!important;border:1px solid #d6b46b!important;border-radius:12px;box-shadow:none}
+body .onlyGameplayGear .menu summary{display:grid;place-items:center;width:44px;height:44px;padding:0;list-style:none;cursor:pointer}
+body .onlyGameplayGear .menu summary::-webkit-details-marker{display:none}
+body .menu nav.minimalGameMenu{width:min(350px,calc(100vw - 28px));max-height:calc(100dvh - 70px);overflow:auto;box-sizing:border-box;background:#fffdf8!important;color:#25211b!important;border:1px solid #d6b46b!important;border-radius:16px;padding:16px;box-shadow:0 6px 22px #25211b12}
+body .minimalGameMenu > :not(.gameplaySettingsRows){display:none!important}
+body .minimalGameMenu::before{content:"Pengaturan";display:block;font:750 16px/1.4 system-ui;color:#25211b;margin-bottom:8px}
+body .gameplaySettingsRows{display:grid;gap:0;width:100%;box-sizing:border-box;font:650 14px/1.4 system-ui,sans-serif;color:#25211b!important}
+body .gameplaySettingsRows > label{min-height:46px;box-sizing:border-box;padding:12px 0;display:flex!important;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid #e3d9c7;color:#25211b!important;margin:0;background:transparent!important}
+body .gameplaySettingsRows > label:last-child{border-bottom:0;padding-bottom:0}
+body .gameplaySettingsRows .graphicsControl select{width:auto;min-width:116px;max-width:60%;min-height:40px;font:600 14px system-ui;background:#fff!important;color:#25211b!important;border:1px solid #d8ccb4!important;border-radius:10px;padding:7px 10px}
+body .gameplaySettingsRows .gameplaySettingRow > span:first-child{margin-right:auto}
+body .gameplaySettingsRows input.gameplaySoundSwitch{appearance:none;position:relative;width:44px;height:25px;flex:none;margin:0;background:#e3dfd7!important;border:1px solid #c6bca9!important;border-radius:999px;cursor:pointer;vertical-align:middle}
+body .gameplaySettingsRows input.gameplaySoundSwitch:checked{background:#d6b46b!important;border-color:#b88b2e!important}
+body .gameplaySettingsRows input.gameplaySoundSwitch::before{content:"";position:absolute;left:3px;top:3px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0002;transition:transform .15s}
+body .gameplaySettingsRows input.gameplaySoundSwitch:checked::before{transform:translateX(19px)}
+body .gameplaySettingsRows .gameplaySoundState{font:650 12px system-ui;color:#805c22;min-width:30px;text-align:right}
+body .gameplaySettingsRows .gameplayVolumeRow{display:grid!important;grid-template-columns:1fr auto;gap:10px}
+body .gameplaySettingsRows .gameplayVolumeRow output{color:#805c22;font-weight:750}
+body .gameplaySettingsRows .gameplayVolumeRow input{grid-column:1/-1;width:100%;accent-color:#b88b2e;margin:0;min-height:25px;cursor:pointer}
+body .gameplaySettingsRows input:disabled{opacity:.45;cursor:default}
+body #simpleSettings:has(.gameplaySettingsRows),body #districtDialog.gameplaySettingsDialog .districtModal{width:min(350px,calc(100vw - 28px));background:#fffdf8!important;color:#25211b!important;border:1px solid #d6b46b!important;border-radius:16px;box-sizing:border-box}
+body #simpleSettings:has(.gameplaySettingsRows) #simpleResume{display:none!important}
+body #simpleSettings:has(.gameplaySettingsRows) #simpleOptions{display:block}
+body #districtDialog.gameplaySettingsDialog .districtModal{display:flex;flex-direction:column;gap:8px;padding:16px}
+body #districtDialog.gameplaySettingsDialog :is(#dialogEyebrow,#dialogText){display:none!important}
+body #districtDialog.gameplaySettingsDialog #graphicsOptions{order:1}
+body #districtDialog.gameplaySettingsDialog #dialogActions{order:2}
+body #districtDialog.gameplaySettingsDialog #dialogActions button{min-height:40px}
+@media(max-height:450px){body .gameplaySettingsRows > label{padding:8px 0;min-height:40px}body .menu nav.minimalGameMenu{padding:12px}body #simpleSettings:has(.gameplaySettingsRows)>section{padding:12px}}
