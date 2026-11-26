@@ -136,7 +136,7 @@ export function createBuburMarket(scene:THREE.Scene){
   else if(insideHijab(p.actor.position.x,p.actor.position.z)){buy.stage='shop-wait';buy.time=0;}
   else{buy.route=outsideRoute(p.actor.position,v(-25.8,-1.95));}
  }
- function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
+ function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:clearSegment(p.actor.position,player)?[player.clone()]:outsideRoute(p.actor.position,player.clone()),last:player.clone()};p.actor.userData.marketPurchase='escort';}
  function cancelEscort(){if(escort){const p=prospects[escort.id];if(p)delete p.actor.userData.marketPurchase;}escort=null;}
  function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
  function updateEscort(dt:number,player:THREE.Vector3){if(!escort)return;const p=prospects[escort.id];if(!p)return;const a=p.actor;if(escort.last.distanceTo(player)>.30){escort.trail.push(player.clone());escort.last.copy(player);}const t=escort.trail[0];if(t&&(escort.trail.length>1||a.position.distanceTo(player)>1.1)&&advance(a,t,dt,2.85))escort.trail.shift();if(escort.trail.length===0&&a.position.distanceTo(player)>1.5){escort.trail.push(player.clone());escort.last.copy(player);}}
@@ -159,7 +159,7 @@ export function createBuburMarket(scene:THREE.Scene){
   else if(buy.stage==='exit'&&follow(a,buy,dt)){buy.stage='done';buy.time=1;a.userData.marketPurchase='done';}
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
- return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,startEscort,cancelEscort,escortReady,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
+ return {owners:{bubur:vendor,hijab:hijabOwner},prospects,purchase,startEscort,cancelEscort,escortReady,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
   if(player&&escort&&prospects[escort.id]?.actor!==hold)updateEscort(dt,player);
   for(const p of prospects){const buy=purchases.get(p.id);if(buy&&p.actor!==hold)updatePurchase(p,buy,dt);}
   for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&escort?.id===p.id)continue;if(buy&&buy.stage!=='done')continue;
