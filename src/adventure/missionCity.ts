@@ -37,7 +37,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  const plazas=createLivePlazas(scene,missions);solids.push(...plazas.solids);const celebration=program==='hajj'?createSouvenirCelebration(scene):null;if(celebration)solids.push(...celebration.solids);
  const vehicles=initial();let selected:CityVehicle|null=null;
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
- const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xece6d5),gold=mat(0xd6b46b,.36),green=mat(0x151515),glass=mat(0x41464d,.25),dark=mat(0x202020),rubber=mat(0x252526);
+ const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xfffaf0),gold=mat(0xd6b46b,.36),green=mat(0xe6d2a4,.55),glass=mat(0x41464d,.25),dark=mat(0x564634),rubber=mat(0x252526);
  function box(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.MeshStandardMaterial){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);return mesh;}
  box(scene,310,.1,270,0,-.12,0,sand);
  function street(x:number,z:number,w:number,d:number){
@@ -52,7 +52,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  for(const p of places){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);g.rotation.y=p.yaw;scene.add(g);
   const gift=p.number===SOUVENIR_NUMBER;
-  const wall=mat(gift?0x111111:[0x191919,0x202020,0x252525][(p.number-1)%3]!,.64);
+  const wall=mat(gift?0xf5efdf:[0xf5f1e8,0xeee6d6,0xf8f4eb][(p.number-1)%3]!,.72);
   // Recessed doorway: the facade has an actual opening, not a painted door on a solid block.
   box(g,20,p.height,17.2,0,p.height/2,-1.4,wall);
   for(const x of [-5.95,5.95])box(g,8.1,p.height,2.8,x,p.height/2,8.6,wall);
@@ -68,7 +68,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   for(const x of [-8.8,8.8])box(g,.55,p.height,.7,x,p.height/2,10.1,white);
   for(const x of [-2.4,2.4])box(g,.55,4,.65,x,2,10.35,gold);
   box(g,5.8,.22,2.4,0,4.13,10.8,green);
-  const doorMat=mat(0x292929,.48),left=box(g,1.8,3.0,.15,-.90,1.58,10.12,doorMat),right=box(g,1.8,3.0,.15,.90,1.58,10.12,doorMat);doors.push({left,right,open:0});
+  const doorMat=mat(0x82633a,.48),left=box(g,1.8,3.0,.15,-.90,1.58,10.12,doorMat),right=box(g,1.8,3.0,.15,.90,1.58,10.12,doorMat);doors.push({left,right,open:0});
   const c=document.createElement('canvas');c.width=1024;c.height=256;const t=c.getContext('2d')!;
   t.fillStyle=gift?'#0e4739':'#193d31';t.fillRect(0,0,1024,256);t.strokeStyle='#d8b972';t.lineWidth=7;t.strokeRect(9,9,1006,238);t.fillStyle='#f2d18b';t.font=gift?'bold 80px system-ui':'bold 62px system-ui';t.textAlign='center';t.fillText(gift?'GEDUNG OLEH-OLEH':'GEDUNG '+String(p.number).padStart(2,'0'),512,88);t.fillStyle='#fff4d9';t.font='bold 46px system-ui';t.fillText(gift?'12 BINTANG · HADIAH PERJALANAN':names[p.number-1]??'Level '+p.number,512,172,945);
   const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;signs.push(tex);const sign=new THREE.Mesh(new THREE.PlaneGeometry(15,3.75),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));sign.position.set(0,5.4,10.25);g.add(sign);
