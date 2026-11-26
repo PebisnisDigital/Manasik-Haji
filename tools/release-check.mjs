@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {PUBLIC_GAME_PAGES} from './pwa-policy.mjs';
+import {PUBLIC_GAME_PAGES,MEMBER_GAME_PAGES} from './pwa-policy.mjs';
 
-export const PRIVATE_PAGES=['oleh-oleh.html','account.html','admin.html','studio.html','peserta.html','certificate-admin.html','voice-admin.html','verify.html'];
+export const PRIVATE_PAGES=[...MEMBER_GAME_PAGES,'account.html','admin.html','studio.html','peserta.html','certificate-admin.html','voice-admin.html','verify.html'];
 export const RELEASE_PAGES=[...PUBLIC_GAME_PAGES.filter(Boolean),...PRIVATE_PAGES];
 export function localReferences(file,text){
   const refs=[];
