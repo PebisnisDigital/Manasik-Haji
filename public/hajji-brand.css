@@ -142,3 +142,13 @@ body :is(.walkJoy,.joystick,.districtJoy,.gateCameraPad,.arenaLookPad,.districtL
 body :is(.walkJoy span,.joystick .knob,.districtJoy>span,.arenaLookPad>span,.gateCameraPad>span){background:#d6b46bc7;border-color:#e7c77d99}
 @media(prefers-reduced-motion:no-preference){body :is(.gateWorldPanel,.districtGuardAnswer,.miqatDialog,#giftDialog,.modal,.districtModal) button{transition:background-color .16s,border-color .16s,color .16s}}
 /* Keep native media, diagrams, QR codes, the camera and the scene geometry untouched. */
+
+body :is(#simpleSettings,.magicLinkPopup,.magicAccessCard){background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important;border-color:var(--hajji-gold)!important;border-radius:var(--hajji-radius-xl);color-scheme:light}
+body :is(#simpleSettings,.magicLinkPopup,.magicAccessCard) :is(h1,h2,h3,p,small,label,strong){color:var(--hajji-ink)!important}
+body :is(#simpleSettings,.magicLinkPopup,.magicAccessCard) :is(button,a.travelPrimary){background:var(--hajji-gold)!important;color:#17130d!important;border:1px solid var(--hajji-gold)!important;border-radius:var(--hajji-radius-md)}
+body :is(#simpleSettings,.magicLinkPopup) :is(#simpleClose,.gateMagicClose,.secondary){background:var(--hajji-ivory)!important;color:var(--hajji-ink)!important}
+body :is(.magicLinkPopup,.magicAccessCard) input{background:#fff!important;color:var(--hajji-ink)!important;border-color:var(--hajji-line)!important}
+body .magicAccessCard a:not(.travelPrimary){color:var(--hajji-gold-deep)!important}
+body .districtJourneyBoard{background:#151515!important;color:#f8f7f4;outline-color:#282828;border-color:#d6b46b}
+body .boardLevel.done{background:#554323!important;color:#fff5dd;border-color:#d6b46b}
+body .boardLevel.locked{background:#292929!important;color:#bdb9af}
