@@ -174,10 +174,24 @@ export function salesResponse(id:number,pitch:number,job:SalesJob){
  if(pitch===2)return {ok:false,line:'Maaf, saya kurang nyaman kalau ditawari seperti itu.'};
  return {ok:true,line:job==='bubur'?'Boleh, saya mau satu porsi. Nanti saya ke gerobaknya.':'Boleh, saya mau beli hijab. Saya ke toko sekarang.'};
 }
-export function salesDialog(title:string,build:(say:(s:string)=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void)=>void,onClose:()=>void){
- const dlg=document.createElement('dialog');dlg.setAttribute('aria-label',title);dlg.style.cssText='width:min(420px,92vw);max-height:82dvh;overflow:auto;border:1px solid #d0b36d;border-radius:16px;background:#15382e;color:#fff5dd;padding:16px;font:16px system-ui;box-sizing:border-box;margin:auto';
- let closed=false;const close=()=>{if(closed)return;closed=true;dlg.close();dlg.remove();onClose();};
- const say=(s:string)=>{const p=document.createElement('p');p.textContent=s;p.style.margin='8px 0';p.setAttribute('aria-live','polite');dlg.append(p);};
- const button=(s:string,fn:()=>void,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=s;b.style.cssText='display:block;width:100%;min-height:44px;padding:9px;margin:7px 0;border-radius:9px;border:1px solid #d5bd7b;background:'+(primary?'#e8c974':'#285343')+';color:'+(primary?'#15382e':'#fff5dd')+';font:inherit;cursor:pointer';b.onclick=()=>fn();dlg.append(b);};
- const h=document.createElement('h3');h.textContent=title;h.style.margin='0 0 10px';dlg.append(h);build(say,button,close);dlg.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(dlg);dlg.showModal();
+export function salesDialog(title:string,build:(say:(s:string,who?:'player'|'npc'|'system')=>void,button:(s:string,fn:()=>void,primary?:boolean)=>void,close:()=>void,clearChoices:()=>void)=>void,onClose:()=>void){
+ const dlg=document.createElement('dialog');dlg.setAttribute('aria-label',title);
+ dlg.style.cssText='width:min(440px,92vw);max-height:82dvh;overflow:hidden;border:1px solid #d0b36d;border-radius:16px;background:#15382e;color:#fff5dd;padding:12px;font:15px system-ui;box-sizing:border-box;margin:auto';
+ const frame=document.createElement('div');frame.style.cssText='display:flex;flex-direction:column;max-height:calc(82dvh - 26px);gap:8px';
+ const head=document.createElement('header');head.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;position:static;padding:0';
+ const h=document.createElement('strong');h.textContent=title;head.append(h);
+ const x=document.createElement('button');x.type='button';x.textContent='×';x.setAttribute('aria-label','Tutup percakapan');x.style.cssText='min-width:40px;min-height:36px;background:#285343;color:#fff5dd;border:1px solid #7f967b;border-radius:8px;font-size:22px';head.append(x);
+ const chat=document.createElement('div');chat.setAttribute('role','log');chat.setAttribute('aria-live','polite');chat.style.cssText='display:flex;flex-direction:column;gap:7px;overflow-y:auto;min-height:48px;flex:1 1 auto;overscroll-behavior:contain;touch-action:pan-y';
+ const actions=document.createElement('div');actions.style.cssText='display:flex;flex-direction:column;gap:5px;flex:0 1 auto;overflow-y:auto;max-height:48dvh;touch-action:pan-y;overscroll-behavior:contain';
+ frame.append(head,chat,actions);dlg.append(frame);
+ let closed=false;
+ const close=()=>{if(closed)return;closed=true;dlg.close();dlg.remove();onClose();};
+ const say=(s:string,who:'player'|'npc'|'system'='npc')=>{
+  const p=document.createElement('div');p.style.cssText='border-radius:11px;padding:8px 10px;max-width:89%;line-height:1.35;'+(who==='player'?'align-self:flex-end;background:#dfc47e;color:#18392e':who==='system'?'align-self:center;background:#102d26;color:#cbe4cd;text-align:center;font-size:13px':'align-self:flex-start;background:#285343;color:#fff5dd');
+  if(who!=='system'){const label=document.createElement('strong');label.textContent=who==='player'?'Kamu':title;label.style.cssText='display:block;font-size:11px;margin-bottom:2px;opacity:.8';p.append(label);}
+  const msg=document.createElement('span');msg.textContent=s;p.append(msg);chat.append(p);chat.scrollTop=chat.scrollHeight;requestAnimationFrame(()=>{chat.scrollTop=chat.scrollHeight;});
+ };
+ const clearChoices=()=>actions.replaceChildren();
+ const button=(s:string,fn:()=>void,primary=false)=>{const b=document.createElement('button');b.type='button';b.textContent=s;b.style.cssText='flex:0 0 auto;width:100%;min-height:42px;padding:8px;border-radius:9px;border:1px solid #d5bd7b;background:'+(primary?'#e8c974':'#285343')+';color:'+(primary?'#15382e':'#fff5dd')+';font:inherit;cursor:pointer;text-align:left;touch-action:manipulation';b.onclick=()=>fn();actions.append(b);};
+ x.onclick=close;build(say,button,close,clearChoices);dlg.addEventListener('cancel',e=>{e.preventDefault();close();});document.body.append(dlg);dlg.showModal();
 }
