@@ -36,7 +36,7 @@ if(!tawafComplete()&&!testMode)location.replace('./adventure-map.html');
 let scene,renderer,camera,player,beacon,guide,npcs=[],arrow;
 let stage=0,legs=0,gate=0,playerX=0,playerZ=START+6,active=false,cameraYaw=Math.PI,heading=0,lastFrame=0,bannerUntil=0;
 let transfer=readTahallulTransfer(adventureAvatar()),travelling=false;
-let sound=journeyVoice(),audio=null,stepClock=0;
+let sound=journeyVoice(),audio=null,stepClock=0;window.addEventListener('hajji-game-audio-change',()=>{sound=journeyVoice();});
 const keys=new Set(),joy={x:0,y:0};
 const materials=new Map();
 function mat(color,glow=0){const key=color+'-'+glow;if(!materials.has(key))materials.set(key,new THREE.MeshStandardMaterial({color,roughness:.8,emissive:color,emissiveIntensity:glow}));return materials.get(key);}
