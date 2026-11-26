@@ -2,6 +2,7 @@ import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
+import {createBuburMarket,BUBUR_POINT,marketWalkable,openBuburGame} from './buburMarket.ts';
 import {humanActor,humanPlayer,updateHumanActors} from './characters/HumanActors.ts';
 import * as THREE from 'three';
 import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts';
@@ -38,6 +39,8 @@ let introPlaying=false;
 let chosenProgram:Program='umrah';let avatar:Avatar='male',selected=false,modal=true,encounter=false,target:Program|null=null,dialogueTimer=0,sceneReady=false,paused=false;
 type Actor={root:THREE.Group;legs:THREE.Group[];arms:THREE.Group[]};let budget:ReturnType<typeof createRenderBudget>;let r:THREE.WebGLRenderer,s:THREE.Scene,cam:THREE.PerspectiveCamera,hero:Actor;const guides={} as Record<Program,Actor>;const keys=new Set<string>();let joy=new THREE.Vector2(),last=0,walkPhase=0;const start=new THREE.Vector3(0,0,4.1);const placements={hajj:new THREE.Vector3(-2.5,0,-1.8),umrah:new THREE.Vector3(2.5,0,-1.8)};
 let registrationHall:ReturnType<typeof createRegistrationHall>|undefined;
+let buburMarket:ReturnType<typeof createBuburMarket>|undefined;
+function playBubur(){if(modal||encounter||queueJoining||queueAuthorized||departure)return;modal=true;target=null;stopMotion();dismissGuideCall();openBuburGame(()=>{modal=false;stopMotion();$('instruction').textContent='Jelajahi pertokoan atau menuju loket manasik.';},registrationAction);}
 let videotron:ReturnType<typeof mountGateVideotron>|undefined;
 let closeGateDialogue:(()=>void)|undefined;
 let gateEncounter:'guide'|'clerk'|null=null,guideIntroduced=false,guidePlayerName='';
@@ -137,14 +140,14 @@ function build(){const tier=graphicsTier(),profile=graphicsProfile();r=new THREE
 // A single textured stone surface replaces the checkerboard of individual tiles.
 const tile=document.createElement('canvas');tile.width=1024;tile.height=1024;const tg=tile.getContext('2d')!;let seed=8341;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
 tg.fillStyle='#afa592';tg.fillRect(0,0,1024,1024);for(let gy=0;gy<4;gy++)for(let gx=0;gx<4;gx++){const v=199+Math.floor(rand()*15);tg.fillStyle='rgb('+v+','+(v-8)+','+(v-22)+')';tg.fillRect(gx*256+2,gy*256+2,252,252);for(let k=0;k<24;k++){const px=gx*256+rand()*256,py=gy*256+rand()*256;tg.strokeStyle='rgba(120,109,88,'+(rand()*.047)+')';tg.lineWidth=rand()*2+.4;tg.beginPath();tg.moveTo(px,py);tg.lineTo(px+rand()*60-30,py+rand()*20-10);tg.stroke();}}for(let i=0;i<15000;i++){tg.fillStyle=rand()>.5?'#fff1d50c':'#544d3e0b';tg.fillRect(rand()*1024,rand()*1024,1+rand()*3,1+rand()*3);}
-const stoneTex=new THREE.CanvasTexture(tile);stoneTex.colorSpace=THREE.SRGBColorSpace;stoneTex.wrapS=stoneTex.wrapT=THREE.RepeatWrapping;stoneTex.repeat.set(6,6);stoneTex.anisotropy=Math.min(8,r.capabilities.getMaxAnisotropy());const ground=new THREE.MeshStandardMaterial({map:stoneTex,roughness:.82});box(guideMode?36:24,.20,guideMode?32:24,ground,0,-.105,0,s);
+const stoneTex=new THREE.CanvasTexture(tile);stoneTex.colorSpace=THREE.SRGBColorSpace;stoneTex.wrapS=stoneTex.wrapT=THREE.RepeatWrapping;stoneTex.repeat.set(6,6);stoneTex.anisotropy=Math.min(8,r.capabilities.getMaxAnisotropy());const ground=new THREE.MeshStandardMaterial({map:stoneTex,roughness:.82});box(guideMode?66:24,.20,guideMode?34:24,ground,guideMode?-4:0,-.105,0,s);
 
 if(guideMode){const facade=mat(0xf2e9d9);for(const [x,w] of [[-8.15,1.7],[0,9.5],[8.15,1.7]])box(w!,3.7,.4,facade,x!,1.85,-6.5,s);for(const x of [-6,6])box(2.6,3.4,.15,dark,x,1.7,-8.35,s);}else box(18,3.7,.4,sand,0,1.85,-6.5,s);box(18,.2,.74,limestone,0,3.75,-6.3,s);box(18,.13,.7,gold,0,3.49,-6.24,s);for(const x of [-7.5,-4.5,-1.5,1.5,4.5,7.5]){box(.43,3.3,.5,limestone,x,1.65,-5.85,s);box(.65,.22,.68,gold,x,3.13,-5.85,s);box(.68,.20,.69,limestone,x,.11,-5.85,s);}
 for(const x of [-6,-3,0,3,6]){const arc=mesh(new THREE.TorusGeometry(1.24,.15,10,32,Math.PI),limestone,x,1.95,-6.02,s);arc.rotation.z=0;if(!guideMode||Math.abs(x)!==6){box(2.53,1.9,.08,dark,x,.97,-6.10,s);const inner=mesh(new THREE.CircleGeometry(1.22,32,0,Math.PI),dark,x,1.95,-6.09,s);inner.castShadow=false;}}
 placa(guideMode?'PUSAT MANASIK':'UMROH.DIGITAL',guideMode?'PENDAFTARAN PESERTA':'',0,-5.67);
 for(const p of ['hajj','umrah'] as const){const pos=placements[p];const ring=new THREE.Mesh(new THREE.RingGeometry(.79,.91,64).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xd4bb83,side:THREE.DoubleSide,transparent:true,opacity:.65,depthWrite:false}));ring.position.set(pos.x,.012,pos.z);s.add(ring);guideRings[p]=ring;const actor=person(p==='umrah',p==='umrah'?0x52796b:0xeae2cc);actor.root.position.copy(pos);actor.root.position.y=0;guides[p]=actor;if(!guideMode)placa(p==='hajj'?'MANASIK HAJI':'MANASIK UMROH','',pos.x,-3.65);}
 for(const x of (guideMode?[-8.3,8.3]:[-6.5,6.5]))for(const z of [-2.6,3.5]){mesh(new THREE.CylinderGeometry(.55,.38,.49,12),sand,x,.245,z,s);box(.18,2,.18,mat(0x967c55),x,1.25,z,s);for(let k=0;k<9;k++){const o=ball(.3,teal,x+Math.cos(k*2.4)*.55,2.5+Math.sin(k)*.25,z+Math.sin(k*2.4)*.55,s);o.scale.set(1.4,.55,1.8);}}
-if(guideMode){registrationHall=createRegistrationHall(s);videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
+if(guideMode){registrationHall=createRegistrationHall(s);buburMarket=createBuburMarket(s);videotron=mountGateVideotron($('lobby'),$<HTMLCanvasElement>('world'));}
 hero=person(false,0xf4ead6,true);hero.root.position.copy(start);hero.root.rotation.y=Math.PI;heading=Math.PI;sceneReady=true;resize();requestAnimationFrame(frame);}
 function resize(){if(!sceneReady)return;const el=$<HTMLCanvasElement>('world');const w=Math.max(1,el.clientWidth),h=Math.max(1,el.clientHeight);budget.resize(w,h);cam.aspect=w/h;cam.fov=guideMode?(touchMode?65:w/h<.85?69:64):(touchMode?57:w/h<.85?66:60);cam.updateProjectionMatrix();videotron?.resize();}
 function syncOrientation(){const was=portraitBlocked;portraitBlocked=!gateMode&&touchMode&&matchMedia('(orientation: portrait)').matches;lobbySound.setPaused(portraitBlocked||introPlaying);const overlay=$('rotateScreen');overlay.hidden=!portraitBlocked;document.documentElement.classList.toggle('portraitBlocked',portraitBlocked);for(const id of ['avatarModal','registerModal'])$(id).inert=portraitBlocked;if(portraitBlocked!==was){if(portraitBlocked&&guideMode)dismissGuideCall();stopMotion();cameraPointer=null;pid=null;cameraInitialized=false;if(portraitBlocked)btn('rotateFullscreen').focus({preventScroll:true});else if(document.activeElement===btn('rotateFullscreen'))btn('fullscreen').focus({preventScroll:true});}resize();}
@@ -161,7 +164,7 @@ window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();if((e.target a
 let pid:number|null=null;const j=$('joystick');function jp(e:PointerEvent){const b=j.getBoundingClientRect();joy.set((e.clientX-b.left-b.width/2)/(b.width*.34),(e.clientY-b.top-b.height/2)/(b.height*.34));if(joy.length()>1)joy.normalize();$('knob').style.transform='translate(calc(-50% + '+joy.x*b.width*.28+'px),calc(-50% + '+joy.y*b.height*.28+'px))';target=null;}
 j.addEventListener('pointerdown',e=>{if(modal||encounter||portraitBlocked||queueJoining||queueAuthorized||departure||pid!==null)return;pid=e.pointerId;j.setPointerCapture(pid);jp(e);});j.addEventListener('pointermove',e=>{if(e.pointerId===pid)jp(e);});function ju(e:PointerEvent){if(e.pointerId!==pid)return;pid=null;joy.set(0,0);$('knob').style.transform='translate(-50%,-50%)';}j.addEventListener('pointerup',ju);j.addEventListener('pointercancel',ju);j.addEventListener('lostpointercapture',ju);
 // One contextual interaction at a time, with the same range checks for touch, mouse and E.
-type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door';title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
+type GateAction={id:'guide'|'queue'|'leave'|'clerk'|'door'|'bubur';title:string;label:string;line:string;point:THREE.Vector3;run?:()=>void};
 let gatePrompt:HTMLElement|undefined,gatePromptTitle:HTMLElement|undefined,gatePromptLine:HTMLElement|undefined,gatePromptButton:HTMLButtonElement|undefined,gateQueueCancel:HTMLButtonElement|undefined;
 const cameraStick=new THREE.Vector2();let cameraStickPointer:number|null=null;let gateCameraPad:HTMLElement|undefined;
 function currentGateAction():GateAction|null{
@@ -170,6 +173,7 @@ function currentGateAction():GateAction|null{
  if(departure){if(!departure.arrived)return null;const point=new THREE.Vector3(departure.side*6,2.1,-5.68);return {id:'door',title:'PINTU KEBERANGKATAN',line:'Tiket aktif. Selamat memulai perjalanan!',label:'MASUK',point,run:()=>{if(departure?.arrived)location.assign(departure.href);}};}
  if(queueAuthorized){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'PETUGAS PENDAFTARAN',line:'Silakan, sekarang giliran Anda.',label:'DAFTAR',point,run:()=>greet(p)};}
  if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'BATALKAN ANTREAN',point,run:()=>{leaveRegistrationQueue();$('instruction').textContent='Antrean dibatalkan.';}};}
+ if(buburMarket&&Math.hypot(pos.x-BUBUR_POINT.x,pos.z-BUBUR_POINT.z)<=3.15)return {id:'bubur',title:'BUBUR AYAM · TABUNGAN HAJI',line:'Mau bantu saya berdagang bubur? Ada misi gratis!',label:'BANTU DAGANG',point:BUBUR_POINT.clone(),run:playBubur};
  const g=placements[p],q=new THREE.Vector3(female?4.15:-4.15,0,5.34);
  const dg=Math.hypot(pos.x-g.x,pos.z-g.z),dq=Math.hypot(pos.x-q.x,pos.z-q.z);
  if(dg<=2.1&&dg<=dq){const point=g.clone();point.y=2.12;return {id:'guide',title:gateGuide(avatar).name,line:'Assalamualaikum! Mau tahu tentang HAJJI.DIGITAL?',label:'BICARA',point,run:()=>greet(p)};}
@@ -219,9 +223,9 @@ function frame(now:number){
  const n=Math.hypot(dx,dz),speed=2.6*walkFactor(automatic);const wish=n>.015?new THREE.Vector2(dx/n,dz/n).multiplyScalar(speed*Math.min(1,automatic?n*3:n)):new THREE.Vector2();velocity.lerp(wish,1-Math.exp(-dt*(n>.015?10:14)));
  if(modal||encounter||queueAuthorized)velocity.set(0,0);
  const moving=velocity.length()>.055;
- if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-12.35:-5.6,guideMode?12.35:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,departure?-6.6:-3,guideMode?8.1:5.8);
-  if(guideMode&&!departure){const allowed=(x:number,z:number)=>Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8;if(!allowed(nx,nz)){if(allowed(pos.x,nz))nx=pos.x;else if(allowed(nx,pos.z))nz=pos.z;else{nx=pos.x;nz=pos.z;}}}
-  if(!queueJoining&&!queueAuthorized&&!departure){const step=sweepGround(pos,{x:nx,z:nz},humanBodies(s),(x,z)=>!guideMode||Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8);nx=step.x;nz=step.z;}
+ if(moving){let nx=THREE.MathUtils.clamp(pos.x+velocity.x*dt,guideMode?-30.1:-5.6,guideMode?21.0:5.6),nz=THREE.MathUtils.clamp(pos.z+velocity.y*dt,departure?-6.6:-3,guideMode?10.2:5.8);
+  if(guideMode&&!departure){const allowed=(x:number,z:number)=>(Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&(queueJoining||marketWalkable(x,z));if(!allowed(nx,nz)){if(allowed(pos.x,nz))nx=pos.x;else if(allowed(nx,pos.z))nz=pos.z;else{nx=pos.x;nz=pos.z;}}}
+  if(!queueJoining&&!queueAuthorized&&!departure){const step=sweepGround(pos,{x:nx,z:nz},humanBodies(s),(x,z)=>!guideMode||((Math.abs(x)<=5.6||z>=5.9||Math.abs(x)>=11.8)&&marketWalkable(x,z)));nx=step.x;nz=step.z;}
   const moved=Math.hypot(nx-pos.x,nz-pos.z);lobbySound.walk(moved);tutorial.event({type:'walk',amount:moved});pos.x=nx;pos.z=nz;const desired=Math.atan2(velocity.x,velocity.y);heading+=deltaAngle(heading,desired)*(1-Math.exp(-dt*13));walkPhase+=dt*velocity.length()*3.65;}
  if(!guideMode&&selected&&!modal&&!encounter){for(const p of ['hajj','umrah'] as const){const d=Math.hypot(pos.x-placements[p].x,pos.z-placements[p].z);if(d<1.05){greet(p);break;}}}
  if(encounter&&encounterProgram){const t=gateEncounter==='clerk'?(registrationHall?.clerk(avatar==='female').position??placements[encounterProgram]):placements[encounterProgram];heading+=deltaAngle(heading,Math.atan2(t.x-pos.x,t.z-pos.z))*(1-Math.exp(-dt*9));}
@@ -303,7 +307,7 @@ function frame(now:number){
  }
 
  if(guideMode){const a=currentGateAction();$('bubble').hidden=!showCallBubble||a?.id==='guide';paintGateAction(a);}
- registrationHall?.update(dt,pos);
+ registrationHall?.update(dt,pos);buburMarket?.update(dt);
  if(guideMode){if(gateQueueCancel)gateQueueCancel.hidden=!(queueJoining||queueAuthorized);const ahead=registrationHall?.ahead(avatar==='female');if(queueJoining&&ahead!==null&&ahead!==undefined){$('instruction').textContent=ahead===0?'Giliran Anda · menuju loket':'Antrean · '+ahead+' orang di depan';}document.documentElement.dataset.playerQueue=departure?'departing':gateEncounter==='clerk'?'serving':queueAuthorized?'ready':queueJoining?String(ahead):'idle';}
  if(registrationHall){const stats=registrationHall.stats();document.documentElement.dataset.registrationQueue=stats.male+':'+stats.female;document.documentElement.dataset.registrationNpcCycles=String(stats.completed);}
  updateHumanActors(s,dt,!!registrationHall||!modal&&!encounter&&selected,cam);budget.draw(now,s,cam,modal);videotron?.draw(cam,!modal&&!portraitBlocked&&!budget.lost());
