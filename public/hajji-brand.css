@@ -24,33 +24,33 @@ body .miqatDialog.miqatNpcTalk,body #giftDialog.giftGuideTalk{background:#171717
 body .gateAnswerChoices button,body .simpleWorldChoices button,body .simpleWorldPrompt #simpleAction{background:#e2c17b;color:#101010;border-color:#e2c17b}
 body .gateCameraPad,body .arenaLookPad,body .districtLookStick{background:#151515aa;border-color:#c7a76799}
 body .gateCameraPad span,body .arenaLookPad span,body .districtLookStick span{background:#d6b46bbb}
-html:has(body.hajjiAdmin){background:#080808}
-body.hajjiAdmin{background:#0d0d0d;color:#fff;box-shadow:0 0 40px #0005}
-body.hajjiAdmin .adminTop,body.hajjiAdmin .adminBottomNav{background:#151515;color:#fff;border-color:#37312a}
-body.hajjiAdmin .brand{color:#fff}
-body.hajjiAdmin .brand span,body.hajjiAdmin .headActions a{color:#d6b46b}
-body.hajjiAdmin .brand small,body.hajjiAdmin .notice{color:#bdb9af}
-body.hajjiAdmin .headActions button{background:#25211a;color:#e7c77d}
-body.hajjiAdmin .panel,body.hajjiAdmin .stats article,body.hajjiAdmin .ticketCard,body.hajjiAdmin tr{background:#171717;color:#fff;border-color:#37312a;box-shadow:none}
-body.hajjiAdmin .stats span,body.hajjiAdmin .stats small,body.hajjiAdmin .ticketCell small,body.hajjiAdmin .quick p,body.hajjiAdmin .program small{color:#bdb9af}
-body.hajjiAdmin .stats strong,body.hajjiAdmin .number{color:#fff}
-body.hajjiAdmin .ticketStats article:nth-child(2){background:#251e13;border-color:#66502a}
-body.hajjiAdmin .ticketStats article:nth-child(3){background:#242017;border-color:#6a572e}
-body.hajjiAdmin .revenue{background:linear-gradient(125deg,#272017,#141414);border:1px solid #a98b4c;color:#fff}
-body.hajjiAdmin .revenue strong{color:#edcd80}
-body.hajjiAdmin .revenue small{color:#d1c6b0}
-body.hajjiAdmin .adminBottomNav a{color:#bdb9af;background:transparent}
-body.hajjiAdmin .adminBottomNav a[aria-current=page]{background:#2a2418;color:#edcd80}
-body.hajjiAdmin .adminSegment{background:#202020}
-body.hajjiAdmin .adminSegment a{color:#c8c5bd}
-body.hajjiAdmin .adminSegment a[aria-current=page]{background:#33291a;color:#edcd80}
-body.hajjiAdmin .ticketState{background:#262626;color:#ddd}
-body.hajjiAdmin .ticketState.reported,body.hajjiAdmin .ticketState.approved{background:#33291a;color:#edcd80}
-body.hajjiAdmin .ticketState.suspended{background:#391d1d;color:#ffb7b7}
-body.hajjiAdmin .ticketActions a,body.hajjiAdmin .serviceSymbol{background:#2a2418;color:#e7c77d}
-body.hajjiAdmin .ticketTableRow .ticketCell:nth-child(2),body.hajjiAdmin .ticketTableRow .ticketActions,body.hajjiAdmin .adminServices a,body.hajjiAdmin td:first-child{border-color:#36302a}
-body.hajjiAdmin .ticketDialog{background:#181818;color:#fff;border-color:#a98b4c}
-body.hajjiAdmin .payment{background:#201c16;color:#fff;border-color:#504534}
+/* Ivory operational shell; layout, dimensions and sticky navigation are unchanged. */
+html:has(body.hajjiAdmin){background:#f3f0ea}
+body.hajjiAdmin{background:#faf8f4;color:#25211b;box-shadow:0 0 32px #25211b0a}
+body.hajjiAdmin :is(.adminTop,.adminBottomNav){background:#fff;color:#25211b;border-color:#e3d9c7}
+body.hajjiAdmin .brand{color:#25211b}
+body.hajjiAdmin :is(.brand span,.headActions a,.overline){color:#805c22}
+body.hajjiAdmin :is(.brand small,.notice,.stats span,.stats small,.ticketCell small,.quick p,.program small,.adminServices small){color:#5e564c}
+body.hajjiAdmin .headActions button{background:#f8f1e3;color:#25211b;border:1px solid #dfcda9}
+body.hajjiAdmin :is(.panel,.stats article,.ticketCard,tr){background:#fff;color:#25211b;border-color:#e3d9c7;box-shadow:none}
+body.hajjiAdmin :is(.stats strong,.number){color:#25211b}
+body.hajjiAdmin .ticketStats article:nth-child(2){background:#fff8e8;border-color:#e6d1a1}
+body.hajjiAdmin .ticketStats article:nth-child(3){background:#fffdf8;border-color:#d6b46b}
+body.hajjiAdmin .revenue{background:linear-gradient(120deg,#fffdf8,#f4e5c1);border:1px solid #c9a75d;color:#25211b}
+body.hajjiAdmin .revenue strong{color:#25211b}
+body.hajjiAdmin .revenue small{color:#5e564c}
+body.hajjiAdmin .adminBottomNav a{color:#5e564c;background:transparent}
+body.hajjiAdmin .adminBottomNav a[aria-current=page]{background:#f7ebcf;color:#805c22}
+body.hajjiAdmin .adminSegment{background:#f3efe6}
+body.hajjiAdmin .adminSegment a{color:#5e564c}
+body.hajjiAdmin .adminSegment a[aria-current=page]{background:#fff;color:#805c22;box-shadow:0 1px 5px #25211b10}
+body.hajjiAdmin .ticketState{background:#f0eeea;color:#5e564c}
+body.hajjiAdmin .ticketState.reported{background:#fff0cc;color:#805c22}
+body.hajjiAdmin .ticketState.approved{background:#f7ebcf;color:#654818}
+body.hajjiAdmin .ticketState.suspended{background:#fff0f0;color:#9d3030}
+body.hajjiAdmin :is(.ticketActions a,.serviceSymbol){background:#f7ebcf;color:#805c22}
+body.hajjiAdmin :is(.ticketTableRow .ticketCell:nth-child(2),.ticketTableRow .ticketActions,.adminServices a,td:first-child){border-color:#e3d9c7}
+body.hajjiAdmin :is(.ticketDialog,.payment){background:#fffdf8;color:#25211b;border-color:#d6b46b}
 body.hajjiAdmin .adminSectionTitle{margin-top:8px}
 @media(max-width:420px){body.hajjiAdmin .brand{background-size:32px 32px;padding-left:39px;min-height:32px;font-size:17px}body.hajjiAdmin .headActions{gap:5px}}
 /* QR codes, certificates and video remain their actual colors; never filter a canvas or media element. */
@@ -200,3 +200,37 @@ html[data-hajji-game=ivory] body .avatar strong{color:#25211b!important}
 html[data-hajji-game=ivory] body .modal .levels span{background:#f8f5ee!important;color:#25211b!important;border-color:#d8ccb4!important}
 html[data-hajji-game=ivory] body :is(.rotateCover,.rotateScreen,.coreRotate){border-radius:0}
 @media print{html[data-hajji-game=ivory] body{background:#fff!important}}
+
+/* All non-game pages use the same ivory palette, with black typography and gold controls. */
+html[data-hajji-office=ivory]{background:#f3f0ea;color-scheme:light}
+html[data-hajji-office=ivory] body{background:#faf8f4;color:#25211b;font-family:var(--hajji-font);color-scheme:light}
+html[data-hajji-office=ivory] body :is(header,.sidebar,.panel,.card,.runCard,.stat,.stats article,.ticketCard,.ticketDialog,.payment,.arabicPreview,.ticketTableHead,th){background:#fffdf8;color:#25211b;border-color:#e3d9c7;box-shadow:none}
+html[data-hajji-office=ivory] body :is(.brand,h1,h2,h3,h4,label,legend,td,.number,.stat strong,.stats strong){color:#25211b}
+html[data-hajji-office=ivory] body :is(.brand span,.overline,.tag,.done,.verified,.bankExtra legend){color:#805c22}
+html[data-hajji-office=ivory] body :is(.muted,.caption,.notice,.fine,td small,.ticketCard small,.stats span,.stats small,.program small,.quick p,.settingsGrid p,.payment span,.sidebarNote,.ticketMobileLabel){color:#5e564c}
+html[data-hajji-office=ivory] body :is(header a,.headActions a,.sidebar a,.nav){color:#805c22}
+html[data-hajji-office=ivory] body :is(header,.sidebar){border-bottom:1px solid #e3d9c7}
+html[data-hajji-office=ivory] body :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),textarea,select){background:#fff!important;color:#25211b!important;border-color:#d8ccb4!important;color-scheme:light}
+html[data-hajji-office=ivory] body :is(input,textarea)::placeholder{color:#80776b!important}
+html[data-hajji-office=ivory] body option{background:#fff;color:#25211b}
+html[data-hajji-office=ivory] body :is(button,.button,.primary){background:#d6b46b;color:#25211b;border:1px solid #c9a75d}
+html[data-hajji-office=ivory] body :is(button,.button,.primary):hover:not(:disabled){background:#e7c77d}
+html[data-hajji-office=ivory] body :is(.secondary,.headActions button,.voiceRow,.pagination button,.ticketActions a){background:#fffdf8;color:#25211b;border:1px solid #d8ccb4}
+html[data-hajji-office=ivory] body :is(.secondary,.headActions button,.voiceRow,.pagination button):hover:not(:disabled){background:#f7ebcf}
+html[data-hajji-office=ivory] body .voiceRow small{color:#5e564c}
+html[data-hajji-office=ivory] body .voiceRow[aria-pressed=true]{background:#f7ebcf;color:#25211b;border-color:#c9a75d}
+html[data-hajji-office=ivory] body .voiceRow[aria-pressed=true] small{color:#805c22}
+html[data-hajji-office=ivory] body :is(.warning,.ticketState.reported){background:#fff5df;color:#805c22;border-color:#e6d1a1}
+html[data-hajji-office=ivory] body :is(.danger,.ticketState.suspended){background:#fff0f0;color:#9d3030;border-color:#d99b97}
+html[data-hajji-office=ivory] body .danger:hover:not(:disabled){background:#fce0de}
+html[data-hajji-office=ivory] body :is(td,th,fieldset,.tableWrap,.table,.bankExtra){border-color:#e3d9c7}
+html[data-hajji-office=ivory] body :is(progress,input[type=checkbox],input[type=radio],input[type=range]){accent-color:#b88b2e}
+html[data-hajji-office=ivory] body :is(a,button,input,select,textarea):focus-visible{outline-color:#b88b2e}
+html[data-hajji-office=ivory] body .hajjiAdmin{color:#25211b}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketStats article:nth-child(2){background:#fff8e8;border-color:#e6d1a1}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketStats article:nth-child(3){background:#fffdf8;border-color:#d6b46b}
+html[data-hajji-office=ivory] body.hajjiAdmin .revenue{background:linear-gradient(120deg,#fffdf8,#f4e5c1);border-color:#c9a75d}
+html[data-hajji-office=ivory] body.hajjiAdmin .adminBottomNav{background:#fff;border-color:#e3d9c7}
+html[data-hajji-office=ivory] body.hajjiAdmin .ticketCard header{background:transparent;border:0}
+html[data-hajji-office=ivory] body :is(.qrPanel,.preview) img{object-fit:contain}
+@media print{html[data-hajji-office=ivory],html[data-hajji-office=ivory] body{background:#fff!important}}
