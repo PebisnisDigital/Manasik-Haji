@@ -1,3 +1,4 @@
+import {mountAffiliateHud} from './gameAffiliateHud.ts';
 import {worldActionAnchor,isNavigationAction} from './worldInteraction.ts';
 import {choiceActionLabel} from './contextualAction.ts';
 import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
@@ -67,7 +68,8 @@ export function mountSimplePlayHud(kind:Kind){
  el('simpleClose').onclick=el('simpleResume').onclick=close;
  function open(title:string,context=''){dialog.returnValue='';assign(el('simpleSettingsTitle'),title);assign(el('simpleContext'),context);el('simpleContext').hidden=!context;setSimpleMenu(true);window.dispatchEvent(new Event('blur'));dialog.showModal();(options.querySelector('button,select,a') as HTMLElement|null)?.focus();paint();}
  function proxy(source:HTMLElement){const b=document.createElement('button');b.type='button';b.textContent=(source.textContent??'').trim();b.onclick=()=>{close();source.click();queue();};options.append(b);}
- const settingsHost=document.createElement('div');mountGameplaySettings(settingsHost);
+ const settingsHost=document.createElement('div');mountGameplaySettings(settingsHost,{affiliate:false});
+ mountAffiliateHud(el('simpleGear'),()=>!overlay()&&!simpleMenuOpen());
  el('simpleGear').onclick=()=>{if(overlay())return;options.replaceChildren(settingsHost);open('Pengaturan');};
  action.onclick=()=>{if(action.disabled)return;const list=candidates();if(list.length>1){options.replaceChildren();list.forEach(proxy);open(kind==='field'?text('#title')||'Pilih kegiatan':'Pilih kegiatan',kind==='field'?[level(),text('#body')].filter(Boolean).join(' — '):'');}else list[0]?.click();queue();};
  run.onclick=()=>{toggleSimpleRun();paint();};
