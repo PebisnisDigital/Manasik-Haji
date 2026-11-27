@@ -20,7 +20,7 @@ import {initLandingReferral,landingAffiliate,resolveLandingCoupon,claimLandingCo
 describe('landing-specific mission coupons',()=>{
  it('resolves separate coupon code from the affiliate alias and retains it during guide navigation',async()=>{
   vi.stubGlobal('sessionStorage',new Memory());initLandingReferral(new URLSearchParams('ref=VINI'));
-  const fetcher=vi.fn(async(_url:string,options:RequestInit)=>({ok:true,json:async()=>({coupon:{code:'VINIHEMAT',amount:490000,discount:10000}})}));vi.stubGlobal('fetch',fetcher);
+  const fetcher=vi.fn(async(_url:string,_options:RequestInit)=>({ok:true,json:async()=>({coupon:{code:'VINIHEMAT',amount:490000,discount:10000}})}));vi.stubGlobal('fetch',fetcher);
   expect(await resolveLandingCoupon()).toBe('VINIHEMAT');expect(JSON.parse(String(fetcher.mock.calls[0]![1].body))).toEqual({reward_ref:'VINI'});
   expect(claimLandingCoupon('VINIHEMAT')).toBe(true);initLandingReferral(new URLSearchParams('guide=1'));
   expect(landingAffiliate()).toBe('VINI');expect(claimedLandingCoupon()).toBe('VINIHEMAT');
