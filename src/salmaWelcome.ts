@@ -1,5 +1,5 @@
 import {readSetup} from './frontSettings.ts';
-import {gateGuide,gateGreeting} from './gateGuide.ts';
+import {gateGuide,gateGreeting,gateIntroduction} from './gateGuide.ts';
 import {mountGateRegistration} from './gateRegistration.ts';
 import {slug} from './tenant.ts';
 import {localPreview,demoMagicUrl,showMagicLinkPopup} from './magicAccess.ts';
@@ -11,6 +11,7 @@ type Choice='check'|'register';
 type Progress={stage:'welcome'|'form';choice:Choice};
 export function openSalmaWelcome(onClose:()=>void,project:(side:Side|'desk')=>GateDialogueAnchor,playerName='',onDeparture?:(href:string)=>void,onNewAtGuide?:(name:string)=>void){
  const avatar=readSetup()?.avatar??'male',guide=onNewAtGuide?gateGuide(avatar).name:avatar==='female'?'Petugas loket perempuan':'Petugas loket laki-laki',sapaan=gateGreeting(avatar);
+ const introduction=onNewAtGuide?gateIntroduction(avatar):[];let introIndex=0;
  const key='hajji-gate-chat-v2:'+String(slug??'')+':'+avatar;
  let progress:Progress={stage:'welcome',choice:'check'};
  try{const v=JSON.parse(localStorage.getItem(key)??'null');if(v?.stage==='form')progress={stage:'form',choice:v.choice==='register'?'register':'check'};}catch{}
@@ -90,17 +91,24 @@ export function openSalmaWelcome(onClose:()=>void,project:(side:Side|'desk')=>Ga
  function escape(e:KeyboardEvent){if(e.key==='Escape'&&!document.querySelector('dialog[open]')){e.preventDefault();close();}}
  function welcome(){
   clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'welcome',choice:'check'};save();
-  root.dataset.line='welcome';say('guide',onNewAtGuide?'Assalamualaikum, '+sapaan+'! Sudah pernah mendaftar? Saya cek nama, email dan WhatsApp dulu, ya. Kalau tiket aktif, tidak perlu antre.':'Assalamualaikum, '+sapaan+'! Selamat datang di HAJJI.DIGITAL. Saya bantu cek data dulu, ya.');
+  introIndex=0;root.dataset.line='welcome';
+  if(onNewAtGuide)showIntroduction();else{check.textContent='LANJUT';say('guide','Assalamualaikum, '+sapaan+'! Selamat datang di HAJJI.DIGITAL. Saya bantu cek data dulu, ya.');}
   content.replaceChildren();content.hidden=true;notice.textContent='';actions.hidden=false;check.disabled=false;check.focus({preventScroll:true});
+ }
+ function showIntroduction(){
+  say('guide',introduction[introIndex]!);
+  root.dataset.introStep=String(introIndex+1);
+  root.dataset.introTotal=String(introduction.length);
+  check.textContent=introIndex===introduction.length-1?'CEK DATA':'LANJUT ('+(introIndex+1)+'/'+introduction.length+')';
  }
  function form(choice:Choice,animate:boolean){
   clearTimeout(timer);disposeRegistration?.();disposeRegistration=undefined;progress={stage:'form',choice};save();
-  root.dataset.line='reply';actions.hidden=true;content.hidden=true;notice.textContent='';
+  delete root.dataset.introStep;delete root.dataset.introTotal;root.dataset.line='reply';actions.hidden=true;content.hidden=true;notice.textContent='';
   say('player','Baik, silakan.');
   const reveal=()=>{if(closed)return;root.dataset.line='form';say('guide','Boleh saya minta datanya dulu, '+sapaan+'?');content.hidden=false;disposeRegistration=mountGateRegistration(content,notice,welcome,playerName,onDeparture?href=>{if(closed)return;clearTimeout(timer);content.hidden=true;actions.hidden=true;notice.textContent='';root.dataset.line='departure';say('guide','Wah, alhamdulillah, '+sapaan+'! Tiket sudah aktif. Silakan langsung masuk melalui pintu keberangkatan ini, ya.');timer=setTimeout(()=>{if(closed)return;say('player','Baik, terima kasih. Saya masuk dulu, ya.');timer=setTimeout(()=>close(href),1600);},3500);}:undefined,message=>say('guide',message),message=>say('player',message),onNewAtGuide?name=>{close();onNewAtGuide(name);}:undefined);};
   if(animate)timer=setTimeout(reveal,1100);else reveal();
  }
- closeBtn.onclick=()=>close();document.addEventListener('keydown',escape);check.onclick=()=>form('check',true);
+ closeBtn.onclick=()=>close();document.addEventListener('keydown',escape);check.onclick=()=>{if(onNewAtGuide&&introIndex<introduction.length-1){introIndex++;showIntroduction();return;}form('check',true);};
  if(!onNewAtGuide&&localPreview()){const demo=document.createElement('button');demo.type='button';demo.className='gateDemoAccess';demo.textContent='Coba akses setelah pembayaran · DEMO';demo.onclick=()=>{disposeDemo?.();disposeDemo=showMagicLinkPopup(demoMagicUrl(),guide,true);};panel.append(demo);}
  welcome();layout();return ()=>close();
 }
