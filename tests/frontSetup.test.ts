@@ -15,3 +15,27 @@ describe('front-door configuration and existing journey',()=>{
  it('uses selected avatar when resuming without changing stored step, count, name or id',()=>{const m=new Memory();vi.stubGlobal('localStorage',m);const raw=JSON.stringify({version:1,id:'old',program:'umrah',avatar:'male',name:'Peserta lama',step:3});m.setItem('umroh-digital-preview-umrah',raw);m.setItem('umroh-digital-checkpoint-umrah','old-checkpoint');saveSetup({...defaultSetup(),avatar:'female',program:'umrah'});expect(readCore('umrah')).toMatchObject({id:'old',name:'Peserta lama',step:3,avatar:'female'});expect(m.getItem('umroh-digital-preview-umrah')).toBe(raw);expect(m.getItem('umroh-digital-checkpoint-umrah')).toBe('old-checkpoint');});
  it('locks Umroh to its actual current stage and derives five finished levels',()=>{const base={version:1 as const,id:'u',program:'umrah' as const,avatar:'male' as const,name:'P',step:3 as const};expect(umrahLevels(base).filter(c=>c.done)).toHaveLength(3);expect(umrahLevels(base).filter(c=>c.available).map(c=>c.number)).toEqual([4]);expect(umrahLevels({...base,step:5}).every(c=>c.done&&!c.available)).toBe(true);expect(umrahLevels(null).filter(c=>c.available).map(c=>c.number)).toEqual([1]);});
 });
+
+import {initLandingReferral,landingAffiliate,resolveLandingCoupon,claimLandingCoupon,claimedLandingCoupon} from '../src/landingReferral.ts';
+describe('landing-specific mission coupons',()=>{
+ it('resolves separate coupon code from the affiliate alias and retains it during guide navigation',async()=>{
+  vi.stubGlobal('sessionStorage',new Memory());initLandingReferral(new URLSearchParams('ref=VINI'));
+  const fetcher=vi.fn(async(_url:string,options:RequestInit)=>({ok:true,json:async()=>({coupon:{code:'VINIHEMAT',amount:490000,discount:10000}})}));vi.stubGlobal('fetch',fetcher);
+  expect(await resolveLandingCoupon()).toBe('VINIHEMAT');expect(JSON.parse(String(fetcher.mock.calls[0]![1].body))).toEqual({reward_ref:'VINI'});
+  expect(claimLandingCoupon('VINIHEMAT')).toBe(true);initLandingReferral(new URLSearchParams('guide=1'));
+  expect(landingAffiliate()).toBe('VINI');expect(claimedLandingCoupon()).toBe('VINIHEMAT');
+  initLandingReferral(new URLSearchParams('ref=OTHER'));expect(claimedLandingCoupon()).toBe('');
+  initLandingReferral(new URLSearchParams());expect(landingAffiliate()).toBe('');
+ });
+ it('returns MAUHAJJI on the central landing and does not inherit the affiliate coupon',async()=>{
+  vi.stubGlobal('sessionStorage',new Memory());initLandingReferral(new URLSearchParams('ref=VINI'));initLandingReferral(new URLSearchParams());
+  const fetcher=vi.fn(async()=>({ok:true,json:async()=>({coupon:{code:'MAUHAJJI',amount:75000,discount:425000}})}));vi.stubGlobal('fetch',fetcher);
+  expect(await resolveLandingCoupon()).toBe('MAUHAJJI');expect(claimLandingCoupon('MAUHAJJI')).toBe(true);
+  initLandingReferral(new URLSearchParams());expect(claimedLandingCoupon()).toBe('MAUHAJJI');
+ });
+ it('does not silently substitute a central reward for an invalid affiliate',async()=>{
+  vi.stubGlobal('sessionStorage',new Memory());initLandingReferral(new URLSearchParams('ref=UNKNOWN'));
+  vi.stubGlobal('fetch',vi.fn(async()=>({ok:false,json:async()=>({error:'Link affiliate tidak aktif atau tidak valid.'})})));
+  await expect(resolveLandingCoupon()).rejects.toThrow('Link affiliate tidak aktif');expect(claimedLandingCoupon()).toBe('');
+ });
+});
