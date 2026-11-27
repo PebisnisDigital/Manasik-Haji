@@ -207,8 +207,10 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     }
     if(npcs.some(n=>distance(n)<2))conversation('pilgrim');
   }
-  const settingsHost=document.createElement('div');mountGameplaySettings(settingsHost);
-  function pause(){if(!started||entering||guardTalk)return;if(dialog.open){if(dialog.classList.contains('gameplaySettingsDialog'))closeDialog();return;}showDialog('Pengaturan','',[{text:'Tutup',secondary:true}],'');el('graphicsOptions').append(settingsHost);dialog.classList.add('gameplaySettingsDialog');settingsHost.querySelector('select')?.focus();}
+  const settingsHost=document.createElement('div');mountGameplaySettings(settingsHost,{affiliate:false});
+  function positionSettings(){if(!dialog.classList.contains('gameplaySettingsDialog'))return;const rect=el('pauseButton').getBoundingClientRect();dialog.style.setProperty('--district-settings-top',Math.round(rect.bottom+8)+'px');dialog.style.setProperty('--district-settings-right',Math.max(8,Math.round(window.innerWidth-rect.right))+'px');}
+  window.addEventListener('resize',positionSettings);
+  function pause(){if(!started||entering||guardTalk)return;if(dialog.open){if(dialog.classList.contains('gameplaySettingsDialog'))closeDialog();return;}dialog.classList.add('gameplaySettingsDialog');positionSettings();showDialog('Pengaturan','',[{text:'Tutup',secondary:true}],'');el('graphicsOptions').append(settingsHost);settingsHost.querySelector('select')?.focus({preventScroll:true});}
   const controls=attachAdventureControls({canvas,keys,joy,active:()=>started&&!budget.lost()&&!guardTalk,look:(dx,dy)=>{cameraYaw-=dx*.004;rig.orbitPitch(dy);lastLook=performance.now();},interact,pause,extraKeys:['Space']});
   dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});intro.addEventListener('cancel',e=>e.preventDefault());
   el('pauseButton').innerHTML=gearIcon;el('pauseButton').setAttribute('aria-label','Pengaturan');el('pauseButton').onclick=pause;el('missionButton').style.display='none';el('interactButton').onclick=interact;
