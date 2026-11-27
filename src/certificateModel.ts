@@ -3,7 +3,7 @@ export interface Certificate{id:string;name:string;program:Program;date:string;v
 export const validCode=(s:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 export const programName=(p:Program)=>p==='hajj'?'Manasik Haji Tamattu’':'Manasik Umroh';
 export const serial=(c:Certificate)=>(c.verified?'UD-':'LATIHAN-')+(c.program==='hajj'?'H-':'U-')+c.id.toUpperCase();
-export function verifyUrl(id:string,base:string){if(!validCode(id))throw Error('Kode tidak valid.');const u=new URL('./verify.html',base);u.searchParams.set('c',id.toLowerCase());return u.href;}
+export function verifyUrl(id:string,base:string){if(!validCode(id))throw Error('Kode tidak valid.');const source=new URL(base);const u=new URL('./verify.html',['hajidigital.vercel.app','manasik-haji-rho.vercel.app','hajji.digital','www.hajji.digital'].includes(source.hostname)?'https://hajji.digital/':base);u.searchParams.set('c',id.toLowerCase());return u.href;}
 export function issuedDate(d:string){const v=new Date(d);return Number.isFinite(v.getTime())?v.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Jakarta'}):'Tanggal tidak tercatat';}
 export function certificatePdf(jpeg:Uint8Array,w:number,h:number):Uint8Array{
  if(!Number.isInteger(w)||!Number.isInteger(h)||w<=0||h<=0||jpeg[0]!==255||jpeg[1]!==216)throw Error('Gambar tidak valid.');
