@@ -31,4 +31,14 @@ async function run(op='affiliate',data:object={}){requestButton.disabled=true;co
 requestButton.onclick=()=>void run('affiliate-request');
 form.onsubmit=e=>{e.preventDefault();const code=field.value.trim().toUpperCase();if(!/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(code)){notice.textContent='Kode 3–30 karakter: huruf, angka, atau tanda hubung.';return;}void run('affiliate-save',{code});};
 withdrawForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(withdrawForm);const payload={amount:Number(f.get('amount')),bank:String(f.get('bank')).trim(),holder:String(f.get('holder')).trim(),account:String(f.get('account')).trim()};if(!confirm('Ajukan pencairan '+money(payload.amount)+' ke rekening yang diisi?'))return;const serialized=JSON.stringify(payload);if(requestPayload!==serialized||!requestId){requestId=crypto.randomUUID();requestPayload=serialized;}const submit=withdrawForm.querySelector('button')!;submit.disabled=true;try{const result=await api('affiliate-withdraw',{...payload,request_id:requestId});requestId=null;requestPayload='';withdrawForm.reset();render(result);notice.textContent='Pengajuan pencairan tercatat.';}catch(e){notice.textContent=e instanceof Error?e.message:'Pengajuan belum terkonfirmasi. Coba lagi dengan data yang sama.';}finally{submit.disabled=false;}};
-void run();
+async function bootAffiliate(){
+ const hash=new URLSearchParams(location.hash.slice(1)),token=hash.get('token');
+ if(location.hash){history.replaceState(null,'',location.pathname+location.search);}
+ if(token!==null||new URLSearchParams(location.search).get('access')==='1'){
+  if(!token||!/^[a-f0-9]{64}$/.test(token)){notice.textContent='Magic Link affiliate tidak valid. Gunakan tautan lengkap dari admin.';return;}
+  try{const res=await fetch('/api/registration/redeem',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({token}),signal:AbortSignal.timeout(8000)});const data=await res.json();if(!res.ok||data.registration?.status!=='approved'||data.registration.access_suspended)throw Error(data.error||'Magic Link affiliate belum aktif.');history.replaceState(null,'',location.pathname);}
+  catch(e){notice.textContent=e instanceof Error?e.message:'Akses affiliate gagal. Buka kembali Magic Link dari admin.';return;}
+ }
+ await run();
+}
+void bootAffiliate();
