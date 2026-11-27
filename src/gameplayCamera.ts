@@ -19,7 +19,7 @@ export function setCameraPreferences(p:Partial<CameraPreferences>,reset=false){
  try{localStorage.setItem(KEY,JSON.stringify(cameraPrefs));}catch{}
  if(typeof window!=='undefined')window.dispatchEvent(new CustomEvent('hajji-camera-change',{detail:{reset}}));
 }
-export const cameraDistance=(indoor=false)=>cameraPrefs.mode==='near'?Math.min(cameraPrefs.distance,3.5):indoor&&cameraPrefs.indoor?Math.min(cameraPrefs.distance,2.85):cameraPrefs.distance;
+export const cameraDistance=(indoor=false)=>indoor&&cameraPrefs.indoor?Math.min(cameraPrefs.distance,2.85):cameraPrefs.mode==='near'?Math.min(cameraPrefs.distance,3.5):cameraPrefs.distance;
 export function mountCameraSettings(host:HTMLElement){
  const panel=document.createElement('section');panel.className='gameplayCameraSettings';panel.style.cssText='display:grid;gap:7px;padding:12px 0 0;border-top:1px solid #e3d9c7;max-width:100%';
  const title=document.createElement('strong');title.textContent='Kamera';panel.append(title);
