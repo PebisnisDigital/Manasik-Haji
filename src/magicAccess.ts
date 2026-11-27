@@ -6,7 +6,7 @@ import './travelEntrance.css';
 export const localPreview=()=>['127.0.0.1','localhost'].includes(location.hostname);
 export function demoMagicUrl(){const setup=readSetup()??defaultSetup();return tenantUrl('./index.html?demo=magic&avatar='+setup.avatar+'&program='+setup.program);}
 export function showMagicLinkPopup(href:string,guide:string,demo=false){
- const url=new URL(href,location.href);if(url.origin!==location.origin)throw Error('Tautan akses harus berasal dari situs game ini.');
+ const url=new URL(href,location.href);if(['hajidigital.vercel.app','manasik-haji-rho.vercel.app','www.hajji.digital','hajji.digital'].includes(location.hostname)&&['https://hajidigital.vercel.app','https://manasik-haji-rho.vercel.app','https://www.hajji.digital','https://hajji.digital'].includes(url.origin)){url.protocol=location.protocol;url.host=location.host;}if(url.origin!==location.origin)throw Error('Tautan akses harus berasal dari situs game ini.');
  const dialog=document.createElement('dialog');dialog.className='salmaWelcome magicLinkPopup';dialog.setAttribute('aria-labelledby','magicPopupTitle');
  const kicker=document.createElement('div');kicker.className='travelKicker';kicker.textContent=demo?'DEMO · TANPA TRANSAKSI':'TIKET AKTIF · AKSES PRIBADI';
  const title=document.createElement('h2');title.id='magicPopupTitle';title.textContent=demo?'Anggap pembayaran sudah selesai.':'Magic link kamu sudah siap.';
