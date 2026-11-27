@@ -1,3 +1,4 @@
+import {bindTicket,clearTicketOwner,syncTicketProgress,saveTicketProgress,ticketOwner} from '../ticketProgress.ts';
 import {beginReplay,endReplay,replayKey} from './levelReplay.ts';
 import {playerKey} from '../playerCloud.ts';
 import {SOUVENIR_NUMBER,canOpenSouvenir} from './citySouvenir.ts';
@@ -31,15 +32,18 @@ function levels(program:Program):Level[]{
  const run=readCore('umrah'),step=run?.step??0;
  return UMRAH_LEVELS.map((l,i)=>({number:i+1,title:l.title,done:i<step,available:i===step,saved:!!run&&i===step,href:i===0?miqatEntryUrl(demo):run&&i===step?umrahDeparture(run.step,coreUrl(run,gamePage(run.step)??'manasik.html')):''}));
 }
+function progressRank(program:Program){if(program==='umrah')return (readCore('umrah')?.step??0)*13;const route=loadNusukRoute();return route.done*13+readStars(route.chapters).length;}
 export async function verifyDistrictBoard():Promise<{program:Program;name:string}>{
- if(preview)return {program:'hajj',name:'Peserta Demo'};
- if(example){const current=readSetup()??defaultSetup(),avatar=new URLSearchParams(location.search).get('avatar');if(!saveSetup({...current,program:'hajj',avatar:avatar==='female'||avatar==='male'?avatar:current.avatar})||!saveStory({name:'Peserta Contoh',briefed:true}))throw Error('Penyimpanan demo belum tersedia.');return {program:'hajj',name:'Peserta Contoh'};}
- if(demo){const setup=readSetup()??defaultSetup();return {program:setup.program,name:readStory().name};}
+ if(preview){clearTicketOwner();return {program:'hajj',name:'Peserta Demo'};}
+ if(example){clearTicketOwner();const current=readSetup()??defaultSetup(),avatar=new URLSearchParams(location.search).get('avatar');if(!saveSetup({...current,program:'hajj',avatar:avatar==='female'||avatar==='male'?avatar:current.avatar})||!saveStory({name:'Peserta Contoh',briefed:true}))throw Error('Penyimpanan demo belum tersedia.');return {program:'hajj',name:'Peserta Contoh'};}
+ if(demo){clearTicketOwner();const setup=readSetup()??defaultSetup();return {program:setup.program,name:readStory().name};}
  const res=await fetch(new URL('./api/registration',location.href),{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(8000)});
  const data=await res.json(),r=data.registration;
  if(!res.ok||r?.status!=='approved'||r.access_suspended||!['hajj','umrah'].includes(r.program)||!['male','female'].includes(r.avatar))throw Error('Tiket belum aktif. Buka kembali magic link pribadi dari admin.');
+ bindTicket(r.id,r.name??'',r.program);endReplay();
  if(!saveSetup({...readSetup()??defaultSetup(),program:r.program,avatar:r.avatar}))throw Error('Penyimpanan karakter tidak tersedia.');
  const name=typeof r.name==='string'&&r.name.trim().length>=2&&r.name.trim().length<=60?r.name.trim():readStory().name;
+ await syncTicketProgress(()=>progressRank(r.program));
  if(!saveStory({name,briefed:true}))throw Error('Penyimpanan perjalanan belum tersedia.');
  return {program:r.program,name};
 }
@@ -127,5 +131,5 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  function open(){draw();dialog.hidden=false;if(!dialog.open)dialog.showModal();close.focus();}
  draw();group.updateMatrixWorld(true);window.addEventListener('storage',draw);window.addEventListener('pageshow',e=>{if(e.persisted){launching=false;draw();}});
  document.documentElement.dataset.districtBoardReady='true';
- return {tap,open,launch,check,bonusReady,bonusMessage,refresh:draw,stars:()=>program==='hajj'&&!preview?readStars(levels(program)):[],claim:(n:number)=>{if(preview||program!=='hajj')return {stars:[],awarded:false,stored:false};const result=claimStar(levels(program),n);draw();return result;},available:()=>[...list.filter(l=>l.available).map(l=>l.number),...(cachedBonusReady?[SOUVENIR_NUMBER]:[])],next:()=>program==='hajj'&&!preview&&readStars(levels(program)).length===12?SOUVENIR_NUMBER:list.find(l=>l.available&&!l.done)?.number??list[0]?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
+ return {tap,open,launch,check,bonusReady,bonusMessage,refresh:draw,stars:()=>program==='hajj'&&!preview?readStars(levels(program)):[],claim:(n:number)=>{if(preview||program!=='hajj')return {stars:[],awarded:false,stored:false};const result=claimStar(levels(program),n);draw();return result;},sync:async()=>{if(ticketOwner()&&!demo&&!preview&&!example){await saveTicketProgress(progressRank(program));draw();}},available:()=>[...list.filter(l=>l.available).map(l=>l.number),...(cachedBonusReady?[SOUVENIR_NUMBER]:[])],next:()=>program==='hajj'&&!preview&&readStars(levels(program)).length===12?SOUVENIR_NUMBER:list.find(l=>l.available&&!l.done)?.number??(program==='hajj'?list.find(l=>l.done&&!readStars(list).includes(l.number))?.number:undefined)??list.at(-1)?.number??1,progress:()=>({done:list.filter(l=>l.done).length,total:list.length}),dispose:()=>{window.removeEventListener('storage',draw);dialog.remove();texture.dispose();}};
 }
