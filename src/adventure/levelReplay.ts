@@ -3,7 +3,7 @@ export type Replay={number:number;id:string};
 const KEY='hajji-level-replay-v1';
 export function activeReplay():Replay|null{
  if(typeof location==='undefined'||typeof sessionStorage==='undefined')return null;
- const page=location.pathname.split('/').pop()??'';
+ const page=(location.pathname??'').split('/').pop()??'';
  if(page==='district.html'||page==='district'||page==='adventure-map.html'||page==='oleh-oleh.html'||page==='admin.html')return null;
  if((page===''||page==='index.html'||page==='index')&&!new URLSearchParams(location.search).has('play'))return null;
  try{const r=JSON.parse(sessionStorage.getItem(KEY)??'null');return Number.isInteger(r?.number)&&r.number>=1&&r.number<=12&&/^[a-z0-9-]{8,80}$/i.test(r.id)?r:null;}catch{return null;}
