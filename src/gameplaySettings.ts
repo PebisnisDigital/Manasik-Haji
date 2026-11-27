@@ -1,3 +1,4 @@
+import {mountCameraSettings} from './gameplayCamera.ts';
 import {mountGraphics} from './graphicsQuality.ts';
 import {readSetup,saveSetup,gameAudioPreferences,setGameAudioPreferences} from './frontSettings.ts';
 import {parseGraphics} from './graphicsModel.ts';
@@ -17,5 +18,5 @@ export function mountGameplaySettings(host:HTMLElement){
  range.oninput=()=>{const v=Number(range.value);setGameAudioPreferences({enabled:v>0,volume:v});sync();};
  range.style.touchAction='none';range.style.pointerEvents='auto';sound.style.pointerEvents='auto';sound.style.touchAction='manipulation';
  for(const event of ['pointerdown','pointermove','pointerup'] as const)range.addEventListener(event,e=>e.stopPropagation());
- panel.append(row,vol);host.append(panel);sync();return panel;
+ panel.append(row,vol);mountCameraSettings(panel);host.append(panel);sync();return panel;
 }
