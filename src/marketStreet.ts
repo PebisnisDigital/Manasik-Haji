@@ -231,7 +231,7 @@ export function createMarketStreet(scene:THREE.Scene,root:THREE.Group,_detail:bo
     ],
     update(dt:number,player:THREE.Vector3) {
       for(const vendor of vendors)vendor.update(dt,player);
-      if(player.x>=-7){ridesUpdate(dt,player);parking.update(dt,player);}
+      ridesUpdate(dt,player);parking.update(dt,player);
     },
   };
 }
