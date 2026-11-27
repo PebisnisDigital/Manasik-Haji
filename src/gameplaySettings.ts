@@ -4,7 +4,7 @@ import {readSetup,saveSetup,gameAudioPreferences,setGameAudioPreferences} from '
 import {parseGraphics} from './graphicsModel.ts';
 
 export const gearIcon='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 3-.6 2.3-2 .9-2.2-1.2-2 3.5 1.8 1.6-.1 2.3-1.8 1.6 2 3.5 2.2-1.1 2 .9.7 2.3h4l.6-2.3 2-.9 2.2 1.1 2-3.5-1.8-1.6.1-2.3 1.8-1.6-2-3.5-2.2 1.2-2-.9L14 3z"/><circle cx="12" cy="11.5" r="3"/></svg>';
-export function mountGameplaySettings(host:HTMLElement){
+export function mountGameplaySettings(host:HTMLElement,options:{affiliate?:boolean}={}){
  const panel=document.createElement('div');panel.className='gameplaySettingsRows';
  const graphics=mountGraphics(panel);graphics.querySelector('.graphicsNote')?.remove();
  const select=graphics.querySelector('select')!;
@@ -18,8 +18,8 @@ export function mountGameplaySettings(host:HTMLElement){
  range.oninput=()=>{const v=Number(range.value);setGameAudioPreferences({enabled:v>0,volume:v});sync();};
  range.style.touchAction='none';range.style.pointerEvents='auto';sound.style.pointerEvents='auto';sound.style.touchAction='manipulation';
  for(const event of ['pointerdown','pointermove','pointerup'] as const)range.addEventListener(event,e=>e.stopPropagation());
- panel.append(row,vol);mountCameraSettings(panel);const tabs=document.createElement('div');tabs.className='gameplayAffiliateTabs';tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Menu pengaturan');const gameTab=document.createElement('button'),affiliateTab=document.createElement('button');gameTab.type=affiliateTab.type='button';gameTab.textContent='Game';affiliateTab.textContent='Affiliate';gameTab.setAttribute('aria-pressed','true');affiliateTab.setAttribute('aria-pressed','false');tabs.append(gameTab,affiliateTab);panel.prepend(tabs);
+ panel.append(row,vol);mountCameraSettings(panel);if(options.affiliate!==false){const tabs=document.createElement('div');tabs.className='gameplayAffiliateTabs';tabs.setAttribute('role','group');tabs.setAttribute('aria-label','Menu pengaturan');const gameTab=document.createElement('button'),affiliateTab=document.createElement('button');gameTab.type=affiliateTab.type='button';gameTab.textContent='Game';affiliateTab.textContent='Affiliate';gameTab.setAttribute('aria-pressed','true');affiliateTab.setAttribute('aria-pressed','false');tabs.append(gameTab,affiliateTab);panel.prepend(tabs);
  const frame=document.createElement('iframe');frame.className='gameplayAffiliateFrame';frame.title='Dashboard Affiliate HAJJI.DIGITAL';frame.referrerPolicy='no-referrer';frame.allow='clipboard-write';frame.hidden=true;panel.append(frame);
  function switchTab(open:boolean){panel.classList.toggle('affiliateOpen',open);frame.hidden=!open;gameTab.setAttribute('aria-pressed',String(!open));affiliateTab.setAttribute('aria-pressed',String(open));if(open){if(!frame.hasAttribute('src'))frame.src=new URL('./affiliate.html?embedded=1',location.href).href;}else frame.removeAttribute('src');}
- gameTab.onclick=()=>switchTab(false);affiliateTab.onclick=()=>switchTab(true);host.append(panel);sync();return panel;
+ gameTab.onclick=()=>switchTab(false);affiliateTab.onclick=()=>switchTab(true);}host.append(panel);sync();return panel;
 }
