@@ -1,3 +1,4 @@
+import {cameraPrefs} from '../gameplayCamera.ts';
 import {endReplay} from './levelReplay.ts';
 import {mountGameplaySettings,gearIcon} from '../gameplaySettings.ts';
 import {humanBodies} from '../characters/HumanActors.ts';
@@ -275,7 +276,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     const beforeX=hero.x,beforeZ=hero.z;
     const followingQueue=queuedBuilding!==null&&queueStage===2;
     city?.advanceQueues(hero,guardTalk?dt:step);
-    if(hub&&active&&lookStick.lengthSq()>.005){cameraYaw-=lookStick.x*dt*2.2;rig.orbitPitch(lookStick.y*dt*420);lastLook=now;}
+    if(hub&&active&&lookStick.lengthSq()>.005){cameraYaw-=lookStick.x*dt*2.2*cameraPrefs.sensitivity;rig.orbitPitch(lookStick.y*dt*420*cameraPrefs.sensitivity);lastLook=now;}
     const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'))-joy.y;
     const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'))+joy.x;
     if(leavingBuilding&&city&&active){const b=leavingBuilding,next=stepQueueWalk(hero,doorwayPoint(b,12.9),step,2.1);hero.x=next.x;hero.z=next.z;if(next.yaw!==null&&next.travel>.00005){heading=next.yaw;audio.step();}if(next.arrived){city.openDoor(b.number,0);leavingBuilding=null;if(b.number===SOUVENIR_NUMBER){clearDistrictVisit();toast('Oleh-oleh tersimpan. Sampai jumpa!');}else receiveStar(b.number);}}
@@ -316,7 +317,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     world.update(clock,city?city.bus():bus,save.stage,save.stage===2,hero,heading,hub?{target:null,parcel:false}:transfer?{target:save.stage>=4?STATIONS.arrival:save.stage===3?transferCue(bus,(save as TransferSave).gate).target:bus,parcel:false}:save.stage===5?{target:bonusGoal,parcel:errands.stage===3&&!driving}:undefined,wheelAngle);
     if(hub)world.luggage.visible=false;
     if(city&&journeyBoard)city.render(cityVehicle,wheelAngle,journeyBoard.available(),targetLevel);
-    player.beginFrame();if(!driving&&!guardTalk)submit(player,hero.x,hero.z,heading,0,false,save.avatar==='female'?8:0,playerMotion);player.endFrame();
+    player.beginFrame();if(!driving&&!guardTalk&&cameraPrefs.mode!=='first')submit(player,hero.x,hero.z,heading,0,false,save.avatar==='female'?8:0,playerMotion);player.endFrame();
     crowd.beginFrame();submit(crowd,STATIONS.briefing.x,STATIONS.briefing.z,Math.atan2(hero.x+12,hero.z-17),clock*.00015,false,9);
     for(const n of npcs){
       n.waiting=npcWaiting(Math.hypot(n.x-hero.x,n.z-hero.z),n.waiting)||insideBus(n,bus,.9);let travel=0;
@@ -330,7 +331,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     const guidePoint=magicBoarding&&save.stage<4?{x:bus.x-3,z:bus.z+1.5}:STATIONS.arrival;
     salma.beginFrame();if(!magicBoarding||!driving||save.stage>=4)submit(salma,guidePoint.x,guidePoint.z,Math.atan2(hero.x-guidePoint.x,hero.z-guidePoint.z),clock*.00016,false,transfer&&save.avatar==='male'?0:8);salma.endFrame();
     cameraPresentation.update(hero,cameraYaw,step);rig.framing=cameraPresentation.framing;
-    if(guardTalk&&guardNumber!==null&&city){const g=city.guardPoint(guardNumber);if(g){camera.position.lerp(new THREE.Vector3(hero.x,save.avatar==='female'?1.52:1.64,hero.z),followAlpha(9,dt));camera.lookAt(g.x,1.58,g.z);camera.updateMatrixWorld();guardTalk.layout(camera,g);}}else rig.update(cameraPresentation.focus.x,cameraPresentation.focus.z,cameraPresentation.focus.yaw,dt);
+    if(guardTalk&&guardNumber!==null&&city){const g=city.guardPoint(guardNumber);if(g){camera.position.lerp(new THREE.Vector3(hero.x,save.avatar==='female'?1.52:1.64,hero.z),followAlpha(9,dt));camera.lookAt(g.x,1.58,g.z);camera.updateMatrixWorld();guardTalk.layout(camera,g);}}else rig.update(cameraPresentation.focus.x,cameraPresentation.focus.z,cameraPresentation.focus.yaw,dt,{vehicle:driving,eye:save.avatar==='female'?1.52:1.64});
     const targetFov=guardTalk?58:driving&&!reducedMotion.matches?61+Math.abs(bus.speed)*.45:61;
     if(Math.abs(camera.fov-targetFov)>.02){camera.fov+=(targetFov-camera.fov)*followAlpha(3,guardTalk?dt:step);camera.updateProjectionMatrix();}
     const goal=city?.places.find(b=>b.number===targetLevel)?.door??boardPoint??(transfer?(save.stage>=4?STATIONS.arrival:save.stage===3?transferCue(bus,(save as TransferSave).gate).target:bus):save.stage===5?(bonusGoal??STATIONS.arrival):save.stage===2?bus:DISTRICT_STEPS[save.stage].target);
