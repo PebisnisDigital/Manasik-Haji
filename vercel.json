@@ -40,5 +40,40 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path((?!api(?:/|$)).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "hajidigital.vercel.app"
+        }
+      ],
+      "destination": "https://hajji.digital/:path",
+      "permanent": false
+    },
+    {
+      "source": "/:path((?!api(?:/|$)).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "manasik-haji-rho.vercel.app"
+        }
+      ],
+      "destination": "https://hajji.digital/:path",
+      "permanent": false
+    },
+    {
+      "source": "/:path((?!api(?:/|$)).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.hajji.digital"
+        }
+      ],
+      "destination": "https://hajji.digital/:path",
+      "permanent": false
+    }
   ]
 }
