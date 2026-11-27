@@ -1,3 +1,4 @@
+import {cameraPrefs} from '../gameplayCamera.ts';
 import {mountArenaLookPad} from '../worldInteraction.ts';
 import {simpleMenuOpen} from '../simpleInput.ts';
 import {lifeOpen} from './lifeWorld.ts';
@@ -25,7 +26,7 @@ export function attachAdventureControls(o:Options) {
   const abort=new AbortController(),signal=abort.signal;
   let stickId:number|null=null,lookId:number|null=null,lastX=0,lastY=0;
   const playable=()=>!simpleMenuOpen()&&o.active()&&!lifeOpen()&&!companionOpen()&&!document.hidden&&!portrait.matches&&!overlays.some(el=>!el.hidden);
-  mountArenaLookPad(playable,o.look,signal);
+  mountArenaLookPad(playable,(dx,dy)=>o.look(dx*cameraPrefs.sensitivity,dy*cameraPrefs.sensitivity),signal);
   function resetStick(){o.joy.x=o.joy.y=0;knob.style.left=knob.style.top='50%';}
   function release(el:HTMLElement,id:number|null){if(id!==null&&el.hasPointerCapture(id))el.releasePointerCapture(id);}
   function clear(){o.keys.clear();const a=stickId,b=lookId;stickId=lookId=null;resetStick();release(stick,a);release(o.canvas,b);}
@@ -39,7 +40,7 @@ export function attachAdventureControls(o:Options) {
   stick.addEventListener('pointermove',update,{signal});
   for(const name of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(name,e=>{if((e as PointerEvent).pointerId===stickId){stickId=null;resetStick();}},{signal});
   o.canvas.addEventListener('pointerdown',e=>{if(lookId!==null||!playable()||e.button!==0)return;e.preventDefault();lookId=e.pointerId;lastX=e.clientX;lastY=e.clientY;o.canvas.setPointerCapture(lookId);},{signal});
-  o.canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookId||!playable())return;o.look(e.clientX-lastX,e.clientY-lastY);lastX=e.clientX;lastY=e.clientY;},{signal});
+  o.canvas.addEventListener('pointermove',e=>{if(e.pointerId!==lookId||!playable())return;o.look((e.clientX-lastX)*cameraPrefs.sensitivity,(e.clientY-lastY)*cameraPrefs.sensitivity);lastX=e.clientX;lastY=e.clientY;},{signal});
   for(const name of ['pointerup','pointercancel','lostpointercapture'])o.canvas.addEventListener(name,e=>{if((e as PointerEvent).pointerId===lookId)lookId=null;},{signal});
   const movement=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','ShiftLeft','ShiftRight',...(o.extraKeys??[])]);
   window.addEventListener('keydown',e=>{
