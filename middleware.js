@@ -29,8 +29,14 @@ export async function verifyMember(secret,env=process.env,fetcher=fetch){
   return r?.status==='approved'&&r.access_suspended===false&&['hajj','umrah'].includes(r.program)?'approved':'denied';
  }catch{return 'unavailable';}
 }
+export function referralSlug(url){
+ const slug=url.pathname.match(/^\/([a-z0-9][a-z0-9-]{2,29})\/?$/i)?.[1]?.toLowerCase();
+ if(!slug||slug.startsWith('hj-')||publicPages.has(slug)||arenaPages.has(slug)||['api','assets','public','character-preview'].includes(slug))return null;
+ return slug;
+}
 export default async function middleware(request){
  const url=new URL(request.url),route=classify(url);
+ const slug=referralSlug(url);if(!route.protected&&slug){const target=new URL('/index.html',url.origin);target.searchParams.set('ref',slug.toUpperCase());return new Response(null,{status:307,headers:{...cacheHeaders,Location:target.href}});}
  if(!route.protected)return next();
  const verdict=await verifyMember(readMemberCookie(request));
  if(verdict==='unavailable')return new Response('Layanan verifikasi member belum tersedia. Muat ulang beberapa saat lagi.',{status:503,headers:{...cacheHeaders,'Content-Type':'text/plain; charset=utf-8','Retry-After':'15'}});
