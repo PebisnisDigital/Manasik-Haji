@@ -1,4 +1,5 @@
 import {createHmac,timingSafeEqual} from 'node:crypto';
+export const PUBLIC_APP_URL='https://hajji.digital';
 export const endpoint='https://app.buatqris.site/api';
 export class QrisError extends Error{constructor(code,message){super(message);this.name='QrisError';this.code=code;}}
 export async function qrRpc(op,secret='',data={}){
@@ -35,7 +36,7 @@ export async function handleQr(op,secret){
  if(op==='qris-create'){
   const reserved=await qrRpc('reserve',secret);
   if(!reserved.config)return reserved.qris??null;
-  const c=reserved.config,fields={action:'api_create_qris',amount:String(reserved.amount),description:'HAJJI.DIGITAL '+reserved.registration_id,fee_by:c.fee_by,callback_url:'https://manasik-haji-rho.vercel.app/api/buatqris-webhook',app_name:'HAJJI.DIGITAL',app_version:'1.0',app_url:'https://manasik-haji-rho.vercel.app'};
+  const c=reserved.config,fields={action:'api_create_qris',amount:String(reserved.amount),description:'HAJJI.DIGITAL '+reserved.registration_id,fee_by:c.fee_by,callback_url:PUBLIC_APP_URL+'/api/buatqris-webhook',app_name:'HAJJI.DIGITAL',app_version:'1.0',app_url:PUBLIC_APP_URL};
   if(c.qris_method!=='default')fields.qris_method=c.qris_method;if(c.qris_name)fields.qris_name=c.qris_name;if(c.test_mode)fields.test='1';
   let d;try{d=await provider(c,fields);}catch(e){if(e instanceof QrisError&&['provider_rejected','rate_limited'].includes(e.code))await qrRpc('reject-create',secret,{id:reserved.id,code:e.code});throw e;}
   const result=paymentResult(d),{qr_url,qr_image,payment_url}=qrDisplay(d);
