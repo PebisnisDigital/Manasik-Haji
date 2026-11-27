@@ -132,7 +132,8 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
  for(let i=0;i<4;i++){cylinder(cart,.15,.075,x-.1+i*.28,1.18,z+.22,[0xffe5b3,0xb78851,0xf2cf92,0x8eac6d][i]!);}
  cylinder(cart,.21,.42,x+.85,1.37,z-.2,0xd0ae54);
  const vendor=humanActor(scene,0x547e64,false,undefined,undefined,{palette:8,build:1,brightness:1,registration:true});vendor.position.set(x,0,z-.92);vendor.rotation.y=0;
- for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});a.position.set(x-3.5-i*.65,0,z+2.8);a.rotation.y=Math.PI;addProspect(a,5+i);}
+ // Spread sales prospects along the outer plaza instead of a static crowd in front of the food stalls.
+ for(let i=0;i<3;i++){const a=humanActor(scene,0xb1a27f,i===1,undefined,undefined,{palette:5+i,build:1,brightness:1,cull:true,registration:true});const lane=[8.5,16.5,24.5][i]!;const points=[new THREE.Vector3(lane,0,14.3),new THREE.Vector3(lane+1.4,0,14.8)];a.position.copy(points[0]!);a.rotation.y=Math.PI;addProspect(a,5+i);walkers.push({actor:a,points,index:1,wait:i*1.2});}
  for(let i=0;i<4;i++){const actor=humanActor(scene,0xc0b39a,i%2===1,undefined,undefined,{palette:i+4,build:1,brightness:1,cull:true,registration:true});addProspect(actor,i+4);const points=[new THREE.Vector3(-29,0,10.1+i*.83),new THREE.Vector3(-12,0,10.1+i*.83),new THREE.Vector3(12,0,10.1+i*.83),new THREE.Vector3(21,0,10.1+i*.83)];actor.position.copy(points[i]!);walkers.push({actor,points,index:(i+1)%4,wait:0});}
  const hijabOwner=humanActor(scene,0x866b88,true,undefined,undefined,{palette:7,build:1,brightness:1,registration:true});
  hijabOwner.position.set(-26,0,-6.55);hijabOwner.rotation.y=0;
