@@ -168,9 +168,22 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
    seats.push({point:new THREE.Vector3(tx,0,sz),table:new THREE.Vector3(tx,.85,tz+side*.20),yaw:side===1?Math.PI:0,busy:null});
   }
  }
- for(const walker of walkers)parkedWalkers.set(walker.actor,{points:walker.points,position:walker.actor.position.clone(),index:walker.index,wait:walker.wait});
- // Preserve prospect IDs while replacing their tiny repetitive loops with independent journeys.
- for(const w of walkers){w.points=[];w.index=0;w.wait=.25+Math.random()*2.8;}
+ // Start dispersed, even before the first route is picked. Preserve sales prospect IDs.
+ const spawnOrder=[0,4,8,2,6,10,1,5,9,3,7,11];
+ const occupied:THREE.Vector3[]=[];
+ for(const [i,w] of walkers.entries()){
+  const radius=groundBodyRadius(w.actor);
+  const zones=spawnOrder.map(j=>marketRoamZones[j]!);
+  for(let n=0;n<zones.length;n++){
+   const zone=zones[(i+n)%zones.length]!;
+   const offset=i>=zones.length?1.35:0;
+   const p=new THREE.Vector3(zone.x+offset,0,zone.z+offset);
+   if(marketRoamWalkable(p.x,p.z,radius)&&occupied.every(q=>q.distanceToSquared(p)>1.8)){w.actor.position.copy(p);break;}
+  }
+  occupied.push(w.actor.position.clone());w.actor.rotation.y=Math.random()*Math.PI*2;
+  w.points=[];w.index=0;w.wait=.25+Math.random()*2.8;
+  parkedWalkers.set(w.actor,{points:[],position:w.actor.position.clone(),index:0,wait:w.wait});
+ }
  // A sale changes the actual NPC's activity; the normal pedestrian loop pauses until purchase finishes.
  type Purchase={job:SalesJob;stage:'approach'|'queue'|'seat-walk'|'seated'|'eat'|'thank'|'shop'|'shop-wait'|'bag-thank'|'exit'|'done';route:THREE.Vector3[];time:number;prop?:THREE.Group;seat?:number;paid?:boolean};
  const served:number[]=[];
