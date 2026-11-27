@@ -1,0 +1,2 @@
+# Affiliate alumni
+Supabase migration hajji_custom_affiliate_alumni: affiliate_members, affiliate_aliases; owner ID remains stable. Admin approves graduation manually because completion is browser-only. Old aliases retained. Promo-code collisions blocked. /nama redirects to index.html?ref=NAMA; checkout validates automatically before payment. Both manual coupon and referral URL resolve to same owner. Only approved payments count. Admin referral menu contains approval and disable. No withdrawal workflow added. Actual share links use current site origin.
