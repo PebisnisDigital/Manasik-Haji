@@ -389,3 +389,14 @@ body dialog#districtDialog.gameplaySettingsDialog #graphicsOptions{width:100%;mi
 body dialog#districtDialog.gameplaySettingsDialog #dialogActions{margin-top:8px;display:flex;justify-content:flex-start}
 body dialog#districtDialog.gameplaySettingsDialog #dialogActions button{flex:0 0 auto}
 @media(max-height:450px){body dialog#districtDialog.gameplaySettingsDialog .districtModal{padding:10px!important}}
+
+/* Affiliate HUD is separate from gameplay settings. */
+body #gameAffiliateButton{display:grid;place-items:center;flex:none;width:44px;height:44px;min-height:44px;padding:0;border:1px solid #d6b46b;border-radius:12px;background:#fffdf8!important;color:#805c22!important;pointer-events:auto;cursor:pointer}
+body .simpleTop #gameAffiliateButton{margin-left:auto}
+body #gameAffiliateDialog{position:fixed;inset:64px 14px auto auto;margin:0;width:min(440px,calc(100vw - 28px));height:min(690px,calc(100dvh - 80px));padding:0;overflow:hidden;border:1px solid #d6b46b;border-radius:16px;background:#fffdf8;color:#25211b;box-shadow:0 8px 28px #0003;color-scheme:light;box-sizing:border-box}
+body #gameAffiliateDialog[open]{display:flex;flex-direction:column}
+body #gameAffiliateDialog::backdrop{background:#0002;backdrop-filter:none}
+body #gameAffiliateDialog>header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e4d9c5;font:700 16px system-ui;flex:none}
+body #gameAffiliateDialog>header button{width:34px;height:34px;border:1px solid #d6b46b;border-radius:8px;background:#fffdf8;color:#25211b;font-size:22px}
+body #gameAffiliateDialog iframe{width:100%;flex:1;min-height:0;border:0;background:#fffdf8}
+@media(max-height:450px){body #gameAffiliateDialog{inset:56px 10px auto auto;height:calc(100dvh - 66px)}}
