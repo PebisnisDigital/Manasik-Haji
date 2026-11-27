@@ -16,3 +16,8 @@ it('reserves a 16:9 facade spanning the second and third storeys of a four-store
 it('embeds the requested YouTube video with single-video loop, autoplay, audible audio and hidden player controls',()=>{const u=new URL(youtubeGateEmbed());expect(u.hostname).toBe('www.youtube.com');expect(u.pathname).toBe('/embed/Ch-uCsEO8yM');for(const [k,v] of Object.entries({autoplay:'1',mute:'0',loop:'1',playlist:'Ch-uCsEO8yM',controls:'0',playsinline:'1'}))expect(u.searchParams.get(k)).toBe(v);expect(()=>youtubeGateEmbed('bad')).toThrow();});
 
 it('uses the current site origin for the official YouTube iframe audio API',()=>{const url=new URL(youtubeGateEmbed('Ch-uCsEO8yM','https://example.com'));expect(url.searchParams.get('enablejsapi')).toBe('1');expect(url.searchParams.get('origin')).toBe('https://example.com');expect(url.searchParams.get('mute')).toBe('0');});
+
+import {guideLookupAction} from '../src/gateGuide.ts';
+it('routes only verified existing players past the queue and keeps new registrations at the clerk',()=>{
+ expect(guideLookupAction('new',null)).toBe('queue');expect(guideLookupAction('verified',{status:'approved'})).toBe('enter');expect(guideLookupAction('verified',{status:'pending'})).toBe('invoice');expect(guideLookupAction('verified',{status:'reported'})).toBe('invoice');expect(guideLookupAction('verified',{status:'approved',access_suspended:true})).toBe('suspended');expect(guideLookupAction('review',null)).toBe('review');expect(guideLookupAction('verified',null)).toBe('error');expect(guideLookupAction('new',{status:'approved'})).toBe('error');expect(guideLookupAction(undefined,{status:'approved'})).toBe('error');
+});

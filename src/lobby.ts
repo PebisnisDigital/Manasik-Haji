@@ -12,7 +12,7 @@ import {readSetup,saveSetup,journeyVoice,journeyVolume} from './frontSettings.ts
 import {Clip} from './sim/States.ts';
 import {defaultSetup} from './frontModel.ts';
 import {gateGuide} from './gateGuide.ts';
-import {openSalmaWelcome,openGateGuide} from './salmaWelcome.ts';
+import {openSalmaWelcome} from './salmaWelcome.ts';
 import {createRegistrationHall} from './registrationHall.ts';
 import {buildGateSouvenirShowcase,gateSouvenirTitles} from './gateSouvenirShowcase.ts';
 import {GATE_SOUVENIR_POINT} from './gateSouvenirLayout.ts';
@@ -217,7 +217,7 @@ function projectGatePoint(point:THREE.Vector3){
 }
 function gateDeskPoint(){const clerk=registrationHall?.clerk(avatar==='female');return clerk?clerk.position.clone().add(new THREE.Vector3(.15,1.10,.54)):new THREE.Vector3(0,1.1,-3.52);}
 function gateProject(p:Program,clerk:boolean,side:'guide'|'player'|'desk'){
- if(side==='desk')return projectGatePoint(gateDeskPoint());
+ if(side==='desk')return projectGatePoint(clerk?gateDeskPoint():guides[p].root.position.clone().add(new THREE.Vector3(0,.65,.25)));
  const actor=side==='player'?hero.root:clerk?(registrationHall?.clerk(avatar==='female')??guides[p].root):guides[p].root;
  const point=actor.position.clone();point.y+=side==='guide'&&clerk?1.74:2.12;return projectGatePoint(point);
 }
@@ -233,7 +233,7 @@ function greet(p:Program){
    closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);cameraInitialized=true;guideIntroduced=true;$('instruction').textContent='Dekati papan MULAI ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName,href=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;queueAuthorized=false;target=null;stopMotion();departure={href,side:avatar==='female'?1:-1,stage:0,arrived:false};$('instruction').textContent='Tiket aktif · menuju pintu keberangkatan';});
   }else{
    gateEncounter='guide';$('instruction').textContent='Berbincang dengan '+gateGuide(avatar).name;
-   closeGateDialogue=openGateGuide((name,join)=>{guidePlayerName=name;guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Dekati papan MULAI ANTREAN untuk mendaftar';if(join)registrationAction();},side=>gateProject(p,false,side),guidePlayerName);
+   closeGateDialogue=openSalmaWelcome(()=>{guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Dekati pemandu atau papan MULAI ANTREAN';},side=>gateProject(p,false,side),guidePlayerName,href=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;target=null;stopMotion();$('instruction').textContent='Tiket aktif · masuk distrik tanpa antre';location.assign(href);},name=>{guidePlayerName=name;registrationAction();});
   }
   return;
  }
