@@ -96,7 +96,7 @@ export function marketRoamWalkable(x:number,z:number,radius=.36){
 }
 // Destination slots are shared by the ambient population, not by the player's sales ledger.
 type RoamVisit={id:string;kind:'snack'|'shop';point:THREE.Vector3;face:THREE.Vector3;label:string};
-type RoamState={zone:number;previous:number;speed:number;stall:number;best:number;visits:number;visit?:RoamVisit;actionTime:number;prop?:THREE.Group};
+type RoamState={zone:number;previous:number;speed:number;stall:number;best:number;visits:number;visit?:RoamVisit;actionTime:number;carryTime?:number;prop?:THREE.Group};
 export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:MarketAudioCue)=>void){
  const root=new THREE.Group();root.name='bubur-market';scene.add(root);
  const parkedWalkers=new Map<THREE.Group,{points:THREE.Vector3[];position:THREE.Vector3;index:number;wait:number}>();
@@ -314,7 +314,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   {id:'hijab',kind:'shop',point:v(-26,-5.0),face:v(-26,-6.02),label:'KOKOSALAMA'},
   {id:'indomaret',kind:'shop',point:v(-16.5,-5.0),face:v(-19.05,-4.35),label:'Indomaret'},
  ];
- function releaseVisit(actor:THREE.Group,state:RoamState){state.prop?.removeFromParent();state.prop=undefined;state.visit=undefined;state.actionTime=0;delete actor.userData.campPose;delete actor.userData.ambientActivity;}
+ function releaseVisit(actor:THREE.Group,state:RoamState){state.prop?.traverse(o=>{if(o instanceof THREE.Mesh)o.geometry.dispose();});state.prop?.removeFromParent();state.prop=undefined;state.carryTime=0;state.visit=undefined;state.actionTime=0;delete actor.userData.campPose;delete actor.userData.ambientActivity;}
  function cancelRoaming(actor:THREE.Group){const state=roaming.get(actor);if(state)releaseVisit(actor,state);roaming.delete(actor);const w=walkers.find(w=>w.actor===actor);if(w){w.points=[];w.index=0;w.wait=0;}}
  const travelValid=(x:number,z:number,radius:number)=>marketWalkable(x,z,radius)&&!(Math.abs(x)<7.2&&z<9.4);
  function roam(w:typeof walkers[number],dt:number){
@@ -328,9 +328,10 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
     a.rotation.y=Math.atan2(visit.face.x-p.x,visit.face.z-p.z);
     a.userData.campPose={clip:visit.kind==='snack'?Clip.MARKET_EAT:Clip.GUIDE_WAVE,phase:(s.actionTime*.8)%1};
    }
-   if(s.actionTime===0){releaseVisit(a,s);ambientCycles++;w.wait=.15;}
+   if(s.actionTime===0){if(visit?.kind==='shop'){s.visit=undefined;s.carryTime=8;delete a.userData.campPose;delete a.userData.ambientActivity;}else releaseVisit(a,s);ambientCycles++;w.wait=.15;}
    return;
   }
+  if(s.carryTime){s.carryTime=Math.max(0,s.carryTime-dt);if(s.carryTime===0&&!s.visit)releaseVisit(a,s);}
   if(w.wait>0){w.wait-=dt;return;}
   if(w.index>=w.points.length){
    if(nextRoamPlan>0)return;nextRoamPlan=.10;
@@ -340,11 +341,13 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
     !Array.from(roaming.values()).some(state=>state.visit?.id===q.id)&&
     !bodiesFor(a).some(b=>Math.hypot(b.x-q.point.x,b.z-q.point.z)<.9));
    let visit:RoamVisit|undefined;
-   if(free.length&&(s.visits%2===0||Math.random()<.26))visit=free[Math.floor(Math.random()*free.length)]!;
+   if(!s.carryTime&&free.length&&(s.visits%2===0||Math.random()<.26))visit=free[Math.floor(Math.random()*free.length)]!;
    const candidates=marketRoamZones.map((zone,i)=>({i,zone,dist:Math.hypot(zone.x-p.x,zone.z-p.z)}))
     .filter(q=>q.i!==s.zone&&q.i!==s.previous&&q.dist>3.5&&marketRoamWalkable(q.zone.x,q.zone.z,radius));
    const pool=candidates.length?candidates:marketRoamZones.map((zone,i)=>({i,zone,dist:Math.hypot(zone.x-p.x,zone.z-p.z)})).filter(q=>q.dist>2&&marketRoamWalkable(q.zone.x,q.zone.z,radius));
-   const pick=pool[Math.floor(Math.random()*pool.length)];
+   const choices=pool.filter(q=>!Array.from(roaming.entries()).some(([other,state])=>other!==a&&state.zone===q.i));
+   const choicesOrPool=choices.length?choices:pool;
+   const pick=choicesOrPool[Math.floor(Math.random()*choicesOrPool.length)];
    const target=visit?.point.clone()??(pick?new THREE.Vector3(pick.zone.x+(Math.random()-.5)*.8,0,pick.zone.z+(Math.random()-.5)*.6):undefined);
    if(!target||!canTravel(target.x,target.z)){w.wait=.18;return;}
    // Use actual obstacle-aware navigation for shop doors; don't trap an actor in the outer strip.
