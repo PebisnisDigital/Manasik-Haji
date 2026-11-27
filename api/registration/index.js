@@ -5,9 +5,9 @@ export default async function handler(req,res){
  const reply=(code,value)=>res.status(code).json(value);
  const path=new URL(req.url,'https://local.invalid').pathname.replace(/^\/api\/registration\/?/,'');
  const op=req.method==='GET'&&!path?'get':req.method==='POST'?(path||'create'):'';
- if(!['get','create','report','magic-link','redeem','qris-create','qris-check','coupon','affiliate','affiliate-request','affiliate-save','affiliate-withdraw','lookup','resume'].includes(op))return reply(405,{error:'Metode tidak tersedia.'});
+ if(!['get','create','report','magic-link','redeem','qris-create','qris-check','coupon','affiliate','affiliate-request','affiliate-save','affiliate-withdraw','lookup','resume','progress-get','progress-save'].includes(op))return reply(405,{error:'Metode tidak tersedia.'});
  if(req.method==='POST'&&(req.headers.origin!=='https://'+req.headers.host||!String(req.headers['content-type']).startsWith('application/json')))return reply(403,{error:'Permintaan tidak diizinkan.'});
- let data={};try{data=typeof req.body==='string'?JSON.parse(req.body):req.body??{};if(!data||typeof data!=='object'||Array.isArray(data)||JSON.stringify(data).length>4096)return reply(400,{error:'Data tidak valid.'});}catch{return reply(400,{error:'Data tidak valid.'});}
+ let data={};try{data=typeof req.body==='string'?JSON.parse(req.body):req.body??{};if(!data||typeof data!=='object'||Array.isArray(data)||JSON.stringify(data).length>(op==='progress-save'?40000:4096))return reply(400,{error:'Data tidak valid.'});}catch{return reply(400,{error:'Data tidak valid.'});}
  const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY,url=process.env.VITE_SUPABASE_URL,cap=process.env.HAJJI_TICKET_GATEWAY;
  if(!key||!url||!cap)return reply(503,{error:'Layanan pendaftaran belum dikonfigurasi.'});
  const secret=String(req.headers.cookie??'').split(';').map(s=>s.trim()).find(s=>s.startsWith('manasik_registration='))?.slice(21)??'';
