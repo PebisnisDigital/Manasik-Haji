@@ -85,6 +85,11 @@
       ],
       "destination": "https://hajji.digital/:path",
       "permanent": false
+    },
+    {
+      "source": "/:code((?!api$|assets$|public$|index$|checkout$|affiliate$|account$|admin$|studio$|peserta$|verify$|offline$|district$|manasik$|player$|sai$|umrah$|hajj$|explore$|legacy$|adventure$|adventure-map$|avatar-preview$|oleh-oleh$|certificate-admin$|voice-admin$|character-preview$|[a-z-]+-adventure$)[A-Za-z0-9][A-Za-z0-9-]{2,29})",
+      "destination": "/index.html?ref=:code",
+      "permanent": false
     }
   ]
 }
