@@ -1,10 +1,11 @@
+import {ticketOwner} from '../ticketProgress.ts';
 import {playerKey} from '../playerCloud.ts';
 import {replayKey} from './levelReplay.ts';
 import {exampleKey} from './exampleAccess.ts';
 export const QUEST_KEYS = {
- get tawaf(){return playerKey('manasik-tawaf-quest-v1');},
- get sai(){return playerKey('manasik-sai-quest-v1');},
- get tahallul(){return playerKey('manasik-tahallul-quest-v1');},
+ get tawaf(){return ticketOwner()?playerKey('manasik-tawaf-quest-v1'):replayKey('manasik-tawaf-quest-v1',exampleKey('manasik-tawaf-quest-v1'));},
+ get sai(){return ticketOwner()?playerKey('manasik-sai-quest-v1'):replayKey('manasik-sai-quest-v1',exampleKey('manasik-sai-quest-v1'));},
+ get tahallul(){return ticketOwner()?playerKey('manasik-tahallul-quest-v1'):replayKey('manasik-tahallul-quest-v1',exampleKey('manasik-tahallul-quest-v1'));},
 } as const;
 export type Chapter = keyof typeof QUEST_KEYS;
 export interface RouteProgress {version:1;stage:number;count:number;gate:number}
