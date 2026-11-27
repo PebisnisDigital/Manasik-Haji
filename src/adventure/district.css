@@ -35,3 +35,13 @@ html:has(.districtGuardTalk) .districtHubMode .districtBottom,html:has(.district
 html.districtHubMode:has(.districtGuardTalk) .districtBottom{visibility:hidden}
 @media(orientation:landscape) and (max-height:520px){.districtSpeech{max-width:min(250px,45vw);font-size:12px;padding:8px 10px}.districtGuardAnswer{width:min(480px,75vw);bottom:8px;padding:6px}.districtGuardClose{top:6px;right:8px}}
 @media(orientation:portrait) and (pointer:coarse){.districtGuardTalk,.districtContextPrompt{visibility:hidden}}
+
+/* Independent settings popover: deliberately not a dialog or overlay. */
+body #districtSettingsPopover{position:fixed;z-index:1200;top:60px;right:12px;width:min(285px,calc(100vw - 24px));max-height:calc(100dvh - 72px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;box-sizing:border-box;margin:0;padding:14px;background:#fffdf8;color:#25211b;color-scheme:light;border:1px solid #d6b46b;border-radius:16px;box-shadow:0 6px 22px #25211b12;font:650 14px/1.4 system-ui,sans-serif;pointer-events:auto;text-shadow:none}
+body #districtSettingsPopover[hidden]{display:none!important}
+body #districtSettingsPopover h2{font-size:15px;line-height:1.4;letter-spacing:0;margin:0 0 8px;font-weight:750;color:#25211b}
+body #districtSettingsPopover label{color:#25211b}
+body #districtSettingsPopover select{background:#fff;color:#25211b;border:1px solid #d8ccb4;border-radius:10px;min-height:36px;padding:7px 10px}
+body #districtSettingsPopover input[type=range]{accent-color:#b88b2e}
+body #districtSettingsPopover>button{margin-top:12px;min-height:38px;padding:8px 15px;border:1px solid #d6b46b;border-radius:10px;background:#fffdf8;color:#25211b;font-weight:650;font-size:13px}
+@media(max-height:450px){body #districtSettingsPopover{padding:10px}}
