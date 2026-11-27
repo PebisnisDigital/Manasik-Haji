@@ -1,8 +1,8 @@
 import {clearSimpleInput,setSimpleMenu} from './simpleInput.ts';
 export function mountAffiliateHud(gear:HTMLElement,canOpen:()=>boolean=()=>true){
  if(document.getElementById('gameAffiliateButton'))return;
- const button=document.createElement('button');button.id='gameAffiliateButton';button.type='button';button.className='gameAffiliateButton';button.title='Affiliate';button.setAttribute('aria-label','Affiliate');button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-expanded','false');
- button.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/></svg>';
+ const button=document.createElement('button');button.id='gameAffiliateButton';button.type='button';button.className='gameAffiliateButton';button.title='Affiliate & Komisi';button.setAttribute('aria-label','Affiliate');button.setAttribute('aria-haspopup','dialog');button.setAttribute('aria-expanded','false');
+ button.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M2 9a4 4 0 0 0 4-4m12 0a4 4 0 0 0 4 4M2 15a4 4 0 0 1 4 4m12 0a4 4 0 0 1 4-4"/></svg>';
  gear.before(button);
  const dialog=document.createElement('dialog');dialog.id='gameAffiliateDialog';dialog.setAttribute('aria-label','Affiliate HAJJI.DIGITAL');
  const header=document.createElement('header'),title=document.createElement('strong'),close=document.createElement('button');title.textContent='Affiliate Saya';close.type='button';close.textContent='×';close.setAttribute('aria-label','Tutup affiliate');header.append(title,close);
