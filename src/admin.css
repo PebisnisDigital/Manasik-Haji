@@ -200,3 +200,5 @@ body.affiliateEmbedded{margin:0;background:#fffdf8;min-height:100dvh}
 body.affiliateEmbedded>header,body.affiliateEmbedded>main>a:last-child{display:none!important}
 body.affiliateEmbedded main.panel{width:100%;max-width:none;margin:0;border:0;box-shadow:none;border-radius:0;padding:12px;background:transparent}
 body.affiliateEmbedded #affiliateData{overflow-wrap:anywhere}
+
+body.affiliateDashboard #withdrawWhatsApp{display:block;text-align:center;padding:12px;margin:10px 0;border-radius:10px;text-decoration:none;background:#d6b46b;color:#25211b;font-weight:800}body.affiliateDashboard #withdrawWhatsApp[aria-disabled=true]{opacity:.45;pointer-events:none;background:#e6e3dc;color:#777}body.affiliateDashboard .affiliateBuyer{padding:10px 0;border-bottom:1px solid #e3d9c7}body.affiliateDashboard .affiliateBuyer p{margin:5px 0;font-size:12px}body.affiliateEmbedded header,body.affiliateEmbedded main>a:last-child{display:none!important}
