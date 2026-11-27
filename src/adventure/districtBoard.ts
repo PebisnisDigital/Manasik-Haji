@@ -1,3 +1,5 @@
+import {beginReplay,endReplay,replayKey} from './levelReplay.ts';
+import {playerKey} from '../playerCloud.ts';
 import {SOUVENIR_NUMBER,canOpenSouvenir} from './citySouvenir.ts';
 import {cityArenaHref} from './arenaDoor.ts';
 import {directMissionEntry} from './cityMissionEntry.ts';
@@ -63,7 +65,7 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
  const hitZones:{x:number;y:number;w:number;h:number;number:number}[]=[];
  const closeMap=()=>{dialog.hidden=true;if(dialog.open)dialog.close();};close.onclick=closeMap;dialog.addEventListener('cancel',e=>{e.preventDefault();closeMap();});
  function check(number:number){const fresh=levels(program),result=checkGateProgress(fresh,number);return {...result,preview,example,done:fresh.some(l=>l.number===number&&l.done),starred:readStars(fresh).includes(number),title:fresh.find(l=>l.number===number)?.title??'Level '+number,previousTitle:fresh.find(l=>l.number===number-1)?.title??'',total:fresh.length};}
- function launch(number:number,code=''){
+ function launch(number:number,code='',replayRequested=false){
   if(launching)return false;
   if(number===SOUVENIR_NUMBER){if(!bonusReady()){toast(bonusMessage());return false;}if(!recordDistrictVisit(SOUVENIR_NUMBER)){toast('Catatan pintu masuk belum tersimpan.');return false;}try{sessionStorage.setItem(exampleKey('hajji-district-return'),demo?'demo':'magic');}catch{return false;}launching=true;location.assign(tenantUrl('./oleh-oleh.html?city=1'));return true;}
   if(example&&!validExampleCode(code)){toast('Kode contoh belum benar.');return false;}
@@ -73,7 +75,11 @@ export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAc
   if(!level?.available||!level.href){toast('Selesaikan level sebelumnya terlebih dahulu.');return false;}
   if(program==='hajj'&&onSelect&&number>=4){const id=NUSUK_LEVELS[number-1]?.id;const arrival=id==='dam'||id==='hajj-tahallul'?'aqabah':id;if(arrival&&!saveStory({},'hajj:'+arrival)){toast('Kedatangan belum tersimpan. Coba lagi.');return false;}}
   if(program==='hajj'&&!recordDistrictVisit(number)){toast('Catatan pintu masuk belum tersimpan. Coba lagi.');return false;}
-  const destination=directMissionEntry(level.href,readSetup()?.avatar??'male',name);if(!destination){toast('Arena belum siap. Checkpoint tetap tersimpan.');return false;}
+  const replay=replayRequested&&program==='hajj'&&level.done?beginReplay(number):null;
+  if(replayRequested&&!replay){toast('Latihan ulang belum siap. Coba lagi.');return false;}
+  if(!replayRequested)endReplay();
+  if(replay){try{for(const base of ['manasik-travel-story-v1','manasik-player-appearance-v1']){const key=playerKey(base),value=localStorage.getItem(key);if(value!==null)localStorage.setItem(replayKey(base,key,replay),value);}}catch{endReplay();toast('Penyimpanan latihan ulang belum tersedia.');return false;}}
+  const destination=directMissionEntry(level.href,readSetup()?.avatar??'male',name,replay);if(!destination){endReplay();toast('Arena belum siap. Checkpoint tetap tersimpan.');return false;}
   launching=true;try{sessionStorage.setItem(exampleKey('hajji-district-return'),example?'contoh':mode==='demo'?'demo':'magic');}catch{}location.assign(destination);return true;
  }
  function select(number:number){const level=levels(program).find(l=>l.number===number);if(!level?.available){toast('Selesaikan level sebelumnya terlebih dahulu.');return;}if(onSelect){closeMap();onSelect(number);}else launch(number);}
