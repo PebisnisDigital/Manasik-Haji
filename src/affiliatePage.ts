@@ -9,9 +9,9 @@ async function api(op='affiliate',data:object={}){const res=await fetch('/api/re
 async function copy(s:string){try{await navigator.clipboard.writeText(s);notice.textContent='Disalin.';}catch{notice.textContent='Salin secara manual: '+s;}}
 function render(a:Referral){
  const active=a.eligible&&a.enabled,custom=!a.code.startsWith('HJ-');$('affiliateData').hidden=false;
- notice.textContent=active?'Program affiliate aktif.':a.eligible?'Program referral sedang dinonaktifkan admin.':a.requested?'Pengajuan sedang menunggu verifikasi admin.':'Affiliate khusus alumni yang lulus.';
- $('affiliateEligibility').textContent=a.eligible?'Kelulusan telah diverifikasi. Pilih kode unikmu.':'Selesaikan 12 level dan ajukan verifikasi kelulusan.';
- requestButton.hidden=a.requested||a.eligible;form.hidden=!a.eligible;field.value=custom?a.code:'';
+ notice.textContent=active?'Program affiliate aktif.':a.eligible?'Program referral sedang dinonaktifkan admin.':'Affiliate belum aktif. Hubungi admin jika tiket sudah lunas.';
+ $('affiliateEligibility').textContent=a.eligible?'Tiket lunas. Affiliate aktif tanpa syarat level.':'Akses affiliate belum aktif.';
+ requestButton.hidden=true;form.hidden=!a.eligible;field.value=custom?a.code:'';
  const url=new URL(custom?'/'+a.code.toLowerCase():'/index.html?ref='+encodeURIComponent(a.code),'https://hajji.digital');
  $('affiliateCode').textContent=a.eligible?a.code:'Belum aktif';$('affiliateLink').textContent=a.eligible?url.href:'';
  copyCode.disabled=copyLink.disabled=!active;copyCode.onclick=()=>void copy(a.code);copyLink.onclick=()=>void copy(url.href);
