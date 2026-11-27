@@ -4,7 +4,7 @@ type Row={delete_block_reason?:'paid'|'real_qris'|'referrals'|null;access_suspen
 type BankOption={id:string;bank:string;account:string;holder:string};
 type Settings={enabled:boolean;bank:string;account:string;holder:string;extra_banks?:BankOption[]};
 type Snapshot={summary:{total:number;pending:number;reported:number;approved:number;revenue:number};settings:Settings;total:number;rows:Row[]};
-const rpc=<T>(op:string,data:object={})=>rest<T>('rpc/hajji_ticket_admin',{method:'POST',auth:true,body:{op,data}});
+const rpc=<T>(op:string,data:object={})=>rest<T>('rpc/hajji_ticket_admin',{method:'POST',auth:true,body:{op,data:{...data,single_link:true}}});
 const $=<T extends HTMLElement=HTMLElement>(id:string)=>document.getElementById(id) as T;
 const money=(n:number)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
 const label:Record<Status,string>={pending:'Belum bayar',reported:'Perlu verifikasi',approved:'Tiket aktif'};
