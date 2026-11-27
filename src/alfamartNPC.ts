@@ -193,7 +193,6 @@ export function createAlfamartNPCs(scene: THREE.Scene, root: THREE.Group, count:
 
   return { cashier, handoff, reset, has:(id:number)=>mission.has(id), update(dt:number,hold:THREE.Group|null,player:THREE.Vector3) {
     playerNear=player.distanceToSquared(sStand)<100;
-    if(player.distanceToSquared(sStand)>29**2&&!mission.size) return [];
     const shoppers=[...ambient,...mission.values()];
     activeActors=shoppers.map(buyer=>buyer.actor);
     for(const buyer of shoppers) updateBuyer(buyer,dt,hold);
