@@ -74,6 +74,17 @@
       ],
       "destination": "https://hajji.digital/:path",
       "permanent": false
+    },
+    {
+      "source": "/:path((?!api(?:/|$)).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "manasik-haji-jualdigital.vercel.app"
+        }
+      ],
+      "destination": "https://hajji.digital/:path",
+      "permanent": false
     }
   ]
 }
