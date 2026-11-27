@@ -45,9 +45,8 @@ export function escortDestination(job:SalesJob){return job==='alfamart'?new THRE
 export function planEscortRoute(start:THREE.Vector3,job:SalesJob):THREE.Vector3[]{
  return planMarketRoute(start,escortDestination(job));
 }
-function planMarketRoute(start:THREE.Vector3,goal:THREE.Vector3):THREE.Vector3[]{
+export function planMarketRoute(start:THREE.Vector3,goal:THREE.Vector3,valid:(x:number,z:number)=>boolean=marketWalkable):THREE.Vector3[]{
  const step=.4,ox=PLAZA.x-PLAZA.width/2,nx=Math.floor(PLAZA.width/step)+1,oz=-PLAZA.depth/2,nz=Math.floor(PLAZA.depth/step)+1;
- const valid=marketWalkable;
  const at=(id:number)=>new THREE.Vector3(ox+(id%nx)*step,0,oz+Math.floor(id/nx)*step);
  const segment=(a:THREE.Vector3,b:THREE.Vector3)=>{const n=Math.max(1,Math.ceil(a.distanceTo(b)/.12));for(let i=1;i<=n;i++){const t=i/n;if(!valid(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t))return false;}return true;};
  if(segment(start,goal))return [goal];

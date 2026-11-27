@@ -21,3 +21,8 @@ import {guideLookupAction} from '../src/gateGuide.ts';
 it('routes only verified existing players past the queue and keeps new registrations at the clerk',()=>{
  expect(guideLookupAction('new',null)).toBe('queue');expect(guideLookupAction('verified',{status:'approved'})).toBe('enter');expect(guideLookupAction('verified',{status:'pending'})).toBe('invoice');expect(guideLookupAction('verified',{status:'reported'})).toBe('invoice');expect(guideLookupAction('verified',{status:'approved',access_suspended:true})).toBe('suspended');expect(guideLookupAction('review',null)).toBe('review');expect(guideLookupAction('verified',null)).toBe('error');expect(guideLookupAction('new',{status:'approved'})).toBe('error');expect(guideLookupAction(undefined,{status:'approved'})).toBe('error');
 });
+
+import * as THREE from 'three';
+import {marketWalkable,planMarketRoute} from '../src/buburMarket.ts';
+import {sweepGround,bodyClear} from '../src/sim/GroundCollision.ts';
+it('routes both standing guides through the correct portal without crossing plaza obstacles or a waiting line',()=>{for(const side of [-1,1]){const goal=new THREE.Vector3(side*6,0,-7.15);expect(marketWalkable(goal.x,goal.z)).toBe(true);const bodies=Array.from({length:10},(_,i)=>({x:side*4.15,z:-2.77+i*.77,radius:.32}));const start=new THREE.Vector3(side*2.5,0,.15);const path=planMarketRoute(start,goal,(x,z)=>marketWalkable(x,z,.36)&&bodyClear(start,{x,z},bodies,.36));expect(path.length).toBeGreaterThan(0);let from=start;for(const to of path){const moved=sweepGround(from,to,bodies,marketWalkable);expect(moved.hit).toBe(false);from=to;}expect(from.distanceTo(goal)).toBeLessThan(.01);}});
