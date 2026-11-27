@@ -361,3 +361,12 @@ body #districtDialog.gameplaySettingsDialog .districtModal h2{font-size:15px;let
 body #districtDialog.gameplaySettingsDialog #graphicsOptions{margin:0}
 body #districtDialog.gameplaySettingsDialog #dialogActions button{min-height:34px;font-size:13px}
 @media(max-height:450px){body .gameplaySettingsRows .gameplayCameraSettings{gap:5px;padding-top:8px}body #simpleSettings:has(.gameplaySettingsRows)>section{padding:10px}body #districtDialog.gameplaySettingsDialog .districtModal{padding:10px}}
+
+body .gameplayAffiliateTabs{display:flex;gap:6px;margin:0 0 10px}
+body .gameplayAffiliateTabs button{flex:1;min-height:36px;border:1px solid #d6b46b;border-radius:8px;background:#fff;color:#805c22;font:700 13px system-ui;cursor:pointer}
+body .gameplayAffiliateTabs button[aria-pressed=true]{background:#d6b46b;color:#25211b}
+body .gameplaySettingsRows.affiliateOpen>:not(.gameplayAffiliateTabs):not(.gameplayAffiliateFrame){display:none!important}
+body .gameplayAffiliateFrame{display:block;width:100%;height:min(510px,calc(100dvh - 150px));min-height:130px;border:0;border-radius:8px;background:#fffdf8}
+body .gameplayAffiliateFrame[hidden]{display:none!important}
+body #simpleSettings:has(.affiliateOpen),body #districtDialog.gameplaySettingsDialog .districtModal:has(.affiliateOpen){width:min(520px,calc(100vw - 24px))}
+body .minimalGameMenu:has(.affiliateOpen){width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto}
