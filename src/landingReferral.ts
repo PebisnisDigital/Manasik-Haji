@@ -6,11 +6,11 @@ let ref='',cached='',pending:Promise<string>|null=null;
 export function initLandingReferral(params:URLSearchParams){
  const raw=params.get('ref')?.trim().toUpperCase();
  try{
-  const previous=sessionStorage.getItem(REF)??'';
+  const previous=sessionStorage.getItem(REF);
   // A fresh visit to the central landing page must never inherit another affiliate.
-  ref=raw!==undefined?raw:params.has('guide')||params.has('legacyLobby')?previous:'';
-  if(ref!==previous||(!raw&&!params.has('guide')&&!params.has('legacyLobby')))sessionStorage.removeItem(REWARD);
-  if(ref)sessionStorage.setItem(REF,ref);else sessionStorage.removeItem(REF);
+  ref=raw!==undefined?raw:params.has('guide')||params.has('legacyLobby')?(previous??''):'';
+  if(ref!==previous)sessionStorage.removeItem(REWARD);
+  sessionStorage.setItem(REF,ref);
  }catch{ref=raw??'';}
  cached='';pending=null;
 }
