@@ -12,7 +12,7 @@ function render(a:Referral){
  notice.textContent=active?'Program affiliate aktif.':a.eligible?'Program referral sedang dinonaktifkan admin.':a.requested?'Pengajuan sedang menunggu verifikasi admin.':'Affiliate khusus alumni yang lulus.';
  $('affiliateEligibility').textContent=a.eligible?'Kelulusan telah diverifikasi. Pilih kode unikmu.':'Selesaikan 12 level dan ajukan verifikasi kelulusan.';
  requestButton.hidden=a.requested||a.eligible;form.hidden=!a.eligible;field.value=custom?a.code:'';
- const url=new URL(custom?'/'+a.code.toLowerCase():'/index.html?ref='+encodeURIComponent(a.code),location.origin);
+ const url=new URL(custom?'/'+a.code.toLowerCase():'/index.html?ref='+encodeURIComponent(a.code),'https://hajji.digital');
  $('affiliateCode').textContent=a.eligible?a.code:'Belum aktif';$('affiliateLink').textContent=a.eligible?url.href:'';
  copyCode.disabled=copyLink.disabled=!active;copyCode.onclick=()=>void copy(a.code);copyLink.onclick=()=>void copy(url.href);
  $('affiliateTerms').textContent='Potongan '+money(a.discount)+' · komisi '+a.commission_percent+'% dari harga tiket setelah diskon.';
