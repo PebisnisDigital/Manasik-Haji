@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 type Identity={name:string;email:string;phone:string};
 type Anchor={x:number;z:number};
-type Options={title:string;intro?:string;entryLabel?:string;playerName:string;practice:boolean;example:boolean;validCode:(code:string)=>boolean;verify:(identity:Identity)=>Promise<boolean>;check:(code:string)=>{allowed:boolean;done:boolean;message:string};onEnter:(code:string)=>void;onDone:()=>void;onClose:()=>void};
+type Options={title:string;intro?:string;entryLabel?:string;playerName:string;practice:boolean;example:boolean;validCode:(code:string)=>boolean;verify:(identity:Identity)=>Promise<boolean>;check:(code:string)=>{allowed:boolean;done:boolean;message:string};onEnter:(code:string,replay?:boolean)=>void;onDone:()=>void;onClose:()=>void};
 export function mountDistrictGuard(o:Options){
  const root=document.createElement('section');root.className='districtGuardTalk';root.setAttribute('aria-label','Percakapan dengan '+o.title);
  const bubble=document.createElement('div');bubble.className='districtSpeech';bubble.setAttribute('aria-live','polite');
@@ -22,7 +22,7 @@ export function mountDistrictGuard(o:Options){
   ask(question);const form=document.createElement('form');const input=document.createElement('input');input.type=type;input.required=true;input.placeholder=placeholder;input.setAttribute('aria-label',placeholder);input.value=value;input.maxLength=max;input.autocomplete=type==='email'?'email':type==='tel'?'tel':'off';const b=document.createElement('button');b.className='primary';b.type='submit';b.textContent='KIRIM';form.append(input,b);answer.append(form);
   input.oninput=()=>input.setCustomValidity('');form.onsubmit=e=>{e.preventDefault();const v=input.value.trim();if(!valid(v)){input.setCustomValidity('Periksa kembali isian ini.');input.reportValidity();return;}next(v);};input.focus({preventScroll:true});
  }
- function result(){const r=o.check(code);ask(r.message);if(r.done){choose('Terima bintang',()=>{dispose();o.onDone();});}else if(r.allowed){choose(o.entryLabel??'MASUK',()=>{const current=o.check(code);if(!current.allowed||current.done){result();return;}dispose();o.onEnter(code);});}else choose('Baik',dispose);}
+ function result(){const r=o.check(code);ask(r.message);if(r.done){choose('Mau Main Lagi',()=>{const current=o.check(code);if(!current.done||!current.allowed){result();return;}dispose();o.onEnter(code,true);});choose('Terima Bintang',()=>{const current=o.check(code);if(!current.done){result();return;}dispose();o.onDone();});}else if(r.allowed){choose(o.entryLabel??'MASUK',()=>{const current=o.check(code);if(!current.allowed||current.done){result();return;}dispose();o.onEnter(code);});}else choose('Baik',dispose);}
  async function verify(){ask('Terima kasih. Mohon tunggu, saya cek identitas dan progresnya dulu.');try{const ok=await o.verify(identity);if(disposed)return;if(ok){identity.email='';identity.phone='';result();}else{ask('Maaf, data belum cocok dengan tiket aktif. Gunakan data pendaftaran yang sama.');choose('Perbaiki data',name);}}catch{if(!disposed){ask('Pemeriksaan belum tersambung. Silakan coba lagi.');choose('Coba lagi',()=>void verify());}}}
  function phone(){field('Nomor WhatsApp-nya berapa?','Nomor WhatsApp','tel',identity.phone,v=>/^\+?[0-9]{10,16}$/.test(v.replace(/[\s()-]/g,'')),v=>{identity.phone=v;reply('Nomor WA sudah saya isi.',()=>void verify());},24);}
  function email(){field('Emailnya apa?','Alamat email','email',identity.email,v=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),v=>{identity.email=v;reply('Email sudah saya isi.',phone);});}
