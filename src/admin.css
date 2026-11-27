@@ -202,3 +202,15 @@ body.affiliateEmbedded main.panel{width:100%;max-width:none;margin:0;border:0;bo
 body.affiliateEmbedded #affiliateData{overflow-wrap:anywhere}
 
 body.affiliateDashboard #withdrawWhatsApp{display:block;text-align:center;padding:12px;margin:10px 0;border-radius:10px;text-decoration:none;background:#d6b46b;color:#25211b;font-weight:800}body.affiliateDashboard #withdrawWhatsApp[aria-disabled=true]{opacity:.45;pointer-events:none;background:#e6e3dc;color:#777}body.affiliateDashboard .affiliateBuyer{padding:10px 0;border-bottom:1px solid #e3d9c7}body.affiliateDashboard .affiliateBuyer p{margin:5px 0;font-size:12px}body.affiliateEmbedded header,body.affiliateEmbedded main>a:last-child{display:none!important}
+
+/* Independent promotion and commission dashboards share the same account data. */
+body.affiliateDashboard :is(#affiliatePromotion,#affiliateCommission)[hidden]{display:none!important}
+body.affiliateDashboard .commissionSummary{display:grid;gap:10px;margin:12px 0}
+body.affiliateDashboard .commissionSummary article{display:grid;gap:7px;background:#fffdf8;border:1px solid #e1d4b9;border-radius:12px;padding:14px}
+body.affiliateDashboard .commissionSummary article:nth-child(2){background:#fff3d9;border-color:#d6b46b}
+body.affiliateDashboard .commissionSummary article span{font-size:12px;font-weight:700;color:#665e52}
+body.affiliateDashboard .commissionSummary article strong{font-size:25px;line-height:1.15;color:#805c22;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+body.affiliateDashboard .commissionSummary article small{font-size:12px;color:#665e52}
+body.affiliateDashboard .commissionSummary article small:empty{display:none}
+body.affiliateEmbedded[data-affiliate-view] :is(#affiliateHeading,#affiliateOverline){display:none}
+body.affiliateDashboard #affiliatePromotion+section:not([hidden]){margin-top:15px}
