@@ -443,7 +443,7 @@ export function salesDialog(title:string,build:(say:(s:string,who?:SalesSide)=>v
  }
  function button(text:string,fn:()=>void,primary=false){
   const b=document.createElement('button');b.type='button';b.textContent=text;if(primary)b.className='travelPrimary';
-  b.onclick=()=>{if(closed||busy)return;collecting=true;try{fn();}finally{collecting=false;}play();};
+  b.onclick=()=>{if(closed||busy)return;collecting=true;let result:unknown;try{result=fn();}catch(err){collecting=false;say(err instanceof Error?err.message:'Coba lagi.','system');play();return;}if(result instanceof Promise){busy=true;panel.hidden=true;void result.catch(err=>{if(!closed)say(err instanceof Error?err.message:'Coba lagi.','system');}).finally(()=>{collecting=false;play();});}else{collecting=false;play();}};
   actions.append(b);
  }
  x.onclick=finish;document.addEventListener('keydown',escape);
