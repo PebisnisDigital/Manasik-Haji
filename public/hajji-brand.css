@@ -336,3 +336,28 @@ html[data-hajji-game=ivory] body.mapPage .levelNumber{background:#292929!importa
 html[data-hajji-game=ivory] body.mapPage .level.done .levelNumber{background:#42351e!important;color:#f5ca70!important;border-color:#d6b46b!important}
 html[data-hajji-game=ivory] body.mapPage .level.active .levelNumber,html[data-hajji-game=ivory] body.mapPage .mapStart{background:#d6b46b!important;color:#25211b!important;border-color:#f5ca70!important}
 html[data-hajji-game=ivory] body.mapPage .worldPath path{stroke:#d6b46b}
+
+/* Shared landing-style settings: compact ivory flyout on every gameplay route. */
+body .gameplaySettingsRows .gameplayCameraSettings{font:650 13px/1.4 system-ui,sans-serif;color:#25211b!important}
+body .gameplayCameraSettings>strong{font-size:14px;color:#25211b!important}
+body .gameplayCameraSettings label{color:#25211b!important;margin:0;min-width:0;background:transparent!important}
+body .gameplayCameraSettings .cameraModeRow{display:grid;gap:5px}
+body .gameplayCameraSettings select{width:100%;min-height:36px;border:1px solid #d8ccb4!important;border-radius:8px;background:#fff!important;color:#25211b!important;padding:6px 8px;font:500 13px system-ui}
+body .gameplayCameraSettings .cameraSliderRow{display:grid;grid-template-columns:1fr auto;gap:4px}
+body .gameplayCameraSettings output{color:#805c22!important;font-weight:750}
+body .gameplayCameraSettings input[type=range]{grid-column:1/-1;width:100%;min-height:18px;margin:0;accent-color:#b88b2e;touch-action:none;pointer-events:auto}
+body .gameplayCameraSettings .cameraIndoorRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+body .gameplayCameraSettings input[type=checkbox]{accent-color:#b88b2e;flex:none}
+body .gameplayCameraSettings button{width:100%;min-height:34px;text-align:left;padding:6px 8px;background:#fffdf8!important;color:#25211b!important;border:1px solid #e3d9c7!important;border-radius:8px;font-size:13px}
+body .menu nav.minimalGameMenu{width:min(285px,calc(100vw - 24px));max-height:calc(100dvh - 70px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+body #simpleSettings:has(.gameplaySettingsRows){position:fixed;inset:60px 12px auto auto;margin:0;width:min(285px,calc(100vw - 24px));max-height:calc(100dvh - 72px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+body #simpleSettings:has(.gameplaySettingsRows)::backdrop{background:transparent!important}
+body #simpleSettings:has(.gameplaySettingsRows)>section{padding:14px}
+body #simpleSettings:has(.gameplaySettingsRows) header{position:sticky;top:0;z-index:2;background:#fffdf8!important;margin-bottom:4px}
+body #simpleSettings:has(.gameplaySettingsRows) h2{font-size:15px}
+body #districtDialog.gameplaySettingsDialog{align-items:flex-start;justify-content:flex-end;background:transparent!important;padding:60px 12px 12px;box-sizing:border-box}
+body #districtDialog.gameplaySettingsDialog .districtModal{width:min(285px,calc(100vw - 24px));max-height:calc(100dvh - 72px);overflow:auto;overscroll-behavior:contain;touch-action:pan-y;padding:14px;gap:4px}
+body #districtDialog.gameplaySettingsDialog .districtModal h2{font-size:15px;letter-spacing:0;margin:0 0 4px}
+body #districtDialog.gameplaySettingsDialog #graphicsOptions{margin:0}
+body #districtDialog.gameplaySettingsDialog #dialogActions button{min-height:34px;font-size:13px}
+@media(max-height:450px){body .gameplaySettingsRows .gameplayCameraSettings{gap:5px;padding-top:8px}body #simpleSettings:has(.gameplaySettingsRows)>section{padding:10px}body #districtDialog.gameplaySettingsDialog .districtModal{padding:10px}}
