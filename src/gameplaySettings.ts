@@ -18,5 +18,5 @@ export function mountGameplaySettings(host:HTMLElement){
  range.oninput=()=>{const v=Number(range.value);setGameAudioPreferences({enabled:v>0,volume:v});sync();};
  range.style.touchAction='none';range.style.pointerEvents='auto';sound.style.pointerEvents='auto';sound.style.touchAction='manipulation';
  for(const event of ['pointerdown','pointermove','pointerup'] as const)range.addEventListener(event,e=>e.stopPropagation());
- panel.append(row,vol);mountCameraSettings(panel);host.append(panel);sync();return panel;
+ panel.append(row,vol);mountCameraSettings(panel);const affiliate=document.createElement('a');affiliate.href='./affiliate.html';affiliate.textContent='Affiliate · Kupon, Komisi & Pencairan';affiliate.className='travelPrimary';affiliate.style.cssText='display:block;margin-top:12px;text-align:center';panel.append(affiliate);host.append(panel);sync();return panel;
 }
