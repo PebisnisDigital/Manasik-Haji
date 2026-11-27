@@ -1,3 +1,4 @@
+import {cameraPrefs} from './gameplayCamera.ts';
 import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {bodyClear,sweepGround} from './sim/GroundCollision.ts';
@@ -198,11 +199,6 @@ function dismissGuideCall(){
  stopGuideVoice();$('bubble').hidden=true;
 }
 
-type CameraMode='far'|'near'|'first';
-const cameraDefaults={mode:'far' as CameraMode,distance:guideMode?9.65:3.75,pitch:.19,sensitivity:1,indoor:true};
-const cameraPrefs={...cameraDefaults};
-try{const saved=JSON.parse(localStorage.getItem('hajji-lobby-camera-v1')??'null');if(saved){if(Number.isFinite(saved.distance))cameraPrefs.distance=THREE.MathUtils.clamp(saved.distance,2.5,10.6);if(Number.isFinite(saved.pitch))cameraPrefs.pitch=THREE.MathUtils.clamp(saved.pitch,.045,.75);if(Number.isFinite(saved.sensitivity))cameraPrefs.sensitivity=THREE.MathUtils.clamp(saved.sensitivity,.4,2);if(typeof saved.indoor==='boolean')cameraPrefs.indoor=saved.indoor;if(['far','near','first'].includes(saved.mode))cameraPrefs.mode=saved.mode;}}catch{}
-const saveCamera=()=>{try{localStorage.setItem('hajji-lobby-camera-v1',JSON.stringify(cameraPrefs));}catch{}};
 let cameraYaw=Math.PI,cameraPitch=cameraPrefs.pitch,cameraRadius=cameraPrefs.distance,heading=Math.PI,lookedAt=-1e8,encounterProgram:Program|null=null;
 const velocity=new THREE.Vector2(),cameraFocus=new THREE.Vector3();let cameraInitialized=false;
 const deltaAngle=(a:number,b:number)=>Math.atan2(Math.sin(b-a),Math.cos(b-a));
@@ -598,19 +594,7 @@ const gameMenu=document.querySelector<HTMLDetailsElement>('.menu')!;
 const gameNav=gameMenu.querySelector('nav')!;gameNav.classList.add('minimalGameMenu');
 const gameSummary=gameMenu.querySelector('summary')!;gameSummary.innerHTML=gearIcon;gameSummary.setAttribute('aria-label','Pengaturan');gameSummary.title='Pengaturan';
 const settingsRows=mountGameplaySettings(gameNav);
-const cameraPanel=document.createElement('section');cameraPanel.className='gameplayCameraSettings';cameraPanel.style.cssText='display:grid;gap:7px;padding:9px 0;border-top:1px solid #ffffff30;max-width:100%';
-const cameraTitle=document.createElement('strong');cameraTitle.textContent='Kamera';cameraPanel.append(cameraTitle);
-const modeRow=document.createElement('label');modeRow.style.cssText='display:grid;gap:5px;font-size:13px';modeRow.textContent='Sudut pandang';const modeSelect=document.createElement('select');modeSelect.setAttribute('aria-label','Sudut pandang kamera');modeSelect.style.cssText='width:100%;min-height:38px;background:#24483b;color:white;border:1px solid #ffffff55;border-radius:7px;padding:5px';for(const [value,label] of [['far','Kamera jauh'],['near','Kamera dekat'],['first','Mata pemain (first-person)']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;modeSelect.append(opt);}modeSelect.value=cameraPrefs.mode;modeRow.append(modeSelect);cameraPanel.append(modeRow);
-function cameraSlider(label:string,min:number,max:number,step:number,value:number,format:(v:number)=>string,apply:(v:number)=>void){
- const row=document.createElement('label');row.style.cssText='display:grid;grid-template-columns:1fr auto;gap:3px;font-size:13px';const name=document.createElement('span');name.textContent=label;const out=document.createElement('output');const range=document.createElement('input');range.type='range';range.min=String(min);range.max=String(max);range.step=String(step);range.value=String(value);range.setAttribute('aria-label',label);range.style.cssText='grid-column:1/-1;width:100%;touch-action:pan-x';
- const sync=()=>{out.textContent=format(Number(range.value));};range.oninput=()=>{apply(Number(range.value));sync();saveCamera();};row.append(name,out,range);cameraPanel.append(row);sync();return {range,sync};
-}
-const distanceControl=cameraSlider('Jarak kamera',2.5,10.6,.1,cameraPrefs.distance,v=>v.toFixed(1)+' m',v=>{cameraRadius=cameraPrefs.distance=v;});
-const pitchControl=cameraSlider('Sudut kamera',3,43,1,Math.round(cameraPrefs.pitch*180/Math.PI),v=>v+'°',v=>{cameraPitch=cameraPrefs.pitch=v*Math.PI/180;});
-const sensitivityControl=cameraSlider('Sensitivitas kamera',.4,2,.1,cameraPrefs.sensitivity,v=>Math.round(v*100)+'%',v=>{cameraPrefs.sensitivity=v;});
-modeSelect.onchange=()=>{cameraPrefs.mode=modeSelect.value as CameraMode;cameraPrefs.distance=cameraPrefs.mode==='near'?3.2:cameraDefaults.distance;cameraRadius=cameraPrefs.distance;distanceControl.range.value=String(cameraRadius);distanceControl.range.disabled=cameraPrefs.mode==='first';distanceControl.sync();saveCamera();cameraInitialized=false;};distanceControl.range.disabled=cameraPrefs.mode==='first';
-const indoorRow=document.createElement('label');indoorRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px';const indoorText=document.createElement('span');indoorText.textContent='Kamera dekat saat masuk toko';const indoorSwitch=document.createElement('input');indoorSwitch.type='checkbox';indoorSwitch.checked=cameraPrefs.indoor;indoorSwitch.onchange=()=>{cameraPrefs.indoor=indoorSwitch.checked;saveCamera();};indoorRow.append(indoorText,indoorSwitch);cameraPanel.append(indoorRow);
-const resetCam=document.createElement('button');resetCam.type='button';resetCam.textContent='Reset kamera';resetCam.onclick=()=>{Object.assign(cameraPrefs,cameraDefaults);modeSelect.value=cameraPrefs.mode;distanceControl.range.disabled=false;distanceControl.range.value=String(cameraPrefs.distance);pitchControl.range.value=String(Math.round(cameraPrefs.pitch*180/Math.PI));sensitivityControl.range.value=String(cameraPrefs.sensitivity);indoorSwitch.checked=cameraPrefs.indoor;distanceControl.sync();pitchControl.sync();sensitivityControl.sync();saveCamera();resetCamera();};cameraPanel.append(resetCam);settingsRows.append(cameraPanel);
+window.addEventListener('hajji-camera-change',e=>{cameraPitch=cameraPrefs.pitch;cameraRadius=cameraPrefs.distance;cameraInitialized=false;if((e as CustomEvent).detail?.reset)resetCamera();});
 settingsRows.style.maxHeight='none';settingsRows.style.overflow='visible';settingsRows.style.touchAction='auto';gameNav.style.width='min(285px,calc(100vw - 24px))';gameNav.style.maxHeight='calc(100dvh - 72px)';gameNav.style.overflowY='auto';gameNav.style.touchAction='pan-y';
 document.querySelector('.headerRight')?.classList.add('onlyGameplayGear');
 gameMenu.addEventListener('toggle',()=>{stopMotion();cameraPointer=null;});
