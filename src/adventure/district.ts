@@ -1,3 +1,4 @@
+import {mountAffiliateHud} from '../gameAffiliateHud.ts';
 import {cameraPrefs} from '../gameplayCamera.ts';
 import {endReplay} from './levelReplay.ts';
 import {mountGameplaySettings,gearIcon} from '../gameplaySettings.ts';
@@ -374,7 +375,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     const actionLabel=contextualActionLabel(prompt);text('interactButton',actionLabel);el('interactButton').setAttribute('aria-label',actionLabel);el('actionHint').textContent=entering?'Memasuki gedung…':queuedBuilding!==null?'Antrean Gedung '+queuedBuilding+' · '+(city?.queueAhead(queuedBuilding)??0)+' orang di depan':prompt||'Dekati antrean, kendaraan, atau papan perjalanan';
     if(hub)paintCityPrompt(prompt);label('npcFarid',STATIONS.briefing);label('npcSalma',guidePoint);if(magicBoarding&&driving&&save.stage<4)el('npcSalma').hidden=true;label('npcHasan',hasan);label('npcRizal',ERRAND_STATIONS.rizal);if(save.stage!==5){el('npcHasan').hidden=true;el('npcRizal').hidden=true;}city?.updateGuards(hero,guardTalk?dt:step,camera,active||!!guardTalk,guardNumber);if(hub){for(const id of ['npcFarid','npcSalma','npcHasan','npcRizal'])el(id).hidden=true;}budget.draw(now,world.scene,camera,!active&&!guardTalk);
   }
-  if(!hub)mountSimplePlayHud('district');
+  if(hub)mountAffiliateHud(gear,()=>started&&!entering&&!guardTalk&&!dialog.open&&!intro.open);else mountSimplePlayHud('district');
   if(import.meta.env.DEV){
     const lights:string[]=[],colorMapsNotSRGB:string[]=[];let casters=0;
     world.scene.traverse(o=>{if(o instanceof THREE.Light)lights.push(o.type+':'+o.intensity);if(o instanceof THREE.Mesh){if(o.castShadow)casters++;for(const m of Array.isArray(o.material)?o.material:[o.material])if('map'in m&&m.map instanceof THREE.Texture&&m.map.colorSpace!==THREE.SRGBColorSpace)colorMapsNotSRGB.push(m.type);}});
