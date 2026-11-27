@@ -214,3 +214,33 @@ body.affiliateDashboard .commissionSummary article small{font-size:12px;color:#6
 body.affiliateDashboard .commissionSummary article small:empty{display:none}
 body.affiliateEmbedded[data-affiliate-view] :is(#affiliateHeading,#affiliateOverline){display:none}
 body.affiliateDashboard #affiliatePromotion+section:not([hidden]){margin-top:15px}
+
+/* Compact in-game panel, with the same visual language as gameplay settings. */
+body.affiliateEmbedded{background:#fffdf8;color:#25211b;color-scheme:light;font:650 13px/1.4 system-ui,sans-serif}
+body.affiliateEmbedded main.panel.login{box-sizing:border-box;width:100%;max-width:none;margin:0;padding:0 13px 13px;border:0;box-shadow:none;background:transparent}
+body.affiliateEmbedded #affiliateNotice{margin:10px 0;font-size:12px;line-height:1.45;color:#805c22}
+body.affiliateEmbedded #affiliateEligibility{display:none}
+body.affiliateDashboard .affiliateSetting{display:grid;gap:7px;padding:12px 0;border-bottom:1px solid #e3d9c7;min-width:0}
+body.affiliateDashboard .affiliateSetting:last-child{border-bottom:0}
+body.affiliateDashboard .affiliateSetting label,body.affiliateDashboard .affiliateSetting h3{font:750 13px/1.4 system-ui;margin:0;color:#25211b}
+body.affiliateDashboard .affiliateSetting p{margin:0}
+body.affiliateDashboard .affiliateCodeValue{font-size:15px;color:#805c22;overflow-wrap:anywhere}
+body.affiliateDashboard .affiliateLinkValue{font-size:12px;background:#fff;border:1px solid #d8ccb4;border-radius:9px;padding:9px;color:#805c22;overflow-wrap:anywhere;user-select:text}
+body.affiliateDashboard .affiliateSetting form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin:0;align-items:center}
+body.affiliateDashboard .affiliateSetting form[hidden]{display:none!important}
+body.affiliateDashboard .affiliateSetting input{width:100%;min-width:0;min-height:38px;padding:8px;border:1px solid #d8ccb4;border-radius:9px;background:white;color:#25211b;font:600 13px system-ui}
+body.affiliateDashboard .affiliateSetting button{min-height:37px;padding:7px 10px;border:1px solid #d6b46b;border-radius:9px;color:#25211b;font:650 12px system-ui;box-shadow:none}
+body.affiliateDashboard .affiliateSetting button.primary{background:#d6b46b}
+body.affiliateDashboard .affiliateSetting button.secondary{background:#fffdf8}
+body.affiliateDashboard .affiliateCount{color:#805c22;font-size:12px}
+body.affiliateEmbedded .commissionSummary{gap:8px;margin:8px 0 12px}
+body.affiliateEmbedded .commissionSummary article{padding:12px;gap:4px;border-radius:10px}
+body.affiliateEmbedded .commissionSummary article strong{font-size:22px}
+body.affiliateEmbedded .commissionSummary article:last-child{background:#f1f7f0;border-color:#cbd9c9}
+body.affiliateEmbedded .commissionSummary article:last-child strong{color:#386247}
+body.affiliateEmbedded #affiliateCommission h3{font-size:13px;margin:14px 0 7px}
+body.affiliateEmbedded #affiliateCommission p,body.affiliateEmbedded #withdrawHistory{font-size:12px;line-height:1.45}
+body.affiliateEmbedded #affiliateCommission{margin-top:0!important}
+body.affiliateEmbedded[data-affiliate-view="commission"] #withdrawForm{display:none!important}
+body.affiliateEmbedded[data-affiliate-view="commission"] #walletPolicy{display:none}
+body.affiliateEmbedded #withdrawWhatsApp{font-size:13px;border-radius:10px}
