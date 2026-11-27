@@ -370,3 +370,22 @@ body .gameplayAffiliateFrame{display:block;width:100%;height:min(510px,calc(100d
 body .gameplayAffiliateFrame[hidden]{display:none!important}
 body #simpleSettings:has(.affiliateOpen),body #districtDialog.gameplaySettingsDialog .districtModal:has(.affiliateOpen){width:min(520px,calc(100vw - 24px))}
 body .minimalGameMenu:has(.affiliateOpen){width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto}
+
+/* District settings use a single compact card anchored to the gear, not the NPC modal shell. */
+body dialog#districtDialog.gameplaySettingsDialog{
+ position:fixed!important;inset:var(--district-settings-top,60px) var(--district-settings-right,12px) auto auto!important;
+ margin:0!important;padding:0!important;width:min(285px,calc(100vw - 24px))!important;
+ max-width:calc(100vw - 24px)!important;max-height:calc(100dvh - var(--district-settings-top,60px) - 12px)!important;
+ height:auto!important;min-height:0!important;background:transparent!important;border:0!important;
+ box-shadow:none!important;overflow:auto!important;overscroll-behavior:contain;touch-action:pan-y;
+}
+body dialog#districtDialog.gameplaySettingsDialog::backdrop{background:transparent!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+body dialog#districtDialog.gameplaySettingsDialog .districtModal{
+ width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;padding:14px!important;
+ border:1px solid #d6b46b!important;border-radius:16px!important;box-shadow:0 6px 24px #25211b18!important;
+ background:#fffdf8!important;overflow:visible!important;box-sizing:border-box;
+}
+body dialog#districtDialog.gameplaySettingsDialog #graphicsOptions{width:100%;min-width:0}
+body dialog#districtDialog.gameplaySettingsDialog #dialogActions{margin-top:8px;display:flex;justify-content:flex-start}
+body dialog#districtDialog.gameplaySettingsDialog #dialogActions button{flex:0 0 auto}
+@media(max-height:450px){body dialog#districtDialog.gameplaySettingsDialog .districtModal{padding:10px!important}}
