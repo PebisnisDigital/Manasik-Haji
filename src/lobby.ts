@@ -1,9 +1,10 @@
+import {currentLandingCoupon,resolveLandingCoupon,claimLandingCoupon} from './landingReferral.ts';
 import {cameraPrefs} from './gameplayCamera.ts';
 import {mountGameplaySettings,gearIcon} from './gameplaySettings.ts';
 import {humanBodies} from './characters/HumanActors.ts';
 import {bodyClear,sweepGround} from './sim/GroundCollision.ts';
 import {mountGateVideotron} from './gateVideotron.ts';
-import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,insideMarketShop,escortDestination,planEscortRoute,planMarketRoute,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_TARGET,SALES_COUPON,type SalesJob} from './buburMarket.ts';
+import {createBuburMarket,BUBUR_POINT,marketWalkable,insideHijab,insideMarketShop,escortDestination,planEscortRoute,planMarketRoute,keepMarketCameraClear,loadSales,saveSales,salesDialog,salesResponse,salesNames,salesCommission,SALES_TARGET,type SalesJob} from './buburMarket.ts';
 import {canWalkOnPlaza,LEGACY_PLAZA,legacyPlazaSolids,PLAZA} from './lobbyGround.ts';
 import {insideAlfamart} from './alfamartStore.ts';
 import {ALFAMART_PRODUCTS,alfamartOffers,alfamartResponse} from './alfamartProducts.ts';
@@ -61,7 +62,7 @@ function salesHud(){
  const job=sales.job;if(!job)return;
  $('instruction').textContent=sales.serving!==null?'Pembeli sedang dilayani · komisi segera masuk':
   sales.pending!==null?(escortManual?'Antar ':escortArrived?'Tiba · laporkan ':'Mengantar otomatis ')+(buburMarket?.prospects[sales.pending]?.name??'pembeli')+' ke '+salesDestination[job]+' · lalu lapor ke penjual':
-  sales.claimed?'Hadiah '+SALES_COUPON+' sudah diklaim · menuju loket':
+  sales.claimed?'Hadiah '+(currentLandingCoupon()||'kupon')+' sudah diklaim · menuju loket':
   sales.accepted.length>=SALES_TARGET?'Target tercapai! Kembali ke '+ownerNames[job]:
   'Sales '+salesNames[job]+' · '+sales.accepted.length+'/'+SALES_TARGET+' pembeli · Komisi virtual Rp'+(sales.accepted.length*salesCommission[job]).toLocaleString('id-ID');
 }
@@ -84,7 +85,7 @@ function settleMarketSales(){
   const job=sales.job;sales.accepted.push(id);sales.serving=null;sales.product=null;saveSales(sales);lobbySound.pickup();salesHud();
   const text='Komisi virtual +Rp'+salesCommission[job].toLocaleString('id-ID')+' · '+sales.accepted.length+'/'+SALES_TARGET+' pembeli';
   const badge=document.createElement('div');badge.className='gateWorldBubble detached';badge.style.cssText='position:fixed;z-index:15;left:50%;top:55px;transform:translateX(-50%);pointer-events:none';badge.setAttribute('role','status');const title=document.createElement('strong');title.textContent='KOMISI DITERIMA';const detail=document.createElement('p');detail.textContent=text;badge.append(title,detail);document.body.append(badge);setTimeout(()=>badge.remove(),3500);
-  if(sales.accepted.length>=SALES_TARGET){$('instruction').textContent='Target tercapai! Ambil voucher MAUHAJJI ke penjual.';}
+  if(sales.accepted.length>=SALES_TARGET){$('instruction').textContent='Target tercapai! Ambil kupon hadiah ke penjual.';}
  }
 }
 function talkOwner(job:SalesJob){
@@ -100,8 +101,11 @@ function talkOwner(job:SalesJob){
     button('Batalkan antar pembeli',()=>{clear();say('Baik, saya batalkan dulu.','player');buburMarket?.cancelEscort();sales.pending=null;sales.product=null;resetEscortRoute();saveSales(sales);button('Kembali',close,true);});
    }
   }
-  else if(sales.job===job&&sales.claimed){say('Kode hadiah kamu: '+SALES_COUPON+'. Gunakan saat daftar manasik di HAJJI.DIGITAL.');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);}
-  else if(sales.job===job&&sales.accepted.length>=SALES_TARGET){say('Alhamdulillah! Kamu berhasil membawa '+SALES_TARGET+' pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');button('Terima hadiah',()=>{clear();sales.claimed=true;saveSales(sales);try{sessionStorage.setItem('hajji-referral-code',SALES_COUPON);}catch{}say('Terima kasih, Pak/Bu!','player');say('Kode kupon '+SALES_COUPON+' · Besaran diskon dan tarif terbaru akan divalidasi di loket pendaftaran.','system');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);button('Kembali',close);},true);}
+  else if(sales.job===job&&(sales.claimed||sales.accepted.length>=SALES_TARGET)){
+   say(sales.claimed?'Hadiah misi kamu sudah tersedia. Mari periksa kode kupon untuk landing page ini.':'Alhamdulillah! Kamu berhasil membawa '+SALES_TARGET+' pembeli. Ini hadiah kode diskon khusus untuk belajar manasik.');
+   const reward=async()=>{clear();try{const code=await resolveLandingCoupon();const stored=claimLandingCoupon(code);sales.claimed=true;saveSales(sales);say('Terima kasih, Pak/Bu!','player');say('Kode kupon '+code+' · Gunakan saat daftar manasik. Besaran diskon dan tarif terbaru divalidasi di loket.','system');if(!stored)say('Catat kode ini dan masukkan secara manual di loket.','system');button('Ke loket pendaftaran',()=>{close();registrationAction();},true);button('Kembali',close);}catch(err){say(err instanceof Error?err.message:'Kupon belum dapat diperiksa.','system');button('Coba lagi',reward,true);button('Kembali',close);}};
+   button(sales.claimed?'Lihat kode kupon':'Terima hadiah',reward,true);
+  }
   else if(sales.job===job){say('Sudah '+sales.accepted.length+' dari '+SALES_TARGET+' pembeli. Terus tawarkan dengan sopan.');if(sales.rejected.length>6||sales.rejected.filter(id=>id%4!==3).length>2)button('Coba misi dari awal',()=>{sales.accepted=[];sales.rejected=[];buburMarket?.resetPurchases();saveSales(sales);close();});}
   else if(sales.job){
    say('Misi '+salesNames[sales.job]+' masih tersimpan. Mau beralih ke '+salesNames[job]+'?');
