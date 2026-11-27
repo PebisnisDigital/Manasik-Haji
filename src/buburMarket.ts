@@ -82,26 +82,26 @@ type Prospect={id:number;name:string;actor:THREE.Group};
 const names=['Asep','Siti','Dedi','Neneng','Budi','Yuni','Agus','Rina','Dian','Eko','Nining','Wawan','Titin','Rizky','Dewi','Ari','Fitri','Slamet','Rani','Ujang'];
 // Roaming destinations are spread across the plaza, away from queues and storefront doors.
 export const marketRoamZones=[
- {x:-30,z:8},{x:-31,z:13.8},{x:-23,z:12},{x:-21,z:7.6},
- {x:-14,z:11.8},{x:-9,z:15},{x:-2,z:12},{x:5,z:15},
- {x:11,z:11.8},{x:18,z:14.2},{x:25,z:11.5},{x:25,z:6.5},
+ {x:-30,z:7.3},{x:-33,z:11},{x:-25,z:9},{x:-22,z:6.2},
+ {x:-17,z:8.8},{x:-11,z:11.2},{x:-6,z:10.7},{x:2,z:11.5},
+ {x:8,z:10.8},{x:18,z:11},{x:25,z:9.5},{x:25,z:5.2},
+ {x:-20,z:14},{x:12,z:14},{x:-8,z:14},{x:4,z:14.5},
 ] as const;
 export function marketRoamWalkable(x:number,z:number,radius=.36){
  if(!marketWalkable(x,z,radius+.08))return false;
- // Keep both registration lines, their entrances and central approach free.
  if(Math.abs(x)<7.2&&z<9.4)return false;
- // Leave a buffer around snack carts, customer service points and dining tables.
- if(vendorInfo.some(v=>Math.abs(x-v.x)<3.4&&Math.abs(z-v.z)<3.4))return false;
+ if(vendorInfo.some(v=>Math.abs(x-v.x)<2.8&&Math.abs(z-v.z)<2.8))return false;
  if(x>11.9&&x<21.9&&z>3.1&&z<9.8)return false;
- // Don't roam into parking areas, store doorways or behind the buildings.
- return z>=6.5;
+ return z>=4.5;
 }
-type RoamState={zone:number;previous:number;speed:number;stall:number;best:number};
+// Destination slots are shared by the ambient population, not by the player's sales ledger.
+type RoamVisit={id:string;kind:'snack'|'shop';point:THREE.Vector3;face:THREE.Vector3;label:string};
+type RoamState={zone:number;previous:number;speed:number;stall:number;best:number;visits:number;visit?:RoamVisit;actionTime:number;prop?:THREE.Group};
 export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:MarketAudioCue)=>void){
  const root=new THREE.Group();root.name='bubur-market';scene.add(root);
  const parkedWalkers=new Map<THREE.Group,{points:THREE.Vector3[];position:THREE.Vector3;index:number;wait:number}>();
  const walkers:{actor:THREE.Group;points:THREE.Vector3[];index:number;wait:number}[]=[];
- const roaming=new Map<THREE.Group,RoamState>();let nextRoamPlan=0;
+ const roaming=new Map<THREE.Group,RoamState>();let nextRoamPlan=0;let ambientCycles=0;
  const prospects:Prospect[]=[];
  const addProspect=(actor:THREE.Group,palette:number)=>{actor.userData.marketPalette=palette;const id=prospects.length;prospects.push({id,name:names[id%names.length]!,actor});};
  const store=createAlfamartStore(root,audio);
@@ -169,7 +169,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   }
  }
  // Start dispersed, even before the first route is picked. Preserve sales prospect IDs.
- const spawnOrder=[0,4,8,2,6,10,1,5,9,3,7,11];
+ const spawnOrder=[0,4,8,2,6,10,1,5,9,3,7,11,12,13,14,15];
  const occupied:THREE.Vector3[]=[];
  for(const [i,w] of walkers.entries()){
   const radius=groundBodyRadius(w.actor);
@@ -181,7 +181,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
    if(marketRoamWalkable(p.x,p.z,radius)&&occupied.every(q=>q.distanceToSquared(p)>1.8)){w.actor.position.copy(p);break;}
   }
   occupied.push(w.actor.position.clone());w.actor.rotation.y=Math.random()*Math.PI*2;
-  w.points=[];w.index=0;w.wait=.25+Math.random()*2.8;
+  w.points=[];w.index=0;w.wait=Math.random()*.9;
   parkedWalkers.set(w.actor,{points:[],position:w.actor.position.clone(),index:0,wait:w.wait});
  }
  // A sale changes the actual NPC's activity; the normal pedestrian loop pauses until purchase finishes.
@@ -235,10 +235,10 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   if(job==='alfamart'){
    const customer=prospects[id];
    if(restored)completedAlfamart.add(id);
-   else if(customer&&!completedAlfamart.has(id))alfamart.handoff(id,customer.actor,customer.name,product);
+   else if(customer&&!completedAlfamart.has(id)){cancelRoaming(customer.actor);alfamart.handoff(id,customer.actor,customer.name,product);}
    return;
   }
-  const p=prospects[id];if(!p||purchases.has(id))return;
+  const p=prospects[id];if(!p||purchases.has(id))return;cancelRoaming(p.actor);
   const buy:Purchase={job,stage:'approach',route:[],time:0};purchases.set(id,buy);p.actor.userData.marketPurchase=job;
   if(restored){buy.paid=true;complete(p,buy);buy.time=1;if(buy.prop)buy.prop.scale.setScalar(1);return;}
   if(job==='bubur'){line.push(id);buy.route=planMarketRoute(p.actor.position,v(16.8,8.85));speak(vendor,'Penjual Bubur','Silakan duduk, saya siapkan buburnya.');}
@@ -248,7 +248,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   }
   else{buy.route=planMarketRoute(p.actor.position,v(-25.8,-1.95));}
  }
- function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;escort={id,trail:planMarketRoute(p.actor.position,player.clone()),last:player.clone(),retry:0};p.actor.userData.marketPurchase='escort';}
+ function startEscort(id:number,player:THREE.Vector3){const p=prospects[id];if(!p||purchases.has(id))return;cancelRoaming(p.actor);escort={id,trail:planMarketRoute(p.actor.position,player.clone()),last:player.clone(),retry:0};p.actor.userData.marketPurchase='escort';}
  function cancelEscort(){if(escort){const p=prospects[escort.id];if(p)delete p.actor.userData.marketPurchase;}escort=null;}
  function escortReady(id:number,player:THREE.Vector3){const p=prospects[id];return !!p&&escort?.id===id&&Math.hypot(player.x-p.actor.position.x,player.z-p.actor.position.z)<2.6;}
  function updateEscort(dt:number,player:THREE.Vector3){
@@ -265,7 +265,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
    if(product===null||!insideAlfamart(p.actor.position.x,p.actor.position.z)||!insideAlfamart(player.x,player.z)||!alfamart.handoff(id,p.actor,p.name,product))return false;
   }else purchase(id,job,false,0,player);
   escort=null;return true;}
- function resetPurchases(){roaming.clear();nextRoamPlan=0;cancelEscort();alfamart.reset();for(const customer of prospects){delete customer.actor.userData.marketPurchase;delete customer.actor.userData.marketDeparture;}completedAlfamart.clear();if(service?.prop){service.prop.removeFromParent();}service=null;vendor.position.copy(vendorHome);delete vendor.userData.campPose;delete hijabOwner.userData.campPose;for(const seat of seats)seat.busy=null;for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;delete p.actor.userData.campPose;}}purchases.clear();
+ function resetPurchases(){for(const [actor,state] of roaming)releaseVisit(actor,state);roaming.clear();nextRoamPlan=0;cancelEscort();alfamart.reset();for(const customer of prospects){delete customer.actor.userData.marketPurchase;delete customer.actor.userData.marketDeparture;}completedAlfamart.clear();if(service?.prop){service.prop.removeFromParent();}service=null;vendor.position.copy(vendorHome);delete vendor.userData.campPose;delete hijabOwner.userData.campPose;for(const seat of seats)seat.busy=null;for(const [id,buy] of purchases){removeProp(buy);const p=prospects[id];if(p){delete p.actor.userData.marketPurchase;delete p.actor.userData.marketDeparture;delete p.actor.userData.campPose;}}purchases.clear();
   for(let i=walkers.length-1;i>=0;i--){
    const walker=walkers[i]!, initial=parkedWalkers.get(walker.actor);
    delete walker.actor.userData.marketDeparture;delete walker.actor.userData.marketPurchase;
@@ -307,39 +307,73 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   else if(buy.stage==='done'&&buy.job==='bubur'&&buy.prop){buy.time=Math.min(1,buy.time+dt*2.5);buy.prop.scale.setScalar(.12+.88*Math.sin(buy.time*Math.PI/2));}
  }
  // One route calculation at a time, with a short cooldown to avoid frame spikes.
+ // Visits include real store interiors and side service spots; no player commission is generated.
+ const visitSlots:RoamVisit[]=[
+  ...vendorInfo.map(vendor=>({id:vendor.food,kind:'snack' as const,point:v(vendor.x-vendor.serviceSide*1.8,vendor.z+.35),face:v(vendor.x,vendor.z),label:vendor.food})),
+  {id:'bubur',kind:'snack',point:v(16.25,7.65),face:v(14.7,6.4),label:'Bubur ayam'},
+  {id:'hijab',kind:'shop',point:v(-26,-5.0),face:v(-26,-6.02),label:'KOKOSALAMA'},
+  {id:'indomaret',kind:'shop',point:v(-16.5,-5.0),face:v(-19.05,-4.35),label:'Indomaret'},
+ ];
+ function releaseVisit(actor:THREE.Group,state:RoamState){state.prop?.removeFromParent();state.prop=undefined;state.visit=undefined;state.actionTime=0;delete actor.userData.campPose;delete actor.userData.ambientActivity;}
+ function cancelRoaming(actor:THREE.Group){const state=roaming.get(actor);if(state)releaseVisit(actor,state);roaming.delete(actor);const w=walkers.find(w=>w.actor===actor);if(w){w.points=[];w.index=0;w.wait=0;}}
+ const travelValid=(x:number,z:number,radius:number)=>marketWalkable(x,z,radius)&&!(Math.abs(x)<7.2&&z<9.4);
  function roam(w:typeof walkers[number],dt:number){
   let s=roaming.get(w.actor);
-  if(!s){s={zone:-1,previous:-1,speed:.85+Math.random()*.52,stall:0,best:Infinity};roaming.set(w.actor,s);}
-  if(w.wait>0){w.wait-=dt;return;}
+  if(!s){s={zone:-1,previous:-1,speed:1.02+Math.random()*.48,stall:0,best:Infinity,visits:Math.floor(Math.random()*3),actionTime:0};roaming.set(w.actor,s);}
   const a=w.actor,p=a.position,radius=groundBodyRadius(a);
+  if(s.actionTime>0){
+   s.actionTime=Math.max(0,s.actionTime-dt);
+   const visit=s.visit;
+   if(visit){
+    a.rotation.y=Math.atan2(visit.face.x-p.x,visit.face.z-p.z);
+    a.userData.campPose={clip:visit.kind==='snack'?Clip.MARKET_EAT:Clip.GUIDE_WAVE,phase:(s.actionTime*.8)%1};
+   }
+   if(s.actionTime===0){releaseVisit(a,s);ambientCycles++;w.wait=.15;}
+   return;
+  }
+  if(w.wait>0){w.wait-=dt;return;}
   if(w.index>=w.points.length){
-   if(nextRoamPlan>0)return;nextRoamPlan=.18;
+   if(nextRoamPlan>0)return;nextRoamPlan=.10;
+   const canTravel=(x:number,z:number)=>travelValid(x,z,radius);
+   // Every other trip goes to a shop or food stall if one is free.
+   const free=visitSlots.filter(q=>canTravel(q.point.x,q.point.z)&&p.distanceToSquared(q.point)>9&&
+    !Array.from(roaming.values()).some(state=>state.visit?.id===q.id)&&
+    !bodiesFor(a).some(b=>Math.hypot(b.x-q.point.x,b.z-q.point.z)<.9));
+   let visit:RoamVisit|undefined;
+   if(free.length&&(s.visits%2===0||Math.random()<.26))visit=free[Math.floor(Math.random()*free.length)]!;
    const candidates=marketRoamZones.map((zone,i)=>({i,zone,dist:Math.hypot(zone.x-p.x,zone.z-p.z)}))
-    .filter(q=>q.i!==s.zone&&q.i!==s.previous&&q.dist>5&&!Array.from(roaming.entries()).some(([other,state])=>other!==a&&state.zone===q.i&&other.position.distanceToSquared(new THREE.Vector3(q.zone.x,0,q.zone.z))<36));
-   // Prefer an unoccupied destination, never simply turn back to the last stop.
-   const pool=candidates.length?candidates:marketRoamZones.map((zone,i)=>({i,zone,dist:Math.hypot(zone.x-p.x,zone.z-p.z)})).filter(q=>q.i!==s.zone&&q.dist>5);
-   if(!pool.length){w.wait=1;return;}
-   const pick=pool[Math.floor(Math.random()*pool.length)]!;
-   const target=new THREE.Vector3(pick.zone.x+(Math.random()-.5)*1.2,0,pick.zone.z+(Math.random()-.5)*.8);
-   if(!marketRoamWalkable(target.x,target.z,radius)||bodiesFor(a).some(b=>Math.hypot(b.x-target.x,b.z-target.z)<1.3)){w.wait=.5+Math.random();return;}
-   // Actors already in shops or beside carts may exit via normal collision-safe paths.
-   const safeStart=marketRoamWalkable(p.x,p.z,radius);
-   const valid=(x:number,z:number)=>safeStart?marketRoamWalkable(x,z,radius):marketWalkable(x,z,radius);
+    .filter(q=>q.i!==s.zone&&q.i!==s.previous&&q.dist>3.5&&marketRoamWalkable(q.zone.x,q.zone.z,radius));
+   const pool=candidates.length?candidates:marketRoamZones.map((zone,i)=>({i,zone,dist:Math.hypot(zone.x-p.x,zone.z-p.z)})).filter(q=>q.dist>2&&marketRoamWalkable(q.zone.x,q.zone.z,radius));
+   const pick=pool[Math.floor(Math.random()*pool.length)];
+   const target=visit?.point.clone()??(pick?new THREE.Vector3(pick.zone.x+(Math.random()-.5)*.8,0,pick.zone.z+(Math.random()-.5)*.6):undefined);
+   if(!target||!canTravel(target.x,target.z)){w.wait=.18;return;}
+   // Use actual obstacle-aware navigation for shop doors; don't trap an actor in the outer strip.
+   const valid=canTravel(p.x,p.z)?canTravel:(x:number,z:number)=>marketWalkable(x,z,radius);
    const route=planMarketRoute(p,target,valid);
-   if(!route.length){w.wait=.7+Math.random();return;}
-   s.previous=s.zone;s.zone=pick.i;s.stall=0;s.best=Infinity;w.points=route;w.index=0;
+   if(!route.length){w.wait=.25+Math.random()*.3;s.visits++;return;}
+   s.visit=visit;s.visits++;s.previous=s.zone;s.zone=visit?-1:pick?.i??-1;s.stall=0;s.best=Infinity;w.points=route;w.index=0;
+   a.userData.ambientActivity=visit?'menuju '+visit.label:'berjalan';
   }
   const target=w.points[w.index];if(!target)return;
   const distance=Math.hypot(target.x-p.x,target.z-p.z);
-  if(distance<s.best-.05){s.best=distance;s.stall=0;}else s.stall+=dt;
-  // If a moving pedestrian or player blocks the route, wait and choose another destination.
-  if(s.stall>3){w.points=[];w.index=0;w.wait=.8+Math.random()*1.4;s.stall=0;s.best=Infinity;return;}
+  if(distance<s.best-.035){s.best=distance;s.stall=0;}else s.stall+=dt;
+  if(s.stall>2.2){releaseVisit(a,s);w.points=[];w.index=0;w.wait=.15+Math.random()*.35;s.stall=0;s.best=Infinity;s.visits++;return;}
   const oldYaw=a.rotation.y;
-  const safe=marketRoamWalkable(p.x,p.z,radius);
-  const arrived=walkMarketActor(a,target,dt,s.speed,bodiesFor(a),(x,z)=>safe?marketRoamWalkable(x,z,radius):marketWalkable(x,z,radius),radius);
-  const turn=Math.atan2(Math.sin(a.rotation.y-oldYaw),Math.cos(a.rotation.y-oldYaw));
-  a.rotation.y=oldYaw+turn*Math.min(1,dt*8);
-  if(arrived){w.index++;s.best=Infinity;s.stall=0;if(w.index>=w.points.length)w.wait=1+Math.random()*3.5;}
+  const valid=travelValid(p.x,p.z,radius)?(x:number,z:number)=>travelValid(x,z,radius):(x:number,z:number)=>marketWalkable(x,z,radius);
+  const arrived=distance<.12||walkMarketActor(a,target,dt,s.speed,bodiesFor(a),valid,radius);
+  const turn=Math.atan2(Math.sin(a.rotation.y-oldYaw),Math.cos(a.rotation.y-oldYaw));a.rotation.y=oldYaw+turn*Math.min(1,dt*10);
+  if(arrived){
+   w.index++;s.best=Infinity;s.stall=0;
+   if(w.index>=w.points.length){
+    if(s.visit){
+     const visit=s.visit;const prospect=prospects.find(p=>p.actor===a);
+     s.actionTime=visit.kind==='snack'?3.2+Math.random()*2:2.3+Math.random()*1.5;
+     if(prospect){s.prop=propFor(prospect,visit.kind==='snack'?'bowl':'bag');}
+     a.userData.ambientActivity=visit.kind==='snack'?'jajan':'belanja';
+     if(playerBody&&p.distanceToSquared(playerBody)<36)speak(a,prospect?.name??'Pengunjung',visit.kind==='snack'?'Enak, terima kasih!':'Saya beli yang ini, ya.');
+    }else w.wait=.15+Math.random()*.65;
+   }
+  }
  }
  return {owners:{bubur:vendor,hijab:hijabOwner,alfamart:alfamart.cashier},talkers:street.talkers,prospects,purchase,startEscort,cancelEscort,escortReady,drainServed:()=>served.splice(0),speech:()=>speech,hasEscort:(id:number)=>escort?.id===id,handoff,resetPurchases,update(dt:number,hold:THREE.Group|null=null,player?:THREE.Vector3){
   playerBody=player;nextRoamPlan=Math.max(0,nextRoamPlan-dt);
@@ -356,11 +390,12 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
    document.documentElement.dataset.alfamartDoor=store.root.userData.doorOpen?'open':'closed';
   }
   for(const w of walkers){if(w.actor===hold)continue;const p=prospects.find(p=>p.actor===w.actor),buy=p?purchases.get(p.id):undefined;if(p&&(escort?.id===p.id||alfamart.has(p.id)))continue;if(buy&&buy.stage!=='done')continue;
-   if((buy?.stage==='done'||p&&completedAlfamart.has(p.id))&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[];w.index=0;w.wait=.6;roaming.delete(w.actor);}
+   if((buy?.stage==='done'||p&&completedAlfamart.has(p.id))&&!w.actor.userData.marketDeparture){w.actor.userData.marketDeparture=true;w.points=[];w.index=0;w.wait=.6;const previous=roaming.get(w.actor);if(previous)releaseVisit(w.actor,previous);roaming.delete(w.actor);}
    roam(w,dt);
   }
   // Completed customers rejoin free exploration without returning to a fixed loop.
   for(const p of prospects){const buy=purchases.get(p.id);if((buy?.stage==='done'||completedAlfamart.has(p.id))&&!alfamart.has(p.id)&&!walkers.some(w=>w.actor===p.actor))walkers.push({actor:p.actor,points:[],index:0,wait:1.5});}
+  document.documentElement.dataset.marketAmbientVisits=String(ambientCycles);
   document.documentElement.dataset.marketQueue=String(line.length);
   document.documentElement.dataset.marketCompleted=String([...purchases.values()].filter(p=>p.stage==='done').length);
  }};
