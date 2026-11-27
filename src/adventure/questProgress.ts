@@ -1,6 +1,7 @@
+import {replayKey} from './levelReplay.ts';
 import {exampleKey} from './exampleAccess.ts';
 export const QUEST_KEYS = {
-  tawaf: exampleKey('manasik-tawaf-quest-v1'), sai: exampleKey('manasik-sai-quest-v1'), tahallul: exampleKey('manasik-tahallul-quest-v1'),
+  tawaf: replayKey('manasik-tawaf-quest-v1',exampleKey('manasik-tawaf-quest-v1')), sai: replayKey('manasik-sai-quest-v1',exampleKey('manasik-sai-quest-v1')), tahallul: replayKey('manasik-tahallul-quest-v1',exampleKey('manasik-tahallul-quest-v1')),
 } as const;
 export type Chapter = keyof typeof QUEST_KEYS;
 export interface RouteProgress {version:1;stage:number;count:number;gate:number}
@@ -27,10 +28,10 @@ export function decodeTahallul(raw:string|null):TahallulProgress|null {
   } catch {return null;}
 }
 export function loadProgress<T>(key:string,decode:(raw:string|null)=>T|null):T|null {
-  try {key=exampleKey(key);return decode(localStorage.getItem(key))??decode(localStorage.getItem(key+'.backup'));} catch {return null;}
+  try {key=replayKey(key,exampleKey(key));return decode(localStorage.getItem(key))??decode(localStorage.getItem(key+'.backup'));} catch {return null;}
 }
 export function storeProgress(key:string,value:object):boolean {
-  try {key=exampleKey(key);
+  try {key=replayKey(key,exampleKey(key));
     const previous=localStorage.getItem(key);
     if(previous){try{const record=JSON.parse(previous);if(typeof record?.version==='number'&&record.version>1)return false;}catch{/* Recovery can replace truncated JSON. */}}
     // Retain a valid previous record. A broken primary must not replace a good backup.
