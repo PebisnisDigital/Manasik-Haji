@@ -1,3 +1,4 @@
+import {cameraPrefs,cameraRevision,cameraDistance} from './gameplayCamera.ts';
 import {sweepGround,reportContact} from './sim/GroundCollision.ts';
 import {mountArenaLookPad,publishWorldAction} from './worldInteraction.ts';
 import {cityArenaLevel,createArenaDoor,exitButton} from './adventure/arenaDoor.ts';
@@ -146,9 +147,9 @@ function boot(): void {
   joy.addEventListener('pointerdown',e=>{if(joyId!==null||paused||isPortrait())return;e.preventDefault();joyId=e.pointerId;joy.setPointerCapture(e.pointerId);setAuto(false);moveJoy(e);});
   joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)moveJoy(e);});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])joy.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===joyId)stopJoy();});
-  let dragId:number|null=null,dragX=0;
-  canvas.addEventListener('pointerdown',e=>{if(dragId!==null||isPortrait())return;dragId=e.pointerId;dragX=e.clientX;canvas.setPointerCapture(e.pointerId);});
-  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraMode.value!=='free'){cameraMode.value='free';}orbit-= (e.clientX-dragX)*0.008*(core?lookFactor():1);dragX=e.clientX;});
+  let dragId:number|null=null,dragX=0,dragY=0;
+  canvas.addEventListener('pointerdown',e=>{if(dragId!==null||isPortrait())return;dragId=e.pointerId;dragX=e.clientX;dragY=e.clientY;canvas.setPointerCapture(e.pointerId);});
+  canvas.addEventListener('pointermove',e=>{if(e.pointerId!==dragId)return;if(cameraPrefs.mode!=='first')cameraMode.value='free';orbit-=(e.clientX-dragX)*.008*(core?lookFactor():1)*cameraPrefs.sensitivity;userPitch=THREE.MathUtils.clamp(userPitch+(e.clientY-dragY)*.005*cameraPrefs.sensitivity,-.65,.65);dragX=e.clientX;dragY=e.clientY;});
   for(const ev of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(ev,e=>{if((e as PointerEvent).pointerId===dragId)dragId=null;});
   autoButton.addEventListener('click',()=>{setAuto(!auto);if(auto)tutorial?.event({type:'route'});if(auto)guide.announce("Mode otomatis aktif. Perhatikan arah tawaf dan posisi Ka'bah di kiri.",'auto',3000);});reset.addEventListener('click',resetAll);
   pauseButton.addEventListener('click',()=>setPause(!paused));cameraMode.addEventListener('change',()=>{initializedCamera=false;});
@@ -164,18 +165,19 @@ function boot(): void {
   function startExit(){if(!exitDoor)return;exiting=true;exitDoor.highlight();nextSai.hidden=true;exitControl??=exitButton(()=>{if(Math.hypot(x-exitDoor.target.x,z-exitDoor.target.z)<1.5){const url=districtReturnUrl();if(url)location.assign(url);}});status.textContent='Kembali ke pintu masuk, lalu pilih KELUAR GEDUNG.';}
   if(exitOnly&&exitDoor){const a=START+.20;x=Math.cos(a)*38;z=Math.sin(a)*38;orbit=Math.atan2(x,z);startExit();}
   if(level===12&&exitDoor&&core){nextSai.textContent='Kembali ke pintu masuk';nextSai.addEventListener('click',e=>{e.preventDefault();if(!coreFinished||isPortrait()||!saveCheckpoint(core,7)||!completeCoreGame(core,core.step as CoreGameStep)){status.textContent='Checkpoint belum tersimpan.';return;}startExit();});}
-  let userPitch=0;
+  let userPitch=0,lastCameraRevision=-1;
   const lookAbort=new AbortController();window.addEventListener('pagehide',()=>lookAbort.abort(),{once:true});
-  mountArenaLookPad(()=>!simpleMenuOpen()&&!paused&&!isPortrait()&&!document.hidden&&!budget.lost(),(dx,dy)=>{cameraMode.value='free';orbit-=dx*.008*(core?lookFactor():1);userPitch=THREE.MathUtils.clamp(userPitch+dy*.005,-.65,.65);},lookAbort.signal);
+  mountArenaLookPad(()=>!simpleMenuOpen()&&!paused&&!isPortrait()&&!document.hidden&&!budget.lost(),(dx,dy)=>{if(cameraPrefs.mode!=='first')cameraMode.value='free';orbit-=dx*.008*(core?lookFactor():1)*cameraPrefs.sensitivity;userPitch=THREE.MathUtils.clamp(userPitch+dy*.005*cameraPrefs.sensitivity,-.65,.65);},lookAbort.signal);
   function frame(now:number):void {
+    if(lastCameraRevision!==cameraRevision){lastCameraRevision=cameraRevision;cameraMode.value=cameraPrefs.mode==='first'?'first':'free';userPitch=cameraPrefs.pitch-.19;initializedCamera=false;}
     const elapsed=Math.max(0,Math.min(0.05,(now-last)/1000));last=now;const stopped=simpleMenuOpen()||paused||isPortrait()||document.hidden||budget.lost();const dt=stopped?0:elapsed;sound?.setPaused(stopped);if(stopped)reading?.pause(true);animationTime+=dt;
     const angle=Math.atan2(z,x);
-    if(cameraMode.value!=='free')orbit=-angle;
+    if(cameraMode.value==='follow')orbit=-angle;
     let dx=0,dz=0;
     if(auto&&!finished){
       const r=Math.hypot(x,z);const a=Math.atan2(z,x);const correction=(START_RADIUS-r)*0.8;
       dx=Math.sin(a)*3.5+Math.cos(a)*correction;dz=-Math.cos(a)*3.5+Math.sin(a)*correction;
-      if(cameraMode.value!=='free')orbit=-a;
+      if(cameraMode.value==='follow')orbit=-a;
     }else{
       const f=(pressed('up')?1:0)-(pressed('down')?1:0)-joyY;
       const s=(pressed('right')?1:0)-(pressed('left')?1:0)+joyX;
@@ -207,15 +209,15 @@ function boot(): void {
     const viewX=Math.sin(orbit),viewZ=Math.cos(orbit);
     const r=Math.hypot(x,z),rx=x/r,rz=z/r;
     if(cameraMode.value==='first'){
-      desiredCamera.set(x,1.61,z);desiredLook.set(x-viewX*8,1.61,z-viewZ*8);
+      const eye=avatar.value==='female'?1.52:1.64;desiredCamera.set(x,eye,z);desiredLook.set(x-viewX*8,eye-Math.tan(userPitch)*8,z-viewZ*8);
     }else if(cameraMode.value==='follow'){
       if(core)desiredCamera.set(x+viewX*3.8+rx*.8,2.65,z+viewZ*3.8+rz*.8);else desiredCamera.set(x+viewX*5.9+rx*6.4,3.6,z+viewZ*5.9+rz*6.4);
       if(core)desiredLook.set(x-viewX*1.4-rx*.7,1.4,z-viewZ*1.4-rz*.7);else desiredLook.set(x-viewX*3-rx*5,1.3,z-viewZ*3-rz*5);
     }else{
-      desiredCamera.set(x+viewX*(core?4:5.6),core?2.65:3.2,z+viewZ*(core?4:5.6));
+      const distance=cameraDistance(false),pitch=.19+userPitch;desiredCamera.set(x+viewX*Math.cos(pitch)*distance,1.45+Math.sin(pitch)*distance,z+viewZ*Math.cos(pitch)*distance);
       desiredLook.set(x-viewX*2,1.45,z-viewZ*2);
     }
-    if(cameraMode.value==='free'){desiredCamera.y=Math.max(1.1,desiredCamera.y+Math.sin(userPitch)*3.5);desiredLook.y-=Math.sin(userPitch)*1.3;}
+    if(cameraMode.value==='free'){desiredCamera.y=Math.max(1.1,desiredCamera.y);desiredLook.y-=Math.sin(userPitch)*1.3;}
     if(!initializedCamera){camera.position.copy(desiredCamera);smoothLook.copy(desiredLook);initializedCamera=true;}
     else {const a=1-Math.exp(-elapsed*9);camera.position.lerp(desiredCamera,a);smoothLook.lerp(desiredLook,a);}
     camera.lookAt(smoothLook);camera.updateMatrixWorld();
