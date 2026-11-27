@@ -1,3 +1,4 @@
+import {landingAffiliate,claimedLandingCoupon,currentLandingCoupon,resolveLandingCoupon,clearClaimedLandingCoupon} from './landingReferral.ts';
 import {manualConfirmationUrl,registrationSummary} from './registrationHandoff.ts';
 import {readSetup,saveSetup} from './frontSettings.ts';
 import {defaultSetup} from './frontModel.ts';
@@ -114,7 +115,7 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
     if(!saveSetup(setup))throw Error('Persiapan belum tersimpan.');
     const next=await request('',{...identity,program:setup.program,avatar:setup.avatar,consent:true,method:method.startsWith('bank:')?'transfer':method,bank_id:method.startsWith('bank:')?method.slice(5):undefined,coupon:quote?.code??'',expected_amount:quote?.amount??basePrice});
     if(disposed)return;
-    try{sessionStorage.removeItem('hajji-referral-code');}catch{}
+    clearClaimedLandingCoupon();
     paint(next);
     if(next.registration?.status==='pending'&&next.registration.payment_method==='qris'){
      notice.textContent='Menyiapkan kode QRIS…';
@@ -124,9 +125,14 @@ export function mountGateRegistration(host:HTMLElement,notice:HTMLElement,onBack
     if(!disposed){ask('Tagihan belum berhasil disiapkan. Silakan coba lagi.');message(err);choices([{label:'Coba lagi',run:()=>void create()},{label:'Ganti metode',run:payment},{label:'Perbarui harga & kupon',run:()=>{checked=false;void load();}}]);}
    }finally{busy=false;schedule();}
   }
-  function coupon(){let pref=new URLSearchParams(location.search).get('ref')?.slice(0,30)??'';if(!pref)try{pref=sessionStorage.getItem('hajji-referral-code')??'';}catch{}inputAnswer('Boleh sebutkan kode kuponnya?','Kode kupon','text',pref,v=>v.length>0,v=>{reply('Ini kode kupon saya: '+v.toUpperCase()+'.',()=>void verifyCoupon(v));},30);}
+  function coupon(){const pref=currentLandingCoupon()||claimedLandingCoupon();inputAnswer('Boleh sebutkan kode kuponnya?','Kode kupon','text',pref,v=>v.length>0,v=>{reply('Ini kode kupon saya: '+v.toUpperCase()+'.',()=>void verifyCoupon(v));},30);}
   async function verifyCoupon(value:string){if(disposed||busy)return;busy=true;ask('Sebentar, saya periksa kuponnya dulu.');try{const d=await request('/coupon',{code:value.trim().toUpperCase()});if(disposed)return;if(!d.coupon||!d.coupon.code||!Number.isInteger(d.coupon.amount)||!Number.isInteger(d.coupon.discount)||d.coupon.amount<=0||d.coupon.discount<0||d.coupon.amount+d.coupon.discount!==d.ticket.amount)throw Error('Kupon belum dapat digunakan.');basePrice=d.ticket.amount;quote=d.coupon;ask('Alhamdulillah, kuponnya valid! Harga awal '+fmt(basePrice)+', potongan '+fmt(quote.discount)+'. Total bayar '+fmt(quote.amount)+'.');const summary=document.createElement('div');summary.className='gateBank';summary.setAttribute('aria-label','Ringkasan diskon');for(const line of ['Harga awal: '+fmt(basePrice),'Potongan: −'+fmt(quote.discount),'Total bayar: '+fmt(quote.amount)]){const p=document.createElement('p');p.textContent=line;summary.append(p);}host.append(summary);choices([{label:'LANJUT PEMBAYARAN',run:payment}]);}catch(err){if(disposed)return;quote=null;ask('Kupon belum dapat digunakan. Harga normalnya '+fmt(basePrice)+'.');message(err);choices([{label:'Coba kode lain',run:coupon},{label:'Tanpa kupon',run:()=>{quote=null;payment();}}]);}finally{busy=false;}}
-  function askCoupon(){const ref=new URLSearchParams(location.search).get('ref')?.trim().toUpperCase();if(ref&&/^[A-Z0-9][A-Z0-9-]{2,29}$/.test(ref)){void verifyCoupon(ref);return;}ask('Apakah '+sapaan+' punya kode kupon?');choices([{label:'PUNYA KUPON',run:()=>reply('Saya punya kode kupon.',coupon)},{label:'TIDAK PUNYA',run:()=>{quote=null;reply('Saya tidak punya kode kupon.',payment);}}]);}
+  function askCoupon(){
+   const manual=()=>{ask('Apakah '+sapaan+' punya kode kupon?');choices([{label:'PUNYA KUPON',run:()=>reply('Saya punya kode kupon.',coupon)},{label:'TIDAK PUNYA',run:()=>{quote=null;reply('Saya tidak punya kode kupon.',payment);}}]);};
+   if(!landingAffiliate()&&!claimedLandingCoupon()){manual();return;}
+   if(disposed||busy)return;busy=true;ask('Saya periksa kupon dari landing page ini.');choices([]);
+   void resolveLandingCoupon().then(code=>{busy=false;if(!disposed)void verifyCoupon(code);}).catch(err=>{busy=false;if(disposed)return;ask('Kupon landing page belum dapat digunakan.');message(err);choices([{label:'Coba lagi',run:askCoupon},{label:'Masukkan kode lain',run:coupon},{label:'Tanpa kupon',run:()=>{quote=null;payment();}}]);});
+  }
   ask('Data '+sapaan+' belum terdaftar. Di HAJJI.DIGITAL, '+sapaan+' bisa belajar manasik lewat petualangan 3D, panduan ibadah dan latihan interaktif. Biaya aksesnya '+fmt(basePrice)+'.');choices([{label:'LANJUT DAFTAR',run:askCoupon},{label:'Kembali',run:onBack}]);
  }
  function paint(data:ResponseData){
