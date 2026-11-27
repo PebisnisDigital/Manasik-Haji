@@ -14,16 +14,16 @@ export function mountReferralAdmin(){
  let active=false,epoch=0;const field=(name:string)=>f.elements.namedItem(name) as HTMLInputElement;
  function action(label:string,op:string,data:()=>object|null){const b=node('button',label);b.type='button';b.onclick=async()=>{if(!active)return;const value=data();if(!value)return;const ep=epoch;b.disabled=true;try{const next=await rpc(op,value);if(active&&ep===epoch)render(next);}catch(e){if(active&&ep===epoch)n.textContent=e instanceof Error?e.message:'Gagal menyimpan.';b.disabled=false;}};return b;}
  function render(c:Config){
-  list.replaceChildren(node('h3','Data affiliate alumni'));payout.replaceChildren(node('h3','Pencairan komisi'));
+  list.replaceChildren(node('h3','Data affiliate'));payout.replaceChildren(node('h3','Pencairan komisi'));
   const members=c.members??[],withdrawals=c.withdrawals??[];
   list.append(node('p',members.length+' affiliate · '+members.filter(m=>m.active).length+' aktif'));
   for(const m of members){
    const row=node('div');row.style.cssText='padding:12px 0;border-bottom:1px solid #aaa5';
    row.append(node('strong',m.name+' · '+(m.code??m.id)),node('p',[m.email,m.phone].filter(Boolean).join(' · ')),node('p',(m.active?'Aktif':'Belum aktif / menunggu verifikasi')+' · '+(m.referrals??0)+' referral · '+m.paid_referrals+' lunas'));
    if(m.wallet){row.append(node('p','Komisi '+money(m.wallet.earned)+' · Tersedia '+money(m.wallet.available)+' · Ditahan '+money(m.wallet.reserved)+' · Dibayar '+money(m.wallet.paid)));if(m.wallet.shortfall>0)row.append(node('p','Perlu rekonsiliasi '+money(m.wallet.shortfall)));}
-   row.append(action(m.active?'Nonaktifkan':'Verifikasi & aktifkan',m.active?'disable':'approve',()=>confirm(m.active?'Nonaktifkan affiliate ini?':'Pastikan peserta telah lulus 12 level sebelum mengaktifkan affiliate. Lanjut?')?{id:m.id}:null));list.append(row);
+   row.append(action(m.active?'Nonaktifkan':'Aktifkan',m.active?'disable':'approve',()=>confirm(m.active?'Nonaktifkan affiliate ini?':'Aktifkan kembali affiliate dengan tiket lunas?')?{id:m.id}:null));list.append(row);
   }
-  if(!members.length)list.append(node('p','Belum ada pengajuan alumni.'));
+  if(!members.length)list.append(node('p','Belum ada affiliate.'));
   const reserved=withdrawals.filter(w=>w.status==='pending'||w.status==='processing').reduce((s,w)=>s+w.amount,0),paid=withdrawals.filter(w=>w.status==='paid').reduce((s,w)=>s+w.amount,0);
   payout.append(node('p','Menunggu / diproses: '+money(reserved)+' · Sudah dibayar: '+money(paid)));
   for(const w of withdrawals){
