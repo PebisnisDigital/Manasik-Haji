@@ -195,3 +195,8 @@ body.hajjiAdmin{width:100%;max-width:680px;min-height:100dvh;margin:auto;backgro
 .hajjiAdmin .memberEditFooter{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .hajjiAdmin .memberEditFooter button{font-size:12px}
 @media(max-width:480px){.hajjiAdmin .memberEditDialog{padding:18px;max-height:calc(100dvh - 20px)}.hajjiAdmin .memberEditForm{gap:12px}.hajjiAdmin .memberEditMeta>div{padding:10px}}
+
+body.affiliateEmbedded{margin:0;background:#fffdf8;min-height:100dvh}
+body.affiliateEmbedded>header,body.affiliateEmbedded>main>a:last-child{display:none!important}
+body.affiliateEmbedded main.panel{width:100%;max-width:none;margin:0;border:0;box-shadow:none;border-radius:0;padding:12px;background:transparent}
+body.affiliateEmbedded #affiliateData{overflow-wrap:anywhere}
