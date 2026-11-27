@@ -23,7 +23,7 @@ export function gateIntroduction(avatar:Avatar):readonly string[]{
   'Di setiap perjalanan, ada pemandu, latihan urutan ibadah, doa dan misi interaktif. Jadi bukan sekadar membaca materi, tetapi ikut mempraktikkannya dalam simulasi.',
   'Khusus Haji, kumpulkan 12 bintang untuk membuka Gedung Oleh-Oleh. Ada 23 pajangan hadiah dan benefit, termasuk sertifikat simulasi, piala, medali dan kartu alumni.',
   'Ada juga bekal ibadah seperti buku doa, e-book, audio talbiyah, checklist, planner, serta dua bioskop kelas Animasi Motion dan Stickman. Sebagian materi masih disiapkan.',
-  'Alumni yang telah diverifikasi juga bisa membuat link affiliate dan kode kupon sendiri, serta memperoleh komisi dari pendaftaran yang lunas sesuai ketentuan program.',
+  'Setelah tiket lunas, pemain otomatis menjadi affiliate, dapat membuat kode kupon dan link promosi, serta memperoleh komisi dari pendaftaran yang lunas sesuai ketentuan program.',
   'Sekarang saya cek nama, email dan WhatsApp '+sapaan+', ya. Kalau sudah lunas, langsung masuk lewat pintu. Kalau belum lunas, saya tampilkan tagihan. Kalau belum daftar, silakan antre.'
  ];
 }
