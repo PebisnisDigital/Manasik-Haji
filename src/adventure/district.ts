@@ -110,7 +110,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   function closeDialog(){dialog.classList.remove('gameplaySettingsDialog');dialog.hidden=true;dialog.close();delete dialog.dataset.speaker;delete dialog.dataset.node;controls.clear();fast=false;el('fastButton').setAttribute('aria-pressed','false');if(sound)void audio.start();canvas.focus();}
   type Action={text:string;run?:()=>void;href?:string;secondary?:boolean;keepOpen?:boolean;id?:string};
   function showDialog(title:string,text:string,actions:Action[],eyebrow='PERCAKAPAN'){
-    delete dialog.dataset.speaker;delete dialog.dataset.node;
+    closeSettings(false);delete dialog.dataset.speaker;delete dialog.dataset.node;
     controls.clear();audio.stop();el('dialogTitle').textContent=title;el('dialogText').textContent=text;el('dialogEyebrow').textContent=eyebrow;
     el('dialogActions').replaceChildren();el('graphicsOptions').replaceChildren();
     for(const a of actions){const item=document.createElement(a.href?'a':'button');item.className=a.secondary?'secondary':'primary';item.textContent=a.text;
@@ -207,11 +207,20 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     }
     if(npcs.some(n=>distance(n)<2))conversation('pilgrim');
   }
+  const settingsPanel=document.createElement('aside');settingsPanel.id='districtSettingsPopover';settingsPanel.hidden=true;settingsPanel.setAttribute('aria-label','Pengaturan');settingsPanel.setAttribute('role','region');
+  const settingsTitle=document.createElement('h2');settingsTitle.textContent='Pengaturan';
   const settingsHost=document.createElement('div');mountGameplaySettings(settingsHost,{affiliate:false});
-  function positionSettings(){if(!dialog.classList.contains('gameplaySettingsDialog'))return;const rect=el('pauseButton').getBoundingClientRect();dialog.style.setProperty('--district-settings-top',Math.round(rect.bottom+8)+'px');dialog.style.setProperty('--district-settings-right',Math.max(8,Math.round(window.innerWidth-rect.right))+'px');}
-  window.addEventListener('resize',positionSettings);
-  function pause(){if(!started||entering||guardTalk)return;if(dialog.open){if(dialog.classList.contains('gameplaySettingsDialog'))closeDialog();return;}dialog.classList.add('gameplaySettingsDialog');positionSettings();showDialog('Pengaturan','',[{text:'Tutup',secondary:true}],'');el('graphicsOptions').append(settingsHost);settingsHost.querySelector('select')?.focus({preventScroll:true});}
-  const controls=attachAdventureControls({canvas,keys,joy,active:()=>started&&!budget.lost()&&!guardTalk,look:(dx,dy)=>{cameraYaw-=dx*.004;rig.orbitPitch(dy);lastLook=performance.now();},interact,pause,extraKeys:['Space']});
+  const settingsClose=document.createElement('button');settingsClose.type='button';settingsClose.className='secondary';settingsClose.textContent='Tutup';
+  settingsPanel.append(settingsTitle,settingsHost,settingsClose);document.body.append(settingsPanel);
+  const gear=el<HTMLButtonElement>('pauseButton');gear.setAttribute('aria-controls',settingsPanel.id);gear.setAttribute('aria-expanded','false');
+  function positionSettings(){const rect=gear.getBoundingClientRect();settingsPanel.style.top=Math.round(rect.bottom+8)+'px';settingsPanel.style.right=Math.max(8,Math.round(window.innerWidth-rect.right))+'px';settingsPanel.style.maxHeight=Math.max(80,window.innerHeight-rect.bottom-20)+'px';}
+  function closeSettings(restoreFocus=true){if(settingsPanel.hidden)return;settingsPanel.hidden=true;gear.setAttribute('aria-expanded','false');controls.clear();if(restoreFocus)gear.focus({preventScroll:true});}
+  window.addEventListener('resize',()=>{if(!settingsPanel.hidden)positionSettings();});
+  document.addEventListener('pointerdown',e=>{if(!settingsPanel.hidden&&e.target instanceof Node&&!settingsPanel.contains(e.target)&&!gear.contains(e.target))closeSettings(false);},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!settingsPanel.hidden){e.preventDefault();e.stopPropagation();closeSettings();}},true);
+  settingsClose.onclick=()=>closeSettings();
+  function pause(){if(!settingsPanel.hidden){closeSettings();return;}if(!started||entering||guardTalk||dialog.open||intro.open)return;controls.clear();lookStick.set(0,0);clearSimpleInput();positionSettings();settingsPanel.hidden=false;gear.setAttribute('aria-expanded','true');settingsHost.querySelector('select')?.focus({preventScroll:true});}
+  const controls=attachAdventureControls({canvas,keys,joy,active:()=>started&&!budget.lost()&&!guardTalk&&settingsPanel.hidden,look:(dx,dy)=>{cameraYaw-=dx*.004;rig.orbitPitch(dy);lastLook=performance.now();},interact,pause,extraKeys:['Space']});
   dialog.addEventListener('cancel',e=>{e.preventDefault();closeDialog();});intro.addEventListener('cancel',e=>e.preventDefault());
   el('pauseButton').innerHTML=gearIcon;el('pauseButton').setAttribute('aria-label','Pengaturan');el('pauseButton').onclick=pause;el('missionButton').style.display='none';el('interactButton').onclick=interact;
   el('missionButton').onclick=hub?()=>journeyBoard?.open():missionBook;
