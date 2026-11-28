@@ -97,6 +97,24 @@ export function marketRoamWalkable(x:number,z:number,radius=.36){
 // Destination slots are shared by the ambient population, not by the player's sales ledger.
 type RoamVisit={id:string;kind:'snack'|'shop';point:THREE.Vector3;face:THREE.Vector3;label:string};
 type RoamState={zone:number;previous:number;speed:number;stall:number;best:number;visits:number;visit?:RoamVisit;actionTime:number;carryTime?:number;prop?:THREE.Group};
+export function createLandingShop(root:THREE.Group,name:'INDOMARET'|'KOKOSALAMA'){
+ const shop=shops.find(s=>s.name===name)!;
+  const x=shop.x;const building=new THREE.Group();building.name=shop.name;root.add(building);
+  box(building,8.5,.14,6.8,x,.04,-6.4,0xd5cbb9);box(building,8.5,3.9,.2,x,1.95,-9.6,0xeee7dc);
+  for(const side of [-1,1])box(building,.22,3.9,6.4,x+side*4.15,1.95,-6.4,0xeee7dc);
+  box(building,8.65,.25,6.65,x,4.06,-6.35,0xe8dfce);
+  box(building,8.55,.84,.35,x,3.48,-3.08,0xf4ebda);box(building,8.55,.14,.4,x,2.98,-2.99,shop.stripe);
+  sign(building,shop.name,shop.sub,x,3.48,-2.88,7.9,.79,shop.bg,shop.fg);
+  for(const side of [-1,1]){
+   box(building,3.1,2.67,.09,x+side*2.55,1.37,-3.1,0x7eaaa9);
+   box(building,.09,2.7,.17,x+side*1.01,1.37,-3.02,0xeee7dc);
+   box(building,3.1,.12,.16,x+side*2.55,.2,-3.02,0xeee7dc);
+   for(let j=0;j<3;j++){box(building,2.6,.11,.72,x+side*2.55,.55+j*.63,-4.35,0x795d4c);for(let k=0;k<5;k++)box(building,.35,.32,.3,x+side*2.55-1+k*.5,.77+j*.63,-4.3,[0xd8a56a,0xe1cdd7,0x98b9aa,0xdbc65c,0xa291bc][k]!);}
+  }
+  box(root,8.2,.04,5.7,x,.02,.2,0x646b6c);for(let j=0;j<4;j++)box(root,.055,.012,4.3,x-3.3+j*2.2,.048,.1,0xf8e9bf);
+  box(root,8.6,.09,1.1,x,.045,3.65,0xbeb5a2);
+ return building;
+}
 export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:MarketAudioCue)=>void){
  const root=new THREE.Group();root.name='bubur-market';scene.add(root);
  const parkedWalkers=new Map<THREE.Group,{points:THREE.Vector3[];position:THREE.Vector3;index:number;wait:number}>();
@@ -114,20 +132,7 @@ export function createBuburMarket(scene:THREE.Scene,tier:string,audio:(cue:Marke
   actor.position.copy(path[0]!);walkers.push({actor,points:path,index:1,wait:i*.65});
  }
  for(const shop of shops){
-  const x=shop.x;const building=new THREE.Group();building.name=shop.name;root.add(building);
-  box(building,8.5,.14,6.8,x,.04,-6.4,0xd5cbb9);box(building,8.5,3.9,.2,x,1.95,-9.6,0xeee7dc);
-  for(const side of [-1,1])box(building,.22,3.9,6.4,x+side*4.15,1.95,-6.4,0xeee7dc);
-  box(building,8.65,.25,6.65,x,4.06,-6.35,0xe8dfce);
-  box(building,8.55,.84,.35,x,3.48,-3.08,0xf4ebda);box(building,8.55,.14,.4,x,2.98,-2.99,shop.stripe);
-  sign(building,shop.name,shop.sub,x,3.48,-2.88,7.9,.79,shop.bg,shop.fg);
-  for(const side of [-1,1]){
-   box(building,3.1,2.67,.09,x+side*2.55,1.37,-3.1,0x7eaaa9);
-   box(building,.09,2.7,.17,x+side*1.01,1.37,-3.02,0xeee7dc);
-   box(building,3.1,.12,.16,x+side*2.55,.2,-3.02,0xeee7dc);
-   for(let j=0;j<3;j++){box(building,2.6,.11,.72,x+side*2.55,.55+j*.63,-4.35,0x795d4c);for(let k=0;k<5;k++)box(building,.35,.32,.3,x+side*2.55-1+k*.5,.77+j*.63,-4.3,[0xd8a56a,0xe1cdd7,0x98b9aa,0xdbc65c,0xa291bc][k]!);}
-  }
-  box(root,8.2,.04,5.7,x,.02,.2,0x646b6c);for(let j=0;j<4;j++)box(root,.055,.012,4.3,x-3.3+j*2.2,.048,.1,0xf8e9bf);
-  box(root,8.6,.09,1.1,x,.045,3.65,0xbeb5a2);
+  const x=shop.x;createLandingShop(root,shop.name as 'INDOMARET'|'KOKOSALAMA');
   for(let i=0;i<3;i++){
    const female=shop.name==='KOKOSALAMA'||i%2===1;
    const actor=humanActor(scene,[0x739385,0xb28b84,0x9f9b75][i]!,female,undefined,undefined,{palette:i+3,build:1,brightness:1,cull:true,registration:true});
