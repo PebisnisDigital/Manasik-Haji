@@ -1,8 +1,9 @@
 import {rest} from './commercialApi.ts';
 type Wallet={earned:number;paid:number;reserved:number;available:number;shortfall:number};
-type Member={id:string;name:string;email:string|null;phone:string|null;code:string|null;active:boolean;requested_at:string;referrals:number;paid_referrals:number;earned:number;wallet:Wallet};
+type ParentCoupon={code:string;kind:'fixed'|'percent';value:number;enabled:boolean};
+type Member={coupon_code?:string|null;parent_coupon_code?:string|null;id:string;name:string;email:string|null;phone:string|null;code:string|null;active:boolean;requested_at:string;referrals:number;paid_referrals:number;earned:number;wallet:Wallet};
 type Withdrawal={id:string;registration_id:string;name:string;amount:number;bank:string;holder:string;account:string;status:string;created_at:string;reference:string|null;note:string|null;mine:boolean};
-type Config={members?:Member[];withdrawals?:Withdrawal[];enabled:boolean;discount:number;commission_percent:number;paid_referrals:number;earned:number;payout_enabled?:boolean;payout_minimum?:number};
+type Config={parent_coupons?:ParentCoupon[];members?:Member[];withdrawals?:Withdrawal[];enabled:boolean;discount:number;commission_percent:number;paid_referrals:number;earned:number;payout_enabled?:boolean;payout_minimum?:number};
 const rpc=(op:string,data:object={})=>rest<Config>('rpc/hajji_referral_admin',{auth:true,method:'POST',body:{op,data}});
 const money=(v:number)=>'Rp'+v.toLocaleString('id-ID');
 const status:Record<string,string>={pending:'Menunggu',processing:'Diproses',paid:'Dibayar',rejected:'Ditolak'};
@@ -16,11 +17,12 @@ export function mountReferralAdmin(){
  function render(c:Config){
   list.replaceChildren(node('h3','Data affiliate'));payout.replaceChildren(node('h3','Pencairan komisi'));
   const members=c.members??[],withdrawals=c.withdrawals??[];
+  const parents=c.parent_coupons??[];const parentSummary=node('div');parentSummary.append(node('strong','Kupon induk pusat'));for(const p of parents)parentSummary.append(node('p',p.code+' · '+(p.kind==='percent'?p.value+'%':money(p.value))+' · '+(p.enabled?'Aktif':'Nonaktif')));if(!parents.length)parentSummary.append(node('p','Belum ada kupon pusat.'));const pricing=node('a','Atur di Lainnya → Harga & Kode Kupon');pricing.href='#settings';parentSummary.append(pricing);list.append(parentSummary);
   list.append(node('p',members.length+' affiliate · '+members.filter(m=>m.active).length+' aktif'));
   for(const m of members){
    const row=node('div');row.style.cssText='padding:12px 0;border-bottom:1px solid #aaa5';
    row.append(node('strong',m.name+' · '+(m.code??m.id)),node('p',[m.email,m.phone].filter(Boolean).join(' · ')),node('p',(m.active?'Aktif':'Belum aktif / menunggu verifikasi')+' · '+(m.referrals??0)+' referral · '+m.paid_referrals+' lunas'));
-   if(m.wallet){row.append(node('p','Komisi '+money(m.wallet.earned)+' · Tersedia '+money(m.wallet.available)+' · Ditahan '+money(m.wallet.reserved)+' · Dibayar '+money(m.wallet.paid)));if(m.wallet.shortfall>0)row.append(node('p','Perlu rekonsiliasi '+money(m.wallet.shortfall)));}
+   row.append(node('p','Kupon: '+(m.coupon_code??m.code??m.id)+' · Induk: '+(m.parent_coupon_code??'Belum dipilih')));if(m.wallet){row.append(node('p','Komisi '+money(m.wallet.earned)+' · Tersedia '+money(m.wallet.available)+' · Ditahan '+money(m.wallet.reserved)+' · Dibayar '+money(m.wallet.paid)));if(m.wallet.shortfall>0)row.append(node('p','Perlu rekonsiliasi '+money(m.wallet.shortfall)));}
    row.append(action(m.active?'Nonaktifkan':'Aktifkan',m.active?'disable':'approve',()=>confirm(m.active?'Nonaktifkan affiliate ini?':'Aktifkan kembali affiliate dengan tiket lunas?')?{id:m.id}:null));list.append(row);
   }
   if(!members.length)list.append(node('p','Belum ada affiliate.'));
@@ -37,9 +39,9 @@ export function mountReferralAdmin(){
    payout.append(row);
   }
   if(!withdrawals.length)payout.append(node('p','Belum ada permintaan pencairan.'));
-  field('enabled').checked=c.enabled;field('discount').value=String(c.discount);field('commission_percent').value=String(c.commission_percent);field('payout_enabled').checked=!!c.payout_enabled;field('payout_minimum').value=String(c.payout_minimum??50000);
-  n.textContent=c.enabled?'Kupon referral aktif.':'Kupon belum aktif. Tentukan potongan dan komisi, lalu aktifkan.';t.textContent=c.paid_referrals+' referral lunas · '+money(c.earned)+' komisi tercatat.';
+  field('enabled').checked=c.enabled;field('commission_percent').value=String(c.commission_percent);field('payout_enabled').checked=!!c.payout_enabled;field('payout_minimum').value=String(c.payout_minimum??50000);
+  n.textContent=c.enabled?'Kupon referral aktif.':'Kupon belum aktif. Atur kupon induk pusat dan komisi, lalu aktifkan.';t.textContent=c.paid_referrals+' referral lunas · '+money(c.earned)+' komisi tercatat.';
  }
- f.onsubmit=async e=>{e.preventDefault();if(!active)return;const ep=epoch,b=f.querySelector('button')!;b.disabled=true;try{const c=await rpc('save',{enabled:field('enabled').checked,discount:Number(field('discount').value),commission_percent:Number(field('commission_percent').value),payout_enabled:field('payout_enabled').checked,payout_minimum:Number(field('payout_minimum').value)});if(active&&ep===epoch)render(c);}catch(e){if(active&&ep===epoch)n.textContent=e instanceof Error?e.message:'Gagal menyimpan.';}finally{b.disabled=false;}};
+ f.onsubmit=async e=>{e.preventDefault();if(!active)return;const ep=epoch,b=f.querySelector('button')!;b.disabled=true;try{const c=await rpc('save',{enabled:field('enabled').checked,commission_percent:Number(field('commission_percent').value),payout_enabled:field('payout_enabled').checked,payout_minimum:Number(field('payout_minimum').value)});if(active&&ep===epoch)render(c);}catch(e){if(active&&ep===epoch)n.textContent=e instanceof Error?e.message:'Gagal menyimpan.';}finally{b.disabled=false;}};
  return {async start(){active=true;const ep=++epoch;try{const c=await rpc('get');if(active&&ep===epoch)render(c);}catch{if(active&&ep===epoch)n.textContent='Pengaturan referral belum tersedia.';}},stop(){active=false;epoch++;f.reset();list.replaceChildren();payout.replaceChildren();n.textContent=t.textContent='';}};
 }
