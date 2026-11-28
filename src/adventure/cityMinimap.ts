@@ -1,5 +1,5 @@
 import {SOUVENIR_NUMBER} from './citySouvenir.ts';
-import {BUILDINGS,DISTRICT_ROADS,type Point,type Rect} from './districtModel.ts';
+import {DISTRICT_ROADS,type Point,type Rect} from './districtModel.ts';
 import {CITY_BOUNDS,CITY_ROADS} from './cityNavigation.ts';
 import {followCityRoute} from './cityRouteFollow.ts';
 type Building=Rect&{number:number;door:Point};
@@ -13,7 +13,6 @@ export function mountCityMinimap(places:readonly Building[],solids:readonly Rect
  const roads=[...DISTRICT_ROADS,...CITY_ROADS];const layer=node('g',{});svg.replaceChildren(node('rect',{width:140,height:114,rx:4,fill:'#141414'}),layer);
  const rect=(r:Rect,attrs:Record<string,string|number>)=>node('rect',{x:mx(r.x-r.w/2),y:mz(r.z-r.d/2),width:r.w*140/(CITY_BOUNDS.maxX-CITY_BOUNDS.minX),height:r.d*114/(CITY_BOUNDS.maxZ-CITY_BOUNDS.minZ),...attrs});
  for(const road of roads)layer.append(rect(road,{fill:'#777772'}));
- for(const b of BUILDINGS)layer.append(rect(b,{fill:'#343434',stroke:'#8b8475','stroke-width':.35}));
  layer.append(rect(board,{fill:'#d6b46b'}));
  const buildings=new Map<number,SVGRectElement>();
  for(const b of places){const box=rect(b,{fill:b.number===SOUVENIR_NUMBER?'#d4b56b':'#454545',stroke:'#888278','stroke-width':.45,rx:.6});buildings.set(b.number,box);layer.append(box);}
