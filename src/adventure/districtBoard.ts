@@ -1,3 +1,4 @@
+import {CITY_BOARD_POINT,CITY_BOARD_SPAWN} from './cityLayout.ts';
 import {bindTicket,clearTicketOwner,syncTicketProgress,saveTicketProgress,ticketOwner} from '../ticketProgress.ts';
 import {beginReplay,endReplay,replayKey} from './levelReplay.ts';
 import {playerKey} from '../playerCloud.ts';
@@ -49,7 +50,7 @@ export async function verifyDistrictBoard():Promise<{program:Program;name:string
 }
 
 export type DistrictBoardAccess=Awaited<ReturnType<typeof verifyDistrictBoard>>;
-export const BOARD_POINT={x:-8,z:11.7},BOARD_SPAWN={x:-8,z:17.8};
+export const BOARD_POINT=CITY_BOARD_POINT,BOARD_SPAWN=CITY_BOARD_SPAWN;
 export const BOARD_SOLID={...BOARD_POINT,w:10.2,d:.65};
 export function createWorldJourneyBoard(scene:THREE.Scene,access:DistrictBoardAccess,toast:(text:string)=>void,onSelect?:(number:number)=>void){
  const {program,name}=access;
