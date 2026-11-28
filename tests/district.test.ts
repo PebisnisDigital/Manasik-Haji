@@ -129,7 +129,7 @@ describe('souvenir victory plaza',()=>{it('keeps a clear red-carpet passage betw
 
 import {CITY_LAYOUT,DISTRICT_HQ,DISTRICT_SHOPS,SOUVENIR_POSITION} from '../src/adventure/cityLayout.ts';
 import {CITY_BOUNDS,CITY_ROADS,cityRoute} from '../src/adventure/cityNavigation.ts';
-import {DISTRICT_SOLIDS,DISTRICT_ROADS} from '../src/adventure/districtModel.ts';
+import {DISTRICT_SOLIDS} from '../src/adventure/districtModel.ts';
 describe('compact member city',()=>{
  const places=CITY_LAYOUT.map(([x,z,yaw])=>({x,z,w:20,d:20,door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
  const gift={...SOUVENIR_POSITION,w:20,d:20,door:{x:SOUVENIR_POSITION.x,z:SOUVENIR_POSITION.z+10.9}};
