@@ -92,15 +92,16 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
   marketPerson(cartX+.73,cartZ+1.55,1.02,red,Math.PI+.2,p.number*.7);
   for(const b of batches.values()){const mesh=new THREE.InstancedMesh(b.geo,b.mat,b.matrices.length);b.matrices.forEach((matrix,i)=>mesh.setMatrixAt(i,matrix));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();g.add(mesh);}
   const actors:QueueActor[]=[];
-  for(let i=0;i<=QUEUE_COUNT;i++){const female=i%2===1,height=female?1.57+(i%3)*.045:1.67+(i%3)*.06;const root=humanActor(scene,0xf1e7d4,female,height,undefined,{palette:(p.number*3+i)%10,build:.91+(i%4)*.06,brightness:.95+(i%3)*.025,cull:true,registration:true});const label=tag(root,plazaName(p.number,i),height);actors.push({root,tag:label});}
+  for(let i=0;i<=QUEUE_COUNT;i++){const female=i%2===1,height=female?1.57+(i%3)*.045:1.67+(i%3)*.06;const root=humanActor(scene,0xf1e7d4,female,height,undefined,{palette:(p.number*3+i)%10,build:.91+(i%4)*.06,brightness:.95+(i%3)*.025,cull:true,registration:true});root.userData.noCollision=true;const label=tag(root,plazaName(p.number,i),height);actors.push({root,tag:label});}
   lanes.push({place:p,actors,decor:g,market,clock:(p.number*.71)%QUEUE_PERIOD,ticket:null});
  }
  let cycles=0;
  function update(hero:Point,dt:number){
   for(const lane of lanes){const {place:p,actors}=lane;const distance=Math.hypot(hero.x-p.x,hero.z-p.z);const old=Math.floor(lane.clock/QUEUE_PERIOD);if(lane.ticket?.ahead!==0)lane.clock+=Math.max(0,Math.min(dt,.08));const cycle=Math.floor(lane.clock/QUEUE_PERIOD),t=lane.clock%QUEUE_PERIOD;cycles+=cycle-old;if(lane.ticket&&cycle>old)lane.ticket=serveQueue(lane.ticket);
+   if(distance>48&&!lane.ticket){if(lane.decor.userData.nearby!==false){for(const a of actors)a.root.visible=false;for(const a of lane.market)a.body.visible=false;lane.decor.userData.nearby=false;}continue;}lane.decor.userData.nearby=true;
    // The building crown stays visible from afar. Only people and labels use distance culling.
-   for(let i=0;i<=QUEUE_COUNT;i++){const a=actors[(i+cycle)%actors.length]!,q=queuePose(i,t),offset=lane.ticket&&i>=lane.ticket.ahead ? .76 : 0,pos=point(p,q.x-offset,q.z);a.root.visible=q.visible&&distance<42;a.root.position.set(pos.x,.07,pos.z);a.root.rotation.y=p.yaw+q.yaw;a.tag.visible=a.root.visible&&Math.hypot(hero.x-pos.x,hero.z-pos.z)<20;}
-   for(const a of lane.market){a.body.visible=distance<32;if(a.body.visible){const time=lane.clock+a.phase;a.arm.rotation.x=-.35-1.25*Math.pow(Math.max(0,Math.sin(time*1.7)),4);a.arm.rotation.z=-.13;}}
+   for(let i=0;i<=QUEUE_COUNT;i++){const a=actors[(i+cycle)%actors.length]!,q=queuePose(i,t),offset=lane.ticket&&i>=lane.ticket.ahead ? .76 : 0,pos=point(p,q.x-offset,q.z);a.root.visible=q.visible&&(distance<36||!!lane.ticket);a.root.position.set(pos.x,.07,pos.z);a.root.rotation.y=p.yaw+q.yaw;a.tag.visible=a.root.visible&&Math.hypot(hero.x-pos.x,hero.z-pos.z)<20;}
+   for(const a of lane.market){a.body.visible=distance<25;if(a.body.visible){const time=lane.clock+a.phase;a.arm.rotation.x=-.35-1.25*Math.pow(Math.max(0,Math.sin(time*1.7)),4);a.arm.rotation.z=-.13;}}
   }
  }
  update({x:0,z:0},0);
