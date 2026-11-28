@@ -127,17 +127,17 @@ describe('souvenir building separate from twelve mission levels',()=>{it('has a 
 import {celebrationGuests,CELEBRATION_FLAGS} from '../src/adventure/citySouvenir.ts';
 describe('souvenir victory plaza',()=>{it('keeps a clear red-carpet passage between crowd groups',()=>{const guests=celebrationGuests();expect(guests).toHaveLength(32);expect(guests.filter(g=>g.role==='press')).toHaveLength(6);expect(guests.every(g=>Math.abs(g.x)>=4.2&&g.z>=17)).toBe(true);expect(new Set(guests.map(g=>g.x+':'+g.z)).size).toBe(32);expect(CELEBRATION_FLAGS).toHaveLength(4);});});
 
-import {CITY_LAYOUT,DISTRICT_HQ,DISTRICT_SHOPS,SOUVENIR_POSITION} from '../src/adventure/cityLayout.ts';
+import {CITY_LAYOUT,SOUVENIR_POSITION} from '../src/adventure/cityLayout.ts';
 import {DISTRICT_SOLIDS} from '../src/adventure/districtModel.ts';
 describe('compact member city',()=>{
  const places=CITY_LAYOUT.map(([x,z,yaw])=>({x,z,w:20,d:20,door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
  const gift={...SOUVENIR_POSITION,w:20,d:20,door:{x:SOUVENIR_POSITION.x,z:SOUVENIR_POSITION.z+10.9}};
- const solids=[...DISTRICT_SOLIDS,...places,gift,DISTRICT_HQ,...DISTRICT_SHOPS,{x:-8,z:11.7,w:10.2,d:.65}];
+ const solids=[...DISTRICT_SOLIDS,...places,gift,{x:-8,z:11.7,w:10.2,d:.65}];
  const roads=[...DISTRICT_ROADS,...CITY_ROADS];
  const overlap=(a:{x:number;z:number;w:number;d:number},b:{x:number;z:number;w:number;d:number})=>Math.abs(a.x-b.x)<(a.w+b.w)/2-1e-7&&Math.abs(a.z-b.z)<(a.d+b.d)/2-1e-7;
  it('fits all buildings in a map under 51% of the former area without footprint collisions',()=>{
   expect((CITY_BOUNDS.maxX-CITY_BOUNDS.minX)*(CITY_BOUNDS.maxZ-CITY_BOUNDS.minZ)).toBeLessThan(300*256*.51);
-  for(const a of [...places,gift,DISTRICT_HQ,...DISTRICT_SHOPS]){
+  for(const a of [...places,gift]){
    expect(a.x-a.w/2).toBeGreaterThan(CITY_BOUNDS.minX);expect(a.x+a.w/2).toBeLessThan(CITY_BOUNDS.maxX);
    expect(a.z-a.d/2).toBeGreaterThan(CITY_BOUNDS.minZ);expect(a.z+a.d/2).toBeLessThan(CITY_BOUNDS.maxZ);
    expect(solids.filter(b=>a!==b&&overlap(a,b))).toEqual([]);
@@ -152,6 +152,11 @@ describe('compact member city',()=>{
    expect(path.length).toBeGreaterThan(1);expect(path[0]).toEqual(start);expect(path.at(-1)).toEqual(p.door);
    const fromBoard=cityRoute({x:-8,z:17.8},p.door,roads,solids);expect(fromBoard.length).toBeGreaterThan(1);
   }
+ });
+ it('keeps the compact coordinates and removes the four copied building footprints',()=>{
+  expect(CITY_BOUNDS).toEqual({minX:-104,maxX:104,minZ:-91,maxZ:91});
+  expect(Math.hypot(places[1]!.door.x-places[0]!.door.x,places[1]!.door.z-places[0]!.door.z)).toBeCloseTo(44);
+  for(const p of [{x:8,z:-34},{x:-55,z:43},{x:-44,z:43},{x:-33,z:43}])expect(cityCanStand(p,solids)).toBe(true);
  });
  it('uses the direct walking route when no solid blocks it',()=>{
   expect(cityRoute(places[0]!.door,places[1]!.door,roads,solids)).toEqual([places[0]!.door,places[1]!.door]);
