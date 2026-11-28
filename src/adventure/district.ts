@@ -217,7 +217,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   const settingsClose=document.createElement('button');settingsClose.type='button';settingsClose.className='secondary';settingsClose.textContent='Tutup';
   settingsPanel.append(settingsTitle,settingsHost,settingsClose);document.body.append(settingsPanel);
   const gear=el<HTMLButtonElement>('pauseButton');gear.setAttribute('aria-controls',settingsPanel.id);gear.setAttribute('aria-expanded','false');
-  function positionSettings(){const rect=gear.getBoundingClientRect();settingsPanel.style.top=Math.round(rect.bottom+8)+'px';settingsPanel.style.right=Math.max(8,Math.round(window.innerWidth-rect.right))+'px';settingsPanel.style.maxHeight=Math.max(80,window.innerHeight-rect.bottom-20)+'px';}
+  function positionSettings(){const rect=gear.getBoundingClientRect();settingsPanel.style.top=Math.round(rect.bottom+(gear.dataset.hudLabel?25:8))+'px';settingsPanel.style.right=Math.max(8,Math.round(window.innerWidth-rect.right))+'px';settingsPanel.style.maxHeight=Math.max(80,window.innerHeight-rect.bottom-(gear.dataset.hudLabel?37:20))+'px';}
   function closeSettings(restoreFocus=true){if(settingsPanel.hidden)return;settingsPanel.hidden=true;gear.setAttribute('aria-expanded','false');controls.clear();if(restoreFocus)gear.focus({preventScroll:true});}
   window.addEventListener('resize',()=>{if(!settingsPanel.hidden)positionSettings();});
   document.addEventListener('pointerdown',e=>{if(!settingsPanel.hidden&&e.target instanceof Node&&!settingsPanel.contains(e.target)&&!gear.contains(e.target))closeSettings(false);},true);
