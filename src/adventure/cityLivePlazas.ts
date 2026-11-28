@@ -99,8 +99,8 @@ export function createLivePlazas(scene:THREE.Scene,places:readonly Place[]){
  function update(hero:Point,dt:number){
   for(const lane of lanes){const {place:p,actors}=lane;const distance=Math.hypot(hero.x-p.x,hero.z-p.z);const old=Math.floor(lane.clock/QUEUE_PERIOD);if(lane.ticket?.ahead!==0)lane.clock+=Math.max(0,Math.min(dt,.08));const cycle=Math.floor(lane.clock/QUEUE_PERIOD),t=lane.clock%QUEUE_PERIOD;cycles+=cycle-old;if(lane.ticket&&cycle>old)lane.ticket=serveQueue(lane.ticket);
    // The building crown stays visible from afar. Only people and labels use distance culling.
-   for(let i=0;i<=QUEUE_COUNT;i++){const a=actors[(i+cycle)%actors.length]!,q=queuePose(i,t),offset=lane.ticket&&i>=lane.ticket.ahead ? .76 : 0,pos=point(p,q.x-offset,q.z);a.root.visible=q.visible&&distance<67;a.root.position.set(pos.x,.07,pos.z);a.root.rotation.y=p.yaw+q.yaw;a.tag.visible=a.root.visible&&Math.hypot(hero.x-pos.x,hero.z-pos.z)<20;}
-   for(const a of lane.market){a.body.visible=distance<48;if(a.body.visible){const time=lane.clock+a.phase;a.arm.rotation.x=-.35-1.25*Math.pow(Math.max(0,Math.sin(time*1.7)),4);a.arm.rotation.z=-.13;}}
+   for(let i=0;i<=QUEUE_COUNT;i++){const a=actors[(i+cycle)%actors.length]!,q=queuePose(i,t),offset=lane.ticket&&i>=lane.ticket.ahead ? .76 : 0,pos=point(p,q.x-offset,q.z);a.root.visible=q.visible&&distance<42;a.root.position.set(pos.x,.07,pos.z);a.root.rotation.y=p.yaw+q.yaw;a.tag.visible=a.root.visible&&Math.hypot(hero.x-pos.x,hero.z-pos.z)<20;}
+   for(const a of lane.market){a.body.visible=distance<32;if(a.body.visible){const time=lane.clock+a.phase;a.arm.rotation.x=-.35-1.25*Math.pow(Math.max(0,Math.sin(time*1.7)),4);a.arm.rotation.z=-.13;}}
   }
  }
  update({x:0,z:0},0);
