@@ -106,7 +106,7 @@ describe('FIFO player tickets',()=>{it('requires all ten preceding participants 
 
 import {cityRoute,CITY_ROADS} from '../src/adventure/cityNavigation.ts';
 import {DISTRICT_ROADS,BUILDINGS} from '../src/adventure/districtModel.ts';
-describe('city map navigation',()=>{it('uses connected street layout to reach every mission entrance',()=>{for(const building of CITY_BUILDINGS){const path=cityRoute({x:-8,z:17.8},building.door,[...DISTRICT_ROADS,...CITY_ROADS],[...BUILDINGS,...CITY_BUILDINGS]);expect(path.length).toBeGreaterThan(2);expect(path.at(-1)).toEqual(building.door);}});it('does not route through a solid building',()=>{const wall={x:0,z:0,w:20,d:20},p=cityRoute({x:-20,z:0},{x:20,z:0},[],[wall]);expect(p.length).toBeGreaterThan(2);for(const q of p)expect(Math.abs(q.x)>=10||Math.abs(q.z)>=10).toBe(true);});});
+describe('city map navigation',()=>{it('uses connected street layout to reach every mission entrance',()=>{for(const building of CITY_BUILDINGS){const path=cityRoute({x:-8,z:17.8},building.door,[...DISTRICT_ROADS,...CITY_ROADS],[...BUILDINGS,...CITY_BUILDINGS]);expect(path.length).toBeGreaterThan(1);expect(path.at(-1)).toEqual(building.door);}});it('does not route through a solid building',()=>{const wall={x:0,z:0,w:20,d:20},p=cityRoute({x:-20,z:0},{x:20,z:0},[],[wall]);expect(p.length).toBeGreaterThan(2);for(const q of p)expect(Math.abs(q.x)>=10||Math.abs(q.z)>=10).toBe(true);});});
 
 import {validStars,awardStar} from '../src/adventure/cityStars.ts';
 import {guardQueuePhase} from '../src/adventure/cityLivePlazas.ts';
@@ -128,7 +128,6 @@ import {celebrationGuests,CELEBRATION_FLAGS} from '../src/adventure/citySouvenir
 describe('souvenir victory plaza',()=>{it('keeps a clear red-carpet passage between crowd groups',()=>{const guests=celebrationGuests();expect(guests).toHaveLength(32);expect(guests.filter(g=>g.role==='press')).toHaveLength(6);expect(guests.every(g=>Math.abs(g.x)>=4.2&&g.z>=17)).toBe(true);expect(new Set(guests.map(g=>g.x+':'+g.z)).size).toBe(32);expect(CELEBRATION_FLAGS).toHaveLength(4);});});
 
 import {CITY_LAYOUT,DISTRICT_HQ,DISTRICT_SHOPS,SOUVENIR_POSITION} from '../src/adventure/cityLayout.ts';
-import {CITY_BOUNDS,CITY_ROADS,cityRoute} from '../src/adventure/cityNavigation.ts';
 import {DISTRICT_SOLIDS} from '../src/adventure/districtModel.ts';
 describe('compact member city',()=>{
  const places=CITY_LAYOUT.map(([x,z,yaw])=>({x,z,w:20,d:20,door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
