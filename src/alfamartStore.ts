@@ -25,7 +25,7 @@ export function insideAlfamart(x: number, z: number) {
 
 export type MarketAudioCue = 'door' | 'scan' | 'fridge' | 'ride' | 'whistle';
 
-export function createAlfamartStore(root: THREE.Group, audio: (cue: MarketAudioCue) => void) {
+export function createAlfamartStore(root: THREE.Group, audio: (cue: MarketAudioCue) => void, districtDetail=false) {
   const store = new THREE.Group();
   store.name = 'Alfamart';
   root.add(store);
@@ -73,7 +73,10 @@ export function createAlfamartStore(root: THREE.Group, audio: (cue: MarketAudioC
   block(store,8.7,.015,5.12,STORE_X,.025,.73,0x565a60);
   for (const x of [14.72,18.25,20.28]) block(store,.04,.013,3.8,x,.036,1.32,0xf8e4a6);
   for (let i=0;i<5;i++) block(store,.64,.014,.16,STORE_X,.038,.6+i*.43,0xe9e6d5);
-  buildAlfamartInterior(store);
+  const interior=districtDetail?new THREE.Group():store;
+  if(districtDetail){interior.name='district-shop-interior';store.add(interior);}
+  buildAlfamartInterior(interior);
+  if(districtDetail){batchMarketBlocks(interior);interior.visible=false;}
   batchMarketBlocks(store);
 
   let opening = 0, wasOpen = false, fridge = 0;
@@ -91,5 +94,5 @@ export function createAlfamartStore(root: THREE.Group, audio: (cue: MarketAudioC
     }
     store.userData.doorOpen = opening > .8;
   }
-  return { update, root:store };
+  return { update, root:store, setDetailVisible(visible:boolean){if(districtDetail)interior.visible=visible;} };
 }
