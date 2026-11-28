@@ -1,6 +1,6 @@
 import {randomBytes} from 'node:crypto';
 const ORIGIN='https://hajji.digital';
-const enabled=()=>process.env.HAJJI_THREADS_ENABLED==='1'&&Boolean(process.env.REPLIZ_ACCESS_KEY&&process.env.REPLIZ_SECRET_KEY);
+const enabled=()=>Boolean(process.env.REPLIZ_ACCESS_KEY&&process.env.REPLIZ_SECRET_KEY);
 class Err extends Error{constructor(status,message){super(message);this.status=status;}}
 async function rpc(secret,op,data={}){
  const url=process.env.VITE_SUPABASE_URL,key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY,k=process.env.HAJJI_TICKET_GATEWAY;
@@ -29,7 +29,7 @@ export default async function handler(req,res){
  try{
   if(op==='status'&&!enabled())return reply(200,{enabled:false,status:'none'});
   if(op==='status'){const d=await rpc(secret,'status');let status=d.status,username=d.username;if(status==='connected'&&enabled()){try{const a=await repliz('/'+d.account_id);if(a.isConnected===false)status='disconnected';username=a.username??username;}catch(e){if(e.status===404)status='disconnected';}}return reply(200,{enabled:enabled(),status,username});}
-  if(!enabled())return reply(503,{error:'Program Threads belum diaktifkan admin.'});
+  if(!enabled())return reply(503,{error:'Koneksi Repliz belum dikonfigurasi. Silakan hubungi tim support.'});
   if(op==='start'){if(data.consent!==true)return reply(400,{error:'Persetujuan diperlukan.'});const state=randomBytes(32).toString('hex');await rpc(secret,'start',{state,consent:true});const redirect=ORIGIN+'/api/threads?action=callback&flow='+state;const auth=await repliz('/threads/authorize?'+new URLSearchParams({redirect}));const url=new URL(auth.url);if(url.protocol!=='https:'||!['threads.net','www.threads.net','threads.com','www.threads.com'].includes(url.hostname))throw new Err(502,'URL Threads tidak valid.');return reply(200,{url:url.href});}
   if(op==='connect'){
    if(typeof data.code!=='string'||data.code.length<8||data.code.length>8000||typeof data.state!=='string'||!/^[a-f0-9]{64}$/.test(data.state))return reply(400,{error:'Otorisasi tidak valid.'});

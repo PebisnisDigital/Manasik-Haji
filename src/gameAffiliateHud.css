@@ -91,3 +91,15 @@ html body .memberThreadsContent{padding:14px;font:400 13px/1.5 system-ui,sans-se
 .memberThreadsContent p{margin:0 0 10px}.memberThreadsContent ul{padding-left:18px;margin:0 0 12px}.memberThreadsContent label{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin:12px 0}.memberThreadsContent input{flex:none;margin-top:3px}
 .memberThreadsContent button{display:block;width:100%;border:0;border-radius:9px;padding:11px 8px;background:#151515;color:white;font:650 13px/1.4 system-ui;cursor:pointer}.memberThreadsContent button[hidden],.memberThreadsContent label[hidden],.memberThreadsContent ul[hidden],.memberThreadsContent p[hidden]{display:none!important}.memberThreadsContent button:disabled{opacity:.45}.memberThreadsContent button.disconnect{background:transparent;border:1px solid #c9a09a;color:#9a2921;margin-top:10px}.memberThreadsContent .threadsNote{font-size:12px;margin-top:10px;color:#76644a}
 @media(max-width:480px){html body .memberHudLabeled:has(#gameThreadsButton:not([hidden])){gap:4px}html body .memberHudLabeled:has(#gameThreadsButton:not([hidden]))>div:first-child{max-width:calc(100% - 218px)}}
+
+/* Threads CTA: override game-wide button theme, keep only transient disabled states. */
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton{
+ appearance:none!important;display:flex!important;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;padding:12px 10px!important;
+ border:1px solid #171717!important;border-radius:10px!important;background:#171717!important;color:#fff!important;
+ font:750 14px/1.35 system-ui,sans-serif!important;cursor:pointer;box-shadow:0 4px 10px #0003!important;touch-action:manipulation;
+}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton :is(svg,span){color:#fff!important;flex:none}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton:hover:not(:disabled){background:#333!important}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton:focus-visible{outline:3px solid #d6b46b;outline-offset:2px}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton:disabled{opacity:.55;cursor:wait}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton[hidden],html body .memberThreadsContent .threadsNote[hidden]{display:none!important}
