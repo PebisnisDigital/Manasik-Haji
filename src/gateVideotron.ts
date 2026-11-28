@@ -4,7 +4,7 @@ import {GATE_VIDEOTRON as V} from './gateVideotronModel.ts';
 import {journeyVolume} from './frontSettings.ts';
 
 // Public Dropbox direct media URL. Keep native playback independent of the scene renderer.
-const VIDEO_URL='https://www.dropbox.com/scl/fi/yzak3q9d2f3kexkpol1li/YTDown.com_YouTube_Media_dPh-wxExciE_BACAAN-TALBIYAH-HAJI-DAN-UMRAH_001_1080p.mp4?rlkey=vzq192g392p7rutypcmntt2kq&raw=1';
+export const VIDEO_URL='https://www.dropbox.com/scl/fi/yzak3q9d2f3kexkpol1li/YTDown.com_YouTube_Media_dPh-wxExciE_BACAAN-TALBIYAH-HAJI-DAN-UMRAH_001_1080p.mp4?rlkey=vzq192g392p7rutypcmntt2kq&raw=1';
 export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  const css=new CSS3DRenderer(),scene=new THREE.Scene();
  css.domElement.className='gateVideotronLayer';css.domElement.style.cssText='position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;visibility:hidden;';
