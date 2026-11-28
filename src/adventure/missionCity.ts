@@ -35,7 +35,7 @@ export function cityDrive(v:CityVehicle,forward:number,right:number,brake:boolea
 export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',boardSolid:Rect){
  const missions=CITY_BUILDINGS.slice(0,program==='hajj'?12:5),places=program==='hajj'?[...missions,SOUVENIR_BUILDING]:missions;
  const solids:Rect[]=[boardSolid,...places];
- const plazas=createLivePlazas(scene,missions);solids.push(...plazas.solids);const celebration=program==='hajj'?createSouvenirCelebration(scene):null;if(celebration)solids.push(...celebration.solids);
+ const plazas=createLivePlazas(scene,missions);solids.push(...plazas.solids);const celebration=program==='hajj'?createSouvenirCelebration(scene):null;
  const vehicles=initial();let selected:CityVehicle|null=null;
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
  const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xfffaf0),gold=mat(0xd6b46b,.36),green=mat(0xe6d2a4,.55),glass=mat(0x41464d,.25),dark=mat(0x564634),rubber=mat(0x252526);
@@ -112,13 +112,14 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  const cell=12,index=new Map<string,Rect[]>();
  for(const s of solids)for(let x=Math.floor((s.x-s.w/2-.5)/cell);x<=Math.floor((s.x+s.w/2+.5)/cell);x++)for(let z=Math.floor((s.z-s.d/2-.5)/cell);z<=Math.floor((s.z+s.d/2+.5)/cell);z++){const k=x+':'+z;const bucket=index.get(k)??[];bucket.push(s);index.set(k,bucket);}
  const walkSolids=(p:Point)=>index.get(Math.floor(p.x/cell)+':'+Math.floor(p.z/cell))??[];
- const otherSolids=(kind?:CityKind)=>[...solids,...vehicles.filter(v=>v.kind!==kind).map(footprint)];
+ let souvenirUnlocked=false;
+ const celebrationSolids=()=>souvenirUnlocked?(celebration?.solids??[]):[];
+ const otherSolids=(kind?:CityKind)=>[...solids,...celebrationSolids(),...vehicles.filter(v=>v.kind!==kind).map(footprint)];
  const get=(kind:CityKind)=>vehicles.find(v=>v.kind===kind)!;
  const near=(p:Point)=>vehicles.filter(v=>distance(p,v)<profiles[v.kind].d+2.4).sort((a,b)=>distance(a,p)-distance(b,p))[0]??null;
  function take(kind:CityKind){selected=get(kind);return {...selected};}
  function update(v:CityVehicle){Object.assign(get(v.kind),v);selected=get(v.kind);}
  function leave(v:CityVehicle){if(Math.abs(v.speed)>.5)return null;const profile=profiles[v.kind];for(const side of [-1,1]){const p={x:v.x+Math.cos(v.yaw)*side*(profile.w+1.1),z:v.z-Math.sin(v.yaw)*side*(profile.w+1.1)};if(cityCanStand(p,otherSolids())){selected=null;return p;}}return null;}
- let souvenirUnlocked=false;
  function render(active:CityVehicle|null,wheel:number,available:number[],target:number){
   souvenirUnlocked=available.includes(SOUVENIR_NUMBER);
   for(const [kind,g,ws] of [['motor',motor,motorWheels],['mobil',car,carWheels]] as const){const v=get(kind);g.position.set(v.x,0,v.z);g.rotation.y=v.yaw;for(const w of ws)w.rotation.x=active?.kind===kind?wheel:0;}
@@ -130,5 +131,5 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  function entrance(p:Point){return places.find(b=>distance(p,b.door)<3.5||guards.some(g=>g.number===b.number&&distance(p,{x:g.root.position.x,z:g.root.position.z})<2.4))??null;}
  function updateGuards(hero:Point,dt:number,camera:THREE.Camera,active:boolean,talking:number|null=null){celebration?.update(hero,dt,active,souvenirUnlocked);for(const g of guards){const p=g.root.position;const gap=distance(hero,p);g.root.visible=gap<29||g.number===talking;if(!g.root.visible)continue;const nearby=gap<8;const desired=nearby?Math.atan2(hero.x-p.x,hero.z-p.z):g.yaw;if(active)g.root.rotation.y+=Math.atan2(Math.sin(desired-g.root.rotation.y),Math.cos(desired-g.root.rotation.y))*(1-Math.exp(-dt*5));g.root.children.forEach(c=>{if(c instanceof THREE.Sprite)c.visible=distance(hero,p)<19;});const q=plazas.guardStatus(g.number);const line=g.number===SOUVENIR_NUMBER?'Periksa 12 bintang':q.phase==='check'?'Periksa progres…':q.phase==='allow'?'Silakan masuk, '+q.name.split(' ')[0]:q.phase==='player'?'Giliran Anda':'Peserta berikutnya';g.status.visible=g.number!==talking&&distance(hero,p)<15&&(g.number===SOUVENIR_NUMBER||q.phase!=='wait');if(g.status.visible&&g.last!==line){g.last=line;drawNamePlate(g.ctx,line);g.tex.needsUpdate=true;}}updateHumanActors(scene,dt,active,camera);}
  function reset(){const fresh=initial();for(const v of fresh)Object.assign(get(v.kind),v);selected=null;}
- return {places,solids,celebrateSouvenir:()=>celebration?.celebrate(),plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,guardPoint:(number:number)=>guards.find(g=>g.number===number)?.root.position.clone()??null,near,take,update,leave,render,openDoor,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,walkSolids(p))&&!vehicles.some(v=>inside(p,footprint(v),.4)),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,[...otherSolids(v.kind),...humanBodies(scene).map(p=>({x:p.x,z:p.z,w:p.radius*2,d:p.radius*2}))]),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{celebration?.dispose();plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
+ return {places,solids,celebrateSouvenir:()=>celebration?.celebrate(),plazaStats:plazas.stats,joinQueue:plazas.join,leaveQueue:plazas.leave,queueAhead:plazas.ahead,queueSlot:plazas.playerSlot,queueApproach:plazas.queueApproach,queueNear:plazas.queueNear,guardPoint:(number:number)=>guards.find(g=>g.number===number)?.root.position.clone()??null,near,take,update,leave,render,openDoor,entrance,advanceQueues:plazas.update,updateGuards,reset,bus:()=>get('bus'),walk:(p:Point)=>cityCanStand(p,walkSolids(p))&&!celebrationSolids().some(s=>inside(p,s,.4))&&!vehicles.some(v=>inside(p,footprint(v),.4)),drive:(v:CityVehicle,f:number,r:number,b:boolean,dt:number)=>cityDrive(v,f,r,b,dt,[...otherSolids(v.kind),...humanBodies(scene).map(p=>({x:p.x,z:p.z,w:p.radius*2,d:p.radius*2}))]),label:(kind:CityKind)=>profiles[kind].label,dispose:()=>{celebration?.dispose();plazas.dispose();disposeHumanActors(scene);signs.forEach(t=>t.dispose());}};
 }
