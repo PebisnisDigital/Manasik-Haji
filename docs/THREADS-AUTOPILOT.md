@@ -1,0 +1,5 @@
+# Threads Autopilot (staged)
+Set REPLIZ_ACCESS_KEY and REPLIZ_SECRET_KEY as sensitive server-only Vercel environment variables from Repliz Public API settings; never paste keys in chat or Git. Set HAJJI_THREADS_ENABLED=0 until full test passes. The ChatGPT connector credentials are not available to Vercel.
+Apply docs/hajji-threads-connect.sql to MANASIK-3D. Callback uses canonical https://hajji.digital and a one-time nonce bound to initiating paid session. 
+Before enabling: verify provider redirect preserves flow query, callback Strict cookie, response accountId and account detail fields, tag, paid/nonpaid, forged/reused state, mobile landscape, duplicate existing workspace account rejection, disconnect and pending schedule cancellation. Test a new consenting account only. Reconcile ambiguous processing state manually. Never blindly retry connect. No schedules created. Admin uses Repliz Account Integration filter HAJJI.DIGITAL. 
+API: https://docs.repliz.com/api/oauth/oauth-flow.

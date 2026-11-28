@@ -1,5 +1,5 @@
 /* Bundled with the HUD rather than depending on the optional brand stylesheet. */
-html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.memberSupportStandalone){
+html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,#gameThreadsButton,.memberSupportStandalone){
  appearance:none!important;display:grid!important;place-items:center!important;
  width:var(--affiliate-icon-width,44px)!important;height:var(--affiliate-icon-height,44px)!important;min-height:var(--affiliate-icon-height,44px)!important;min-width:var(--affiliate-icon-width,44px)!important;
  flex:0 0 auto!important;margin:0;padding:0!important;box-sizing:border-box;
@@ -9,8 +9,8 @@ html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.mem
 html body .simpleTop #gameAffiliateButton{margin-left:auto}
 html body .simpleTop:has(#gameCommissionButton){gap:8px;align-items:flex-start}
 html body .simpleTop:has(#gameCommissionButton)>div{min-width:0;max-width:calc(100% - 156px)}
-html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.memberSupportStandalone)[aria-expanded=true]{background:#f8ecd3!important}
-html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.memberSupportStandalone):focus-visible{outline:2px solid #b88b2e;outline-offset:2px}
+html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,#gameThreadsButton,.memberSupportStandalone)[aria-expanded=true]{background:#f8ecd3!important}
+html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,#gameThreadsButton,.memberSupportStandalone):focus-visible{outline:2px solid #b88b2e;outline-offset:2px}
 html body #gameAffiliateDialog{
  position:fixed!important;z-index:1200;inset:60px 12px auto auto;margin:0!important;padding:0!important;
  width:min(285px,calc(100vw - 24px))!important;max-height:calc(100dvh - 72px);height:min(620px,calc(100dvh - 72px));min-height:0;
@@ -26,7 +26,7 @@ html body #gameAffiliateDialog>iframe{display:block;width:100%;flex:1;min-height
 html body.affiliateHudOpen.simplePlay .simpleCovered .simpleTop{visibility:visible!important}
 @media(max-height:450px){html body #gameAffiliateDialog>header{padding:6px 10px}}
 
-html body :is(#gameSupportButton,.memberSupportStandalone,.memberSupportContent,#gameAffiliateDialog>iframe,#memberSupportStandalonePanel)[hidden]{display:none!important}
+html body :is(#gameSupportButton,#gameThreadsButton,.memberSupportStandalone,.memberSupportContent,#gameAffiliateDialog>iframe,#memberSupportStandalonePanel)[hidden]{display:none!important}
 html body .simpleTop:has(#gameSupportButton:not([hidden]))>div{max-width:calc(100% - 208px);overflow:hidden}
 html body #gameSupportButton svg,html body .memberSupportStandalone svg{color:#198754}
 html body #gameAffiliateDialog[data-view="support"]{height:auto;overflow-y:auto}
@@ -51,7 +51,7 @@ html body .memberHudLabeled button[data-hud-label]::after{
  font:550 10px/1.2 system-ui,sans-serif;white-space:nowrap;color:#25211b!important;text-shadow:0 1px 2px #fff,0 0 4px #fff;pointer-events:none;
 }
 html body .memberHudLabeled #gameSupportButton svg,html body .memberSupportStandalone svg{color:#11864d!important;stroke:#11864d!important}
-html body .memberHudLabeled :is(#gameAffiliateButton,#gameCommissionButton,#pauseButton,#simpleGear) svg{color:#25211b!important;stroke:#25211b}
+html body .memberHudLabeled :is(#gameAffiliateButton,#gameCommissionButton,#gameThreadsButton,#pauseButton,#simpleGear) svg{color:#25211b!important;stroke:#25211b}
 html body .simpleTop.memberHudLabeled>div{flex:1 1 auto;min-width:0;max-width:calc(100% - 255px)}
 html body .simpleTop.memberHudLabeled #gameAffiliateButton{margin-left:auto}
 html body #simpleSettings:has(.gameplaySettingsRows){top:85px;max-height:calc(100dvh - 97px)}
@@ -79,3 +79,15 @@ html body :is(#gameAffiliateDialog,#memberSupportStandalonePanel) .memberSupport
 html body :is(#gameAffiliateDialog,#memberSupportStandalonePanel) .memberSupportContent a.memberSupportAction[aria-disabled=false]:hover{background:#106e3e!important}
 html body .memberSupportContent .memberSupportNote{text-align:center;font:400 11px/1.4 system-ui,sans-serif;color:#776c58!important;margin:10px 0 0}
 @media(max-width:650px){html body .memberHudLabeled{gap:12px!important}html body .memberHudLabeled button[data-hud-label]::after{font-size:9px}html body .simpleTop.memberHudLabeled>div{max-width:calc(100% - 218px)}}
+
+html body #gameAffiliateDialog[data-view="threads"]{height:auto;overflow-y:auto}
+html body #gameThreadsButton[hidden],html body #memberThreadsShortcut[hidden],html body .memberThreadsContent[hidden],html body #memberThreadsPanel[hidden]{display:none!important}
+html body .memberHudLabeled:has(#gameThreadsButton:not([hidden]))>div:first-child{min-width:0;flex:1;overflow:hidden;max-width:calc(100% - 240px)}
+html body #memberThreadsShortcut{right:66px}
+html body #memberThreadsPanel{position:fixed;z-index:1200;top:66px;right:14px;width:min(320px,calc(100vw - 28px));max-height:calc(100dvh - 80px);overflow:auto;background:#fffdf8;color:#25211b;border:1px solid #d6b46b;border-radius:16px}
+#memberThreadsPanel header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #e3d9c7}
+#memberThreadsPanel header button{color:#25211b;background:transparent;border:0;font-size:22px}
+html body .memberThreadsContent{padding:14px;font:400 13px/1.5 system-ui,sans-serif;color:#25211b;background:#fffdf8;overflow:auto;min-height:0}
+.memberThreadsContent p{margin:0 0 10px}.memberThreadsContent ul{padding-left:18px;margin:0 0 12px}.memberThreadsContent label{display:flex;gap:8px;align-items:flex-start;font-size:12px;margin:12px 0}.memberThreadsContent input{flex:none;margin-top:3px}
+.memberThreadsContent button{display:block;width:100%;border:0;border-radius:9px;padding:11px 8px;background:#151515;color:white;font:650 13px/1.4 system-ui;cursor:pointer}.memberThreadsContent button[hidden],.memberThreadsContent label[hidden],.memberThreadsContent ul[hidden],.memberThreadsContent p[hidden]{display:none!important}.memberThreadsContent button:disabled{opacity:.45}.memberThreadsContent button.disconnect{background:transparent;border:1px solid #c9a09a;color:#9a2921;margin-top:10px}.memberThreadsContent .threadsNote{font-size:12px;margin-top:10px;color:#76644a}
+@media(max-width:480px){html body .memberHudLabeled:has(#gameThreadsButton:not([hidden])){gap:4px}html body .memberHudLabeled:has(#gameThreadsButton:not([hidden]))>div:first-child{max-width:calc(100% - 218px)}}

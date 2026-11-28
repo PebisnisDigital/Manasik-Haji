@@ -1,4 +1,5 @@
 import './gameAffiliateHud.css';
+import {mountStandaloneThreads} from './memberThreads.ts';
 export const whatsappIcon='<path d="M20.4 11.7a8.5 8.5 0 0 1-12.6 7.5L3 20.5l1.3-4.7a8.5 8.5 0 1 1 16.1-4.1Z"/><path d="M8.2 7.8c-.7.4-.9 1.3-.6 2.2.8 2.4 2.9 4.5 5.2 5.3.9.3 1.8 0 2.3-.7l.5-.8-2.4-1.2-.8.8c-1.3-.5-2.1-1.3-2.6-2.6l.7-.8-1.1-2.4-.8.2Z"/>';
 export async function getSupportGroup():Promise<string>{
  const res=await fetch('/api/registration/support-group',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(8000)});
@@ -25,6 +26,7 @@ export function supportContent(){
  retry.onclick=()=>void refresh();body.append(intro,list,action,note,retry);return {body,refresh,clear};
 }
 export function mountMemberSupportShortcut(){
+ mountStandaloneThreads();
  if(window.parent!==window||document.getElementById('memberSupportShortcut'))return;
  const button=document.createElement('button');button.id='memberSupportShortcut';button.className='memberSupportStandalone';button.type='button';button.hidden=true;button.title='Grup WhatsApp';button.setAttribute('aria-label','Grup WhatsApp');button.setAttribute('aria-expanded','false');
  button.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+whatsappIcon+'</svg>';
