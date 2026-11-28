@@ -1,3 +1,4 @@
+import {adminBridge} from '../server/autojualanBridge.js';
 import {randomBytes} from 'node:crypto';
 const ORIGIN='https://hajji.digital';
 const enabled=()=>Boolean(process.env.REPLIZ_ACCESS_KEY&&process.env.REPLIZ_SECRET_KEY);
@@ -22,6 +23,7 @@ function callback(res){
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Content-Type-Options','nosniff');
  const op=new URL(req.url,ORIGIN).searchParams.get('action'),reply=(s,d)=>res.status(s).json(d);
+ if(op==='admin-bridge')return adminBridge(req,res);
  if(req.method==='GET'&&op==='callback')return callback(res);
  if(req.method!=='POST'||req.headers.origin!==ORIGIN||req.headers.host!=='hajji.digital'||!String(req.headers['content-type']).startsWith('application/json'))return reply(403,{error:'Permintaan tidak diizinkan.'});
  const secret=String(req.headers.cookie??'').split(';').map(s=>s.trim()).find(s=>s.startsWith('manasik_registration='))?.slice(21)??'';
