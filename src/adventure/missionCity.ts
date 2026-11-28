@@ -6,6 +6,7 @@ import {slidingDoorOffset} from './cityMissionEntry.ts';
 import {createLivePlazas} from './cityLivePlazas.ts';
 import {humanActor,updateHumanActors,disposeHumanActors,humanBodies} from '../characters/HumanActors.ts';
 import * as THREE from 'three';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {DISTRICT_SOLIDS,type Point,type Rect,type Vehicle} from './districtModel.ts';
 import {NUSUK_LEVELS} from './nusukModel.ts';
 import {UMRAH_LEVELS} from '../frontModel.ts';
@@ -95,6 +96,9 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
   box(g,.70,1.05,.55,4.3,.525,11.8,green);box(g,.82,.07,.65,4.3,1.08,11.8,gold);box(g,.38,.025,.26,4.3,1.13,11.8,white);
   const cap=new THREE.Mesh(new THREE.SphereGeometry(1.65,16,8,0,Math.PI*2,0,Math.PI/2),green);cap.position.set(0,p.height+.38,0);g.add(cap);
   for(const x of [-9.2,9.2]){box(g,.26,2.7,.26,x,p.height+1.2,9.1,gold);}
+  // Batch each facade independently for frustum culling; never merge sliding doors or signs.
+  const batches=new Map<THREE.Material,THREE.Mesh[]>();for(const child of g.children){if(!(child instanceof THREE.Mesh)||child===left||child===right||!(child.material instanceof THREE.MeshStandardMaterial))continue;const list=batches.get(child.material)??[];list.push(child);batches.set(child.material,list);}
+  for(const [material,parts] of batches){if(parts.length<2)continue;const copies=parts.map(part=>{part.updateMatrix();return part.geometry.clone().applyMatrix4(part.matrix);});const geometry=mergeGeometries(copies,false);copies.forEach(c=>c.dispose());if(!geometry)continue;const merged=new THREE.Mesh(geometry,material);merged.receiveShadow=true;g.add(merged);for(const part of parts){part.removeFromParent();part.geometry.dispose();}}
  }
  function wheel(g:THREE.Group,x:number,y:number,z:number,r:number,width:number){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,width,16),rubber);m.rotation.z=Math.PI/2;m.position.set(x,y,z);g.add(m);return m;}
  const motor=new THREE.Group(),car=new THREE.Group();scene.add(motor,car);const red=mat(0xa33e36,.38),silver=mat(0xd6d7d1,.33);
