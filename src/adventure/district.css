@@ -47,6 +47,6 @@ body #districtSettingsPopover>button{margin-top:12px;min-height:38px;padding:8px
 @media(max-height:450px){body #districtSettingsPopover{padding:10px}}
 
 /* Compact city map keeps the entire new district visible while leaving more gameplay space. */
-html body .districtHud .miniMap.compactCityMap{width:clamp(120px,11vw,180px)!important}
-@media(max-height:550px){html body .districtHud .miniMap.compactCityMap{width:118px!important}}
-@media(max-width:650px){html body .districtHud .miniMap.compactCityMap{width:106px!important}}
+html body .districtHud .miniMap.compactCityMap{width:clamp(110px,10vw,150px)!important}
+@media(max-height:550px){html body .districtHud .miniMap.compactCityMap{width:108px!important}}
+@media(max-width:650px){html body .districtHud .miniMap.compactCityMap{width:100px!important}}
