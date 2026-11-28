@@ -231,6 +231,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   el('missionButton').onclick=hub?()=>journeyBoard?.open():missionBook;
   if(hub){let tap:{x:number;y:number;id:number}|null=null;canvas.addEventListener('pointerdown',e=>{if(e.button===0&&controls.playable())tap={x:e.clientX,y:e.clientY,id:e.pointerId};});canvas.addEventListener('pointerup',e=>{const t=tap;tap=null;if(t&&t.id===e.pointerId&&Math.hypot(e.clientX-t.x,e.clientY-t.y)<8&&controls.playable()&&boardPoint&&Math.hypot(hero.x-boardPoint.x,hero.z-boardPoint.z)<22)journeyBoard?.tap(e.clientX,e.clientY,camera,canvas);});canvas.addEventListener('pointercancel',()=>{tap=null;});}
   let cityPrompt:HTMLElement|undefined,cityPromptTitle:HTMLElement|undefined,cityPad:HTMLElement|undefined;
+  let promptWidth=200,promptHeight=90,promptObserver:ResizeObserver|undefined;
   if(hub){
    const pad=document.createElement('div');pad.className='districtJoy districtLookStick';pad.setAttribute('aria-label','Joystick kamera');const knob=document.createElement('span');pad.append(knob);document.querySelector('.districtBottom')!.append(pad);cityPad=pad;
    let pointer:number|null=null;
@@ -240,7 +241,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
    pad.addEventListener('pointermove',e=>{if(pointer===e.pointerId&&controls.playable())move(e);});
    for(const evt of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(evt,e=>{if((e as PointerEvent).pointerId===pointer)reset();});
    window.addEventListener('blur',reset);document.addEventListener('visibilitychange',reset);
-   const p=document.createElement('section');p.className='districtContextPrompt districtSpeech';p.hidden=true;const title=document.createElement('strong');p.append(title,el('brakeButton'),el('interactButton'));document.body.append(p);cityPrompt=p;cityPromptTitle=title;
+   const p=document.createElement('section');p.className='districtContextPrompt districtSpeech';p.hidden=true;const title=document.createElement('strong');p.append(title,el('brakeButton'),el('interactButton'));document.body.append(p);cityPrompt=p;cityPromptTitle=title;if(typeof ResizeObserver!=='undefined'){promptObserver=new ResizeObserver(entries=>{const rect=entries[0]?.borderBoxSize?.[0];if(rect&&rect.inlineSize>0){promptWidth=rect.inlineSize;promptHeight=rect.blockSize;}});promptObserver.observe(p);}
   }
   function paintCityPrompt(prompt:string){
    if(!city||!cityPrompt||!cityPromptTitle)return;
@@ -256,7 +257,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
    else if(boardPoint){point=boardPoint;cityPromptTitle.textContent='PAPAN PERJALANAN';}
    const p=new THREE.Vector3(point.x,height,point.z),view=p.clone().applyMatrix4(camera.matrixWorldInverse);p.project(camera);
    if(view.z>=-camera.near||Math.abs(p.x)>1||Math.abs(p.y)>1){if(!waiting&&!cityVehicle){cityPrompt.hidden=true;return;}p.set(0,-.25,0);}
-   const w=cityPrompt.offsetWidth,h=cityPrompt.offsetHeight;cityPrompt.style.left=Math.max(8,Math.min(innerWidth-w-8,(p.x*.5+.5)*innerWidth-w/2))+'px';cityPrompt.style.top=Math.max(64,Math.min(innerHeight-h-16,(.5-p.y*.5)*innerHeight-h-10))+'px';
+   const w=promptWidth,h=promptHeight;cityPrompt.style.left=Math.max(8,Math.min(innerWidth-w-8,(p.x*.5+.5)*innerWidth-w/2))+'px';cityPrompt.style.top=Math.max(64,Math.min(innerHeight-h-16,(.5-p.y*.5)*innerHeight-h-10))+'px';
   }
   el('cameraButton').onclick=()=>{cameraYaw=driving?bus.yaw:heading;lastLook=0;rig.reset();};
   el('fastButton').onclick=()=>{fast=!fast;el('fastButton').setAttribute('aria-pressed',String(fast));};
@@ -388,6 +389,6 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     Object.defineProperty(window,'__districtDebug',{configurable:true,value:Object.freeze({snapshot:()=>({stage:save.stage,transfer:transfer?{id:transfer.id,gate:(save as TransferSave).gate}:null,avatar:save.avatar,life:life.snapshot(),driving,x:hero.x,z:hero.z,heading,cameraYaw,bus:{...bus},errands:{...errands},hasan:{...hasan},calls:renderer.info.render.calls,npcs:npcs.length,waiting:npcs.filter(n=>n.waiting).length,playable:controls.playable(),presentation:{focus:{...cameraPresentation.focus},framing:{...rig.framing},camera:camera.position.toArray(),fov:camera.fov,locomotion:{moving:playerMotion.moving,phase:playerMotion.phase,...playerMotion.pose},wheels:world.wheels.map(w=>({front:w.front,steer:w.steering.rotation.y,roll:w.rolling.rotation.x}))},lighting:{lights:[...lights],casters,environment:!!world.scene.environment,shadowMap:renderer.shadowMap.enabled,toneMapping:renderer.toneMapping,colorMapsNotSRGB:[...colorMapsNotSRGB]}})})});
   }
   frame=requestAnimationFrame(tick);
-  window.addEventListener('pagehide',e=>{controls.clear();audio.stop();if(e.persisted)return;cancelAnimationFrame(frame);cityMinimap?.dispose();journeyBoard?.dispose();city?.dispose();life.dispose();controls.dispose();audio.dispose();player.dispose();crowd.dispose();salma.dispose();budget.dispose();world.dispose();renderer.dispose();},{once:true});
+  window.addEventListener('pagehide',e=>{controls.clear();audio.stop();if(e.persisted)return;cancelAnimationFrame(frame);promptObserver?.disconnect();cityMinimap?.dispose();journeyBoard?.dispose();city?.dispose();life.dispose();controls.dispose();audio.dispose();player.dispose();crowd.dispose();salma.dispose();budget.dispose();world.dispose();renderer.dispose();},{once:true});
 }
 if(new URLSearchParams(location.search).has('board')){document.documentElement.classList.add('districtHubLoading');void import('./districtBoard.ts').then(async m=>{const access=await m.verifyDistrictBoard();save={...save,stage:0,avatar:journeyAvatar(save.avatar)};document.documentElement.classList.remove('districtHubLoading');boot({access,module:m});}).catch(error=>{document.documentElement.classList.remove('districtHubLoading');el('districtError').hidden=false;el('districtError').querySelector('h2')!.textContent='AKSES BELUM AKTIF';el('errorMessage').textContent=error instanceof Error?error.message:'Buka kembali magic link pribadi.';const panel=el('districtError');panel.querySelectorAll('a').forEach(a=>a.remove());const a=document.createElement('a');a.className='primary';a.href=tenantUrl('./index.html');a.textContent='Kembali ke gerbang';panel.append(a);});}else if(requestedTransfer&&!transfer){location.replace(tenantUrl('./adventure-map.html?journey='+readSetup()?.program));}else try{boot();}catch(error){intro.hidden=true;if(intro.open)intro.close();el('districtError').hidden=false;el('errorMessage').textContent='Kawasan membutuhkan WebGL. '+(error instanceof Error?error.message:'Coba muat ulang browser.');console.error(error);}
