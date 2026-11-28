@@ -1,7 +1,8 @@
 import {DISTRICT_HQ,DISTRICT_SHOPS} from './districtLandmarks.ts';
 import {SOUVENIR_NUMBER} from './citySouvenir.ts';
 import {BUILDINGS,DISTRICT_ROADS,type Point,type Rect} from './districtModel.ts';
-import {CITY_BOUNDS,CITY_ROADS,cityRoute} from './cityNavigation.ts';
+import {CITY_BOUNDS,CITY_ROADS} from './cityNavigation.ts';
+import {followCityRoute} from './cityRouteFollow.ts';
 type Building=Rect&{number:number;door:Point};
 const ns='http://www.w3.org/2000/svg';
 const mx=(x:number)=>(x-CITY_BOUNDS.minX)/(CITY_BOUNDS.maxX-CITY_BOUNDS.minX)*140;
@@ -24,14 +25,22 @@ export function mountCityMinimap(places:readonly Building[],solids:readonly Rect
  goal.setAttribute('fill','#f5ca70');goal.setAttribute('stroke','#25211b');goal.setAttribute('stroke-width','.65');goal.setAttribute('r','2.3');svg.append(goal);
  player.setAttribute('fill','#ffffff');player.setAttribute('stroke','#141414');player.setAttribute('stroke-width','.7');player.setAttribute('d','M0 -4L2.8 3 0 1.7-2.8 3Z');svg.append(player);
  map.classList.add('compactCityMap');hud.prepend(map);svg.setAttribute('aria-label','Peta jalan dan gedung HAJJI CITY, posisi pemain dan tujuan emas');
- let last:Point|null=null,lastTarget=-1,lastTime=-Infinity,points:Point[]=[];
- function update(p:Point,yaw:number,target:number,now:number){const b=places.find(b=>b.number===target);if(!b)return;
-  if(target!==lastTarget||!last||now-lastTime>1000&&Math.hypot(p.x-last.x,p.z-last.z)>3){last={...p};lastTarget=target;lastTime=now;points=cityRoute(p,b.door,roads,solids);for(const [n,box] of buildings){box.setAttribute('fill',n===target?'#d6b46b':n===SOUVENIR_NUMBER?'#d4b56b':'#454545');box.setAttribute('stroke',n===target?'#fff1c5':'#888278');box.setAttribute('stroke-width',n===target?'1.15':'.45');}}
-  player.setAttribute('transform',`translate(${mx(p.x)} ${mz(p.z)}) rotate(${180-yaw*180/Math.PI})`);
-  goal.setAttribute('cx',String(mx(b.door.x)));goal.setAttribute('cy',String(mz(b.door.z)));
-  route.setAttribute('points',points.map(q=>mx(q.x)+','+mz(q.z)).join(' '));route.toggleAttribute('hidden',points.length<2);
-  const remaining=points.length>1?points.reduce((sum,q,i)=>i?sum+Math.hypot(q.x-points[i-1]!.x,q.z-points[i-1]!.z):0,0):Math.hypot(p.x-b.door.x,p.z-b.door.z);
-  document.getElementById('locationName')!.textContent=target===SOUVENIR_NUMBER?'GEDUNG OLEH-OLEH':'GEDUNG '+target;document.getElementById('targetDistance')!.textContent=Math.round(remaining)+' m';
+ let last:Point|null=null,lastTarget=-1,lastTime=-Infinity,points:Point[]=[],requestId=0,pending=false,lastPaint=-Infinity,latest:Point={x:0,z:0};
+ const locationName=document.getElementById('locationName')!,targetDistance=document.getElementById('targetDistance')!;
+ let worker:Worker|null=null;
+ try{worker=new Worker(new URL('./cityRoute.worker.ts',import.meta.url),{type:'module'});worker.postMessage({type:'init',roads,solids:solids.map(r=>({x:r.x,z:r.z,w:r.w,d:r.d}))});worker.onmessage=(event:MessageEvent<{id:number;points:Point[]}>)=>{if(event.data.id!==requestId)return;pending=false;points=event.data.points;};worker.onerror=()=>{worker?.terminate();worker=null;pending=false;points=[];};}catch{worker=null;}
+ function attr(el:Element,key:string,value:string){if(el.getAttribute(key)!==value)el.setAttribute(key,value);}
+ function update(p:Point,yaw:number,target:number,now:number){const b=places.find(b=>b.number===target);if(!b)return;latest={x:p.x,z:p.z};
+  const changed=target!==lastTarget;
+  if(changed){lastTarget=target;points=[];pending=false;requestId++;last=null;for(const [n,box] of buildings){attr(box,'fill',n===target?'#d6b46b':n===SOUVENIR_NUMBER?'#d4b56b':'#454545');attr(box,'stroke',n===target?'#fff1c5':'#888278');attr(box,'stroke-width',n===target?'1.15':'.45');}attr(goal,'cx',String(mx(b.door.x)));attr(goal,'cy',String(mz(b.door.z)));locationName.textContent=target===SOUVENIR_NUMBER?'GEDUNG OLEH-OLEH':'GEDUNG '+target;}
+  const follow=followCityRoute(p,points);
+  if(worker&&(!pending||now-lastTime>8000)&&(changed||!last||now-lastTime>1600&&Math.hypot(p.x-last.x,p.z-last.z)>3&&follow.deviation>4)){last={...latest};lastTime=now;pending=true;worker.postMessage({type:'route',id:++requestId,start:last,goal:b.door});}
+  if(!changed&&now-lastPaint<80)return;lastPaint=now;
+  attr(player,'transform',`translate(${mx(p.x).toFixed(2)} ${mz(p.z).toFixed(2)}) rotate(${Math.round(180-yaw*180/Math.PI)})`);
+  const line=follow.tail.length&&follow.deviation<8?[p,...follow.tail]:[];
+  attr(route,'points',line.map(q=>mx(q.x).toFixed(2)+','+mz(q.z).toFixed(2)).join(' '));route.toggleAttribute('hidden',line.length<2);
+  const remaining=follow.tail.length&&follow.deviation<8?follow.remaining:Math.hypot(p.x-b.door.x,p.z-b.door.z);
+  const label=Math.round(remaining)+' m';if(targetDistance.textContent!==label)targetDistance.textContent=label;
  }
- return {update};
+ return {update,dispose(){worker?.terminate();worker=null;}};
 }
