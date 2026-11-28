@@ -8,8 +8,15 @@ export async function getSupportGroup():Promise<string>{
 export function supportContent(){
  const body=document.createElement('div');body.className='memberSupportContent';
  const intro=document.createElement('p');intro.textContent='Yuk, bergabung dengan grup resmi HAJJI.DIGITAL agar perjalanan belajar manasik lebih lancar.';
- const list=document.createElement('ul');for(const item of ['Bantuan saat mengalami kendala gameplay atau akses.','Support dan arahan penggunaan HAJJI.DIGITAL.','Informasi terbaru dan layanan member yang lebih maksimal.']){const li=document.createElement('li');li.textContent=item;list.append(li);}
- const action=document.createElement('a');action.textContent='Masuk Grup WA';action.target='_blank';action.rel='noopener noreferrer';action.className='memberSupportAction';action.setAttribute('aria-disabled','true');
+ const glyph=(shape:string)=>'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+shape+'</svg>';
+ const benefits=[
+ ['Support dan bantuan gameplay','<path d="M3 14v-3a9 9 0 0 1 18 0v3M3 13h3a2 2 0 0 1 2 2v3H5a2 2 0 0 1-2-2zM21 13h-3a2 2 0 0 0-2 2v3h3a2 2 0 0 0 2-2zM19 18c0 2-2 3-5 3h-2"/>'],
+ ['Bantuan kendala akses','<path d="M3 4h13v10H8l-5 4zM9 17h6l5 4V9h-2"/>'],
+ ['Informasi terbaru','<path d="m3 10 17-6v14L3 14zM7 15l2 5h3l-2-4"/>'],
+ ['Layanan khusus member','<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 4a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.8"/><circle cx="10" cy="8" r="4"/>']
+ ];
+ const list=document.createElement('ul');for(const [label,shape] of benefits){const li=document.createElement('li');const icon=document.createElement('span');icon.className='memberSupportBenefitIcon';icon.innerHTML=glyph(shape!);const text=document.createElement('span');text.textContent=label!;li.append(icon,text);list.append(li);}
+ const action=document.createElement('a');action.innerHTML=glyph(whatsappIcon)+'<span>MASUK GRUP WA</span>';action.target='_blank';action.rel='noopener noreferrer';action.className='memberSupportAction';action.setAttribute('aria-disabled','true');
  const note=document.createElement('p');note.className='memberSupportNote';note.setAttribute('role','status');
  const retry=document.createElement('button');retry.type='button';retry.className='memberSupportRetry';retry.textContent='Coba lagi';retry.hidden=true;
  let gen=0;
@@ -21,7 +28,7 @@ export function mountMemberSupportShortcut(){
  if(window.parent!==window||document.getElementById('memberSupportShortcut'))return;
  const button=document.createElement('button');button.id='memberSupportShortcut';button.className='memberSupportStandalone';button.type='button';button.hidden=true;button.title='Grup WhatsApp';button.setAttribute('aria-label','Grup WhatsApp');button.setAttribute('aria-expanded','false');
  button.innerHTML='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+whatsappIcon+'</svg>';
- const panel=document.createElement('aside');panel.id='memberSupportStandalonePanel';panel.hidden=true;panel.setAttribute('aria-label','Grup WhatsApp Member');const heading=document.createElement('header'),title=document.createElement('strong'),close=document.createElement('button');title.textContent='Grup WhatsApp Member';close.type='button';close.textContent='×';close.setAttribute('aria-label','Tutup');heading.append(title,close);const content=supportContent();panel.append(heading,content.body);document.body.append(button,panel);
+ const panel=document.createElement('aside');panel.id='memberSupportStandalonePanel';panel.hidden=true;panel.setAttribute('aria-label','Grup WhatsApp Member');const heading=document.createElement('header'),title=document.createElement('strong'),close=document.createElement('button');title.textContent='Grup WhatsApp Member';close.type='button';close.textContent='×';close.setAttribute('aria-label','Tutup');const headerIcon=document.createElement('span');headerIcon.className='memberSupportHeaderIcon';headerIcon.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+whatsappIcon+'</svg>';heading.append(headerIcon,title,close);const content=supportContent();panel.append(heading,content.body);document.body.append(button,panel);
  const finish=()=>{panel.hidden=true;content.clear();button.setAttribute('aria-expanded','false');};
  button.onclick=()=>{if(!panel.hidden){finish();return;}panel.hidden=false;button.setAttribute('aria-expanded','true');void content.refresh();};close.onclick=finish;
  document.addEventListener('pointerdown',e=>{if(e.target instanceof Node&&!panel.contains(e.target)&&!button.contains(e.target))finish();},true);
