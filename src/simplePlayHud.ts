@@ -22,12 +22,12 @@ export function mountSimplePlayHud(kind:Kind){
  let choiceSignature='';
  function placeWorldPrompt(){
   const a=worldActionAnchor(),w=innerWidth,h=innerHeight;
-  if(!prompt.hidden){const pw=prompt.offsetWidth,ph=prompt.offsetHeight;const anchored=!!a?.near&&a.visible;
+  if(!prompt.hidden){const pw=prompt.offsetWidth,ph=prompt.offsetHeight;const assist=/^(BANTU JALAN|HENTIKAN BANTUAN)/i.test(action.textContent??'');const anchored=!assist&&!!a?.near&&a.visible;
    const x=anchored?a.x:w*.5,y=anchored?a.y:h-38;
    prompt.style.left=Math.round(Math.max(10,Math.min(w-pw-10,x-pw/2)))+'px';
    prompt.style.top=Math.round(Math.max(65,Math.min(h-ph-12,y-ph-14)))+'px';
    prompt.classList.toggle('worldAnchored',anchored);
-   prompt.style.visibility=a?.near&&!a.visible?'hidden':'visible';
+   prompt.style.visibility=!assist&&a?.near&&!a.visible?'hidden':'visible';
   }
   if(!disposed)worldFrame=requestAnimationFrame(placeWorldPrompt);
  }
