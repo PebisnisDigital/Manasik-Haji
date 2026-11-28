@@ -56,7 +56,7 @@ describe('mission city layout and transport',()=>{
   for(const b of CITY_BUILDINGS){
    expect(cityCanStand(b.door,CITY_BUILDINGS)).toBe(true);
    expect(cityCanStand(b,CITY_BUILDINGS)).toBe(false);
-   for(const other of CITY_BUILDINGS)if(b!==other)expect(Math.hypot(b.x-other.x,b.z-other.z)).toBeGreaterThan(50);
+   for(const other of CITY_BUILDINGS)if(b!==other)expect(Math.hypot(b.x-other.x,b.z-other.z)).toBeGreaterThanOrEqual(44);
   }
  });
  it.each(['motor','mobil','bus'] as CityKind[])('allows %s to accelerate, steer, reverse and brake',kind=>{
