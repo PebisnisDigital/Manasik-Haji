@@ -31,11 +31,18 @@ export function decodeTahallul(raw:string|null):TahallulProgress|null {
     return {version:1,stage:s.stage===2&&s.cuts===3?3:s.stage,avatar:s.avatar,method:s.method,cuts:s.cuts};
   } catch {return null;}
 }
+// Older arena scripts pass a literal base key; resolve it to the same member/replay key as the district.
+function resolveQuestKey(key:string){
+ if(key==='manasik-tawaf-quest-v1')return QUEST_KEYS.tawaf;
+ if(key==='manasik-sai-quest-v1')return QUEST_KEYS.sai;
+ if(key==='manasik-tahallul-quest-v1')return QUEST_KEYS.tahallul;
+ return key;
+}
 export function loadProgress<T>(key:string,decode:(raw:string|null)=>T|null):T|null {
-  try {key=replayKey(key,exampleKey(key));return decode(localStorage.getItem(key))??decode(localStorage.getItem(key+'.backup'));} catch {return null;}
+  try {key=resolveQuestKey(key);return decode(localStorage.getItem(key))??decode(localStorage.getItem(key+'.backup'));} catch {return null;}
 }
 export function storeProgress(key:string,value:object):boolean {
-  try {key=replayKey(key,exampleKey(key));
+  try {key=resolveQuestKey(key);
     const previous=localStorage.getItem(key);
     if(previous){try{const record=JSON.parse(previous);if(typeof record?.version==='number'&&record.version>1)return false;}catch{/* Recovery can replace truncated JSON. */}}
     // Retain a valid previous record. A broken primary must not replace a good backup.
