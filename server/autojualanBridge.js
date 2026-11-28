@@ -23,7 +23,7 @@ export async function adminBridge(req,res){
  try{
   if(data.action==='submit'){
    if(data.confirm!==true)return reply(400,{error:'Review dan konfirmasi jadwal diperlukan.'});
-   const p=await db('claim',{nonce,confirm:true});let attempted=false;
+   const p=await db('claim',{nonce,confirm:true,batch:data.batch===true});let attempted=false;
    try{
     const a=await provider('/account/'+p.account_id);
     if(a.isConnected!==true||a.type!==p.platform||(a.id??a._id)!==p.account_id)throw new BridgeError(409,'Akun Repliz tidak aktif atau tidak cocok.');
@@ -50,7 +50,7 @@ export async function adminBridge(req,res){
    const state=states[r.status];if(p.state!=='published'&&p.state!=='cancelled'&&p.state!=='cancelling')await db('sync',{schedule_id:p.schedule_id,state,note:'Status Repliz: '+r.status});return reply(200,{status:state});
   }
   if(data.confirm!==true)return reply(400,{error:'Konfirmasi pembatalan diperlukan.'});
-  const p=await db('cancel-claim',{nonce,confirm:true});let attempted=false;
+  const p=await db('cancel-claim',{nonce,confirm:true,batch:data.batch===true});let attempted=false;
   try{const r=await provider('/schedule/'+p.schedule_id);if((r.id??r._id??r.scheduleId)!==p.schedule_id||r.status!=='pending')throw new BridgeError(409,'Jadwal tidak lagi menunggu publikasi. Periksa status terlebih dahulu.');attempted=true;await provider('/schedule/'+p.schedule_id,'DELETE');await db('cancel-finish',{nonce,state:'cancelled',note:'Jadwal dibatalkan di Repliz.'});return reply(200,{status:'cancelled'});}
   catch(e){try{await db('cancel-finish',{nonce,state:attempted?'uncertain':'scheduled',note:attempted?'Pembatalan belum pasti. Periksa Repliz.':'Pembatalan belum dilakukan. Sinkronkan status.'});}catch{}return reply(409,{error:attempted?'Pembatalan belum pasti. Periksa Repliz.':e instanceof BridgeError?e.message:'Gagal memeriksa jadwal.'});}
  }catch(e){return reply(e instanceof BridgeError&&[400,401,403,409].includes(e.status)?e.status:503,{error:e instanceof BridgeError?e.message:'Layanan belum tersedia.'});}
