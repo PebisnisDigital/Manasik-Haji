@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {createGrandOffice} from '../registrationHall.ts';
 import {createLandingShop} from '../buburMarket.ts';
 import {createAlfamartStore,alfamartSolids} from '../alfamartStore.ts';
-import {GATE_OFFICE,GATE_VIDEOTRON} from '../gateVideotronModel.ts';
+import {GATE_OFFICE} from '../gateVideotronModel.ts';
 import type {Rect,Point} from './districtModel.ts';
 
 // The original landing plaza remains unchanged. These are independent district instances.
@@ -14,11 +14,6 @@ export const DISTRICT_SHOPS=[
 ] as const;
 export const DISTRICT_LANDMARKS=[DISTRICT_HQ,...DISTRICT_SHOPS];
 const hqOffset=DISTRICT_HQ.z-GATE_OFFICE.z*DISTRICT_HQ.scale;
-export const DISTRICT_VIDEO_PLACEMENT={
- x:DISTRICT_HQ.x+GATE_VIDEOTRON.x*DISTRICT_HQ.scale,y:GATE_VIDEOTRON.y*DISTRICT_HQ.scale,
- z:hqOffset+GATE_VIDEOTRON.z*DISTRICT_HQ.scale,width:GATE_VIDEOTRON.width*DISTRICT_HQ.scale,
- height:GATE_VIDEOTRON.height*DISTRICT_HQ.scale,nearby:60,
-};
 type Shop=typeof DISTRICT_SHOPS[number];
 function worldRect(shop:Shop,x:number,z:number,w:number,d:number):Rect{return {x:shop.x-(x-shop.sourceX),z:shop.z-(z-shop.sourceZ),w,d};}
 function smallShopSolids(shop:Shop){
@@ -32,7 +27,7 @@ export function landmarkCameraBoxes(){return landmarkSolids().map(b=>new THREE.B
 export function createDistrictLandmarks(scene:THREE.Scene){
  const root=new THREE.Group();root.name='district-landing-landmarks';scene.add(root);
  const office=new THREE.Group();office.name='district-hajji-headquarters';office.position.set(DISTRICT_HQ.x,0,hqOffset);office.scale.setScalar(DISTRICT_HQ.scale);root.add(office);
- createGrandOffice(office);
+ createGrandOffice(office,false);
  const cream=new THREE.MeshStandardMaterial({color:0xf2e9d9,roughness:.75}),gold=new THREE.MeshStandardMaterial({color:0xd6b46b,roughness:.5}),dark=new THREE.MeshStandardMaterial({color:0x34443d,roughness:.55});
  function block(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,material:THREE.Material){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.receiveShadow=true;parent.add(m);return m;}
  // Replicate the lower arcade without adding another registration queue to the paid district.
