@@ -56,12 +56,16 @@ export default async function handler(req,res){
   }
   if(op==='wa-targets'||op==='wa-save-targets'){
    const d=await rpc(secret,'status');if(d.platform!=='whatsapp'||d.status!=='connected'||!d.account_id)throw new Err(403,'Hubungkan akun WhatsApp terlebih dahulu.');
-   const result=await repliz('/whatsapp/channel?'+new URLSearchParams({accountId:d.account_id}),'GET',undefined,'/addon');
-   const rows=Array.isArray(result)?result:Array.isArray(result.docs)?result.docs:null;if(!rows)throw new Err(502,'Daftar tujuan belum tersedia.');
-   const options=[{id:'status',name:'Status WhatsApp',type:'status'},...rows.filter(x=>x&&typeof x.id==='string'&&typeof x.name==='string'&&((x.type==='group'&&x.id.endsWith('@g.us'))||(x.type==='channel'&&x.id.endsWith('@newsletter')))).map(x=>({id:x.id,name:x.name.slice(0,150),type:x.type}))];
+   const scope=data.scope??'all';if(!['all','group','status'].includes(scope))throw new Err(400,'Jenis tujuan tidak valid.');
+   let options=scope==='group'?[]:[{id:'status',name:'Status WhatsApp',type:'status'}];
+   if(scope!=='status'){
+    const result=await repliz('/whatsapp/channel?'+new URLSearchParams({accountId:d.account_id}),'GET',undefined,'/addon');
+    const rows=Array.isArray(result)?result:Array.isArray(result.docs)?result.docs:null;if(!rows)throw new Err(502,'Daftar grup belum tersedia.');
+    options.push(...rows.filter(x=>x&&typeof x.id==='string'&&typeof x.name==='string'&&((x.type==='group'&&x.id.endsWith('@g.us'))||(scope==='all'&&x.type==='channel'&&x.id.endsWith('@newsletter')))).map(x=>({id:x.id,name:x.name.slice(0,150),type:x.type})));
+   }
    if(op==='wa-targets')return reply(200,{options,targets:d.targets??[]});
    if(data.consent!==true||!Array.isArray(data.ids)||data.ids.length>20||data.ids.some(id=>typeof id!=='string'||!options.some(x=>x.id===id)))throw new Err(400,'Pilih tujuan yang valid dan izinkan promosi.');
-   const targets=options.filter(x=>data.ids.includes(x.id));await rpc(secret,'targets',{platform:'whatsapp',targets});return reply(200,{targets});
+   const targets=options.filter(x=>data.ids.includes(x.id));const result=await rpc(secret,'targets',{platform:'whatsapp',scope,expected_account:d.account_id,targets});return reply(200,{targets:result.targets??targets});
   }
   if(op==='start'){if(data.consent!==true)return reply(400,{error:'Persetujuan diperlukan.'});const state=randomBytes(32).toString('hex');await rpc(secret,'start',{state,consent:true});const redirect=ORIGIN+'/api/threads?action=callback&flow='+state;let auth;try{auth=await repliz('/threads/authorize?'+new URLSearchParams({redirect}));}catch(e){await rpc(secret,'cancel_unstarted',{state}).catch(()=>{});throw e;}const url=new URL(auth.url);if(url.protocol!=='https:'||!['threads.net','www.threads.net','threads.com','www.threads.com'].includes(url.hostname))throw new Err(502,'URL Threads tidak valid.');return reply(200,{url:url.href});}
   if(op==='connect'){
