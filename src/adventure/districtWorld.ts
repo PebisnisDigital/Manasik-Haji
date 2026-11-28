@@ -1,3 +1,4 @@
+import {CITY_BOUNDS} from './cityLayout.ts';
 import * as THREE from 'three';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -7,15 +8,15 @@ import {graphicsTier} from '../graphicsQuality.ts';
 import {BUS_WHEEL_RADIUS} from './districtPresentation.ts';
 
 export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,missionCity=false){
-  const scene=new THREE.Scene();scene.background=new THREE.Color(night?0x172b43:0xadbfc3);scene.fog=new THREE.Fog(night?0x25354c:0xc6c4b6,75,175);
+  const scene=new THREE.Scene();scene.background=new THREE.Color(night?0x172b43:0xadbfc3);scene.fog=new THREE.Fog(night?0x25354c:0xc6c4b6,missionCity?48:75,missionCity?110:175);
   const pmrem=new THREE.PMREMGenerator(renderer),room=new RoomEnvironment(),environment=pmrem.fromScene(room,.04);
   scene.environment=environment.texture;scene.environmentIntensity=night?.25:.32;room.dispose();pmrem.dispose();
   scene.add(new THREE.HemisphereLight(night?0xb9d5ff:0xe9f3ff,0x87725a,night?1.4:1.8));
-  const sun=new THREE.DirectionalLight(night?0xa1c7ff:0xffd6a0,night?.9:3.4);sun.position.set(-45,65,25);scene.add(sun);staticShadows(renderer,sun,75);
+  const sun=new THREE.DirectionalLight(night?0xa1c7ff:0xffd6a0,night?.9:3.4);sun.position.set(-45,65,25);scene.add(sun);if(!missionCity)staticShadows(renderer,sun,75);else renderer.shadowMap.enabled=false;
   const materials=new Map<string,THREE.MeshStandardMaterial>();
   function mat(color:number,roughness=.8,metalness=0){const key=[color,roughness,metalness].join();let m=materials.get(key);if(!m){m=new THREE.MeshStandardMaterial({color,roughness,metalness});materials.set(key,m);}return m;}
   const stone=mat(0xddd3c1),pavement=mat(0xb9b1a0),sand=mat(0xcaba9e),asphalt=mat(0x42494b),dark=mat(0x303c39),gold=mat(0xc3a36b,.45,.35),glass=mat(0x344f59,.24,.35),white=mat(0xe8e6dc);
-  surfaceDetail(stone,'stone',4,4);surfaceDetail(pavement,'stone',22,22);surfaceDetail(sand,'sand',30,30);
+  if(!missionCity){surfaceDetail(stone,'stone',4,4);surfaceDetail(pavement,'stone',22,22);surfaceDetail(sand,'sand',30,30);}
   function mesh(g:THREE.BufferGeometry,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D=scene,cast=true){const a=new THREE.Mesh(g,m);a.position.set(x,y,z);a.receiveShadow=true;a.castShadow=cast;parent.add(a);return a;}
   function box(w:number,h:number,d:number,m:THREE.Material,x:number,y:number,z:number,parent:THREE.Object3D=scene,cast=true){return mesh(new THREE.BoxGeometry(w,h,d),m,x,y,z,parent,cast);}
   function label(text:string,width:number,x:number,y:number,z:number,rotation=0,color='#e8d7b4',parent:THREE.Object3D=scene){
@@ -24,8 +25,8 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;
     const sign=mesh(new THREE.PlaneGeometry(width,width/8),new THREE.MeshBasicMaterial({map:t}),x,y,z,parent,false);sign.rotation.y=rotation;return sign;
   }
-  const ground=mesh(new THREE.PlaneGeometry(missionCity?212:190,missionCity?186:170),sand,0,-.04,0,scene,false);ground.rotation.x=-Math.PI/2;
-  for(const road of DISTRICT_ROADS)box(road.w,.12,road.d,asphalt,road.x,road.z===54?0:.025,road.z,scene,false);
+  const ground=mesh(new THREE.PlaneGeometry(missionCity?CITY_BOUNDS.maxX-CITY_BOUNDS.minX+4:190,missionCity?CITY_BOUNDS.maxZ-CITY_BOUNDS.minZ+4:170),sand,0,-.04,0,scene,false);ground.rotation.x=-Math.PI/2;
+  if(!missionCity){for(const road of DISTRICT_ROADS)box(road.w,.12,road.d,asphalt,road.x,road.z===54?0:.025,road.z,scene,false);
   box(72,.16,44,pavement,0,.03,0,scene,false);
   for(const z of [-24,24]){
     for(const edge of [-4.2,4.2])box(84,.16,.25,stone,0,.08,z+edge,scene,false);
@@ -39,6 +40,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
   for(let x=-8;x<=4;x+=1.5)box(.7,.025,7.5,white,x,.11,24,scene,false);
   for(let z=-16;z<=-8;z+=1.5)box(7.5,.025,.7,white,38,.11,z,scene,false);
   // These five buildings are used only in the original transfer/errand scene, never in the member city.
+  }
   if(!missionCity)for(const b of BUILDINGS){
     const facade=mat(b.color);box(b.w,b.height,b.d,facade,b.x,b.height/2,b.z);
     box(b.w+.5,.45,b.d+.5,stone,b.x,b.height+.1,b.z);box(b.w+.7,.28,.8,gold,b.x,3.4,b.z+b.d/2+.3);
@@ -61,7 +63,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     }
   }
   // Low benches, planted islands, market awnings and a silhouette beyond the streets.
-  for(const [x,z]of [[-4,-9],[0,6],[27,6],[-49,15],[-48,-13],[48,30]]){
+  if(!missionCity)for(const [x,z]of [[-4,-9],[0,6],[27,6],[-49,15],[-48,-13],[48,30]]){
     box(2.7,.6,2.7,stone,x,.25,z);box(2.3,.09,2.3,mat(0x5c7050),x,.6,z,scene,false);palm(x,z);
   }
   function palm(x:number,z:number){
@@ -71,11 +73,11 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
       leaf.rotation.set(Math.cos(a)*.94,a,Math.sin(a)*.94);
     }
   }
-  for(const [x,z]of [[-5,3],[5,8],[27,-1],[-12,-17]]){
+  if(!missionCity)for(const [x,z]of [[-5,3],[5,8],[27,-1],[-12,-17]]){
     box(3,.16,.8,mat(0x756954),x,.64,z);box(3,.55,.12,mat(0x756954),x,1.02,z-.4);
     for(const side of [-1,1])box(.12,.6,.65,dark,x+side*1.1,.3,z);
   }
-  for(const [x,z]of [[-31,30],[8,30],[-31,-30],[8,-30],[45,12],[-45,-3]]){
+  if(!missionCity)for(const [x,z]of [[-31,30],[8,30],[-31,-30],[8,-30],[45,12],[-45,-3]]){
     mesh(new THREE.CylinderGeometry(.09,.13,6.6,8),dark,x,3.3,z);
     box(1.2,.12,.5,dark,x+.45,6.6,z);box(.9,.04,.32,mat(0xf6ddb0,.3),x+.45,6.5,z,scene,false);
   }
@@ -125,7 +127,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
   box(.04,1.9,.95,busGlass,-1.32,1.93,3.2,bus,false);label('ROMBONGAN · 01',2,0,3.05,4.64,0,'#f9e7ba',bus);
   const shadow=mesh(new THREE.PlaneGeometry(3.2,10),new THREE.MeshBasicMaterial({color:0x161e1b,transparent:true,opacity:.2,depthWrite:false}),0,.12,0,bus,false);shadow.rotation.x=-Math.PI/2;
   const traffic:THREE.Group[]=[];
-  if(graphicsTier()!=='low')for(let i=0;i<3;i++){
+  if(!missionCity&&graphicsTier()!=='low')for(let i=0;i<3;i++){
     const car=new THREE.Group();scene.add(car);box(1.8,.8,3.8,mat([0x9b8068,0xd5d0c4,0x536971][i],.4,.2),0,.7,0,car,false);box(1.6,.65,1.9,glass,0,1.3,-.15,car,false);
     traffic.push(car);
   }
