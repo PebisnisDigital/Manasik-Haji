@@ -85,10 +85,11 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     player=new PlayerRenderer(1,quality,save.avatar,'journey');world.scene.add(player.group);
   }
   makePlayer();
-  const crowd=new CrowdRenderer(16,quality),salma=new CrowdRenderer(1,quality,transfer&&save.avatar==='male'?{robeLength:.19,coverHead:false,pilgrimStyle:'male'}:{robeLength:.065,coverHead:true,pilgrimStyle:'female'});
-  world.scene.add(crowd.group,salma.group);
-  const routes=hub?[[-32,-12,-12,-12,-12,-8,-32,-8],[-32,17,-8,17,-8,23,-32,23]]:[[-28,14,-14,14,-14,19,-28,19],[-3,-16,3,-16,3,-3,-3,-3],[30,14,32,14,32,-2,30,-2],[-45,-12,-45,10,-48,10,-48,-12]];
-  const npcs=Array.from({length:hub?4:graphicsTier()==='low'?6:12},(_,i)=>{const route=routes[i%routes.length],index=i%4;return {x:route[index*2],z:route[index*2+1],route,index:(index+1)%4,yaw:0,motion:new DistrictLocomotion(i*.13),palette:i%8,waiting:false};});
+  // Free-roaming pilgrims and legacy transfer guides are not part of the member hub.
+  const crowd=hub?null:new CrowdRenderer(16,quality),salma=hub?null:new CrowdRenderer(1,quality,transfer&&save.avatar==='male'?{robeLength:.19,coverHead:false,pilgrimStyle:'male'}:{robeLength:.065,coverHead:true,pilgrimStyle:'female'});
+  if(crowd&&salma)world.scene.add(crowd.group,salma.group);
+  const routes=[[-28,14,-14,14,-14,19,-28,19],[-3,-16,3,-16,3,-3,-3,-3],[30,14,32,14,32,-2,30,-2],[-45,-12,-45,10,-48,10,-48,-12]];
+  const npcs=Array.from({length:hub?0:graphicsTier()==='low'?6:12},(_,i)=>{const route=routes[i%routes.length],index=i%4;return {x:route[index*2],z:route[index*2+1],route,index:(index+1)%4,yaw:0,motion:new DistrictLocomotion(i*.13),palette:i%8,waiting:false};});
   let toastTimer=0;
   const city=hub?createMissionCity(world.scene,hub.access.program,hub.module.BOARD_SOLID):null;
   const cityMinimap=city&&hub?mountCityMinimap(city.places,city.solids,hub.module.BOARD_SOLID):null;
@@ -335,9 +336,8 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     if(hub)world.luggage.visible=false;
     if(city&&journeyBoard)city.render(cityVehicle,wheelAngle,journeyBoard.available(),targetLevel);
     player.beginFrame();if(!driving&&!guardTalk&&cameraPrefs.mode!=='first')submit(player,hero.x,hero.z,heading,0,false,save.avatar==='female'?8:0,playerMotion);player.endFrame();
-    crowd.beginFrame();if(!hub)submit(crowd,STATIONS.briefing.x,STATIONS.briefing.z,Math.atan2(hero.x+12,hero.z-17),clock*.00015,false,9);
+    if(crowd){crowd.beginFrame();submit(crowd,STATIONS.briefing.x,STATIONS.briefing.z,Math.atan2(hero.x+12,hero.z-17),clock*.00015,false,9);
     for(const n of npcs){
-      if(hub&&Math.hypot(n.x-hero.x,n.z-hero.z)>32)continue;
       n.waiting=npcWaiting(Math.hypot(n.x-hero.x,n.z-hero.z),n.waiting)||insideBus(n,bus,.9);let travel=0;
       if(active&&!n.waiting){const tx=n.route[n.index*2],tz=n.route[n.index*2+1],d=Math.hypot(tx-n.x,tz-n.z);if(d<.15)n.index=(n.index+1)%4;else{const direction=Math.atan2(tx-n.x,tz-n.z);travel=Math.min(d,step*.75);const moved=sweepGround(n,{x:n.x+Math.sin(direction)*travel,z:n.z+Math.cos(direction)*travel},[hero,...npcs.filter(p=>p!==n),...(hub?nearbyBodies:humanBodies(world.scene))],walkAllowed);travel=Math.hypot(moved.x-n.x,moved.z-n.z);n.x=moved.x;n.z=moved.z;}}
       n.motion.update(travel,step,active);
@@ -345,9 +345,9 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
       submit(crowd,n.x,n.z,n.yaw,0,false,n.palette,n.motion);
     }
     if(save.stage===5){submit(crowd,hasan.x,hasan.z,hasanMotion.moving?hasan.yaw:Math.atan2(hero.x-hasan.x,hero.z-hasan.z),0,false,5,hasanMotion);submit(crowd,ERRAND_STATIONS.rizal.x,ERRAND_STATIONS.rizal.z,Math.atan2(hero.x-ERRAND_STATIONS.rizal.x,hero.z-ERRAND_STATIONS.rizal.z),clock*.00015,false,9);}
-    crowd.endFrame();
+    crowd.endFrame();}
     const guidePoint=magicBoarding&&save.stage<4?{x:bus.x-3,z:bus.z+1.5}:STATIONS.arrival;
-    salma.beginFrame();if(!hub&&(!magicBoarding||!driving||save.stage>=4))submit(salma,guidePoint.x,guidePoint.z,Math.atan2(hero.x-guidePoint.x,hero.z-guidePoint.z),clock*.00016,false,transfer&&save.avatar==='male'?0:8);salma.endFrame();
+    if(salma){salma.beginFrame();if(!magicBoarding||!driving||save.stage>=4)submit(salma,guidePoint.x,guidePoint.z,Math.atan2(hero.x-guidePoint.x,hero.z-guidePoint.z),clock*.00016,false,transfer&&save.avatar==='male'?0:8);salma.endFrame();}
     cameraPresentation.update(hero,cameraYaw,step);rig.framing=cameraPresentation.framing;
     if(guardTalk&&guardNumber!==null&&city){const g=city.guardPoint(guardNumber);if(g){camera.position.lerp(new THREE.Vector3(hero.x,save.avatar==='female'?1.52:1.64,hero.z),followAlpha(9,dt));camera.lookAt(g.x,1.58,g.z);camera.updateMatrixWorld();guardTalk.layout(camera,g);}}else rig.update(cameraPresentation.focus.x,cameraPresentation.focus.z,cameraPresentation.focus.yaw,dt,{vehicle:driving,eye:save.avatar==='female'?1.52:1.64});
     const targetFov=guardTalk?58:driving&&!reducedMotion.matches?61+Math.abs(bus.speed)*.45:61;
@@ -388,6 +388,6 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
     Object.defineProperty(window,'__districtDebug',{configurable:true,value:Object.freeze({snapshot:()=>({stage:save.stage,transfer:transfer?{id:transfer.id,gate:(save as TransferSave).gate}:null,avatar:save.avatar,life:life.snapshot(),driving,x:hero.x,z:hero.z,heading,cameraYaw,bus:{...bus},errands:{...errands},hasan:{...hasan},calls:renderer.info.render.calls,npcs:npcs.length,waiting:npcs.filter(n=>n.waiting).length,playable:controls.playable(),presentation:{focus:{...cameraPresentation.focus},framing:{...rig.framing},camera:camera.position.toArray(),fov:camera.fov,locomotion:{moving:playerMotion.moving,phase:playerMotion.phase,...playerMotion.pose},wheels:world.wheels.map(w=>({front:w.front,steer:w.steering.rotation.y,roll:w.rolling.rotation.x}))},lighting:{lights:[...lights],casters,environment:!!world.scene.environment,shadowMap:renderer.shadowMap.enabled,toneMapping:renderer.toneMapping,colorMapsNotSRGB:[...colorMapsNotSRGB]}})})});
   }
   frame=requestAnimationFrame(tick);
-  window.addEventListener('pagehide',e=>{controls.clear();audio.stop();if(e.persisted)return;cancelAnimationFrame(frame);promptObserver?.disconnect();cityMinimap?.dispose();journeyBoard?.dispose();city?.dispose();life.dispose();controls.dispose();audio.dispose();player.dispose();crowd.dispose();salma.dispose();budget.dispose();world.dispose();renderer.dispose();},{once:true});
+  window.addEventListener('pagehide',e=>{controls.clear();audio.stop();if(e.persisted)return;cancelAnimationFrame(frame);promptObserver?.disconnect();cityMinimap?.dispose();journeyBoard?.dispose();city?.dispose();life.dispose();controls.dispose();audio.dispose();player.dispose();crowd?.dispose();salma?.dispose();budget.dispose();world.dispose();renderer.dispose();},{once:true});
 }
 if(new URLSearchParams(location.search).has('board')){document.documentElement.classList.add('districtHubLoading');void import('./districtBoard.ts').then(async m=>{const access=await m.verifyDistrictBoard();save={...save,stage:0,avatar:journeyAvatar(save.avatar)};document.documentElement.classList.remove('districtHubLoading');boot({access,module:m});}).catch(error=>{document.documentElement.classList.remove('districtHubLoading');el('districtError').hidden=false;el('districtError').querySelector('h2')!.textContent='AKSES BELUM AKTIF';el('errorMessage').textContent=error instanceof Error?error.message:'Buka kembali magic link pribadi.';const panel=el('districtError');panel.querySelectorAll('a').forEach(a=>a.remove());const a=document.createElement('a');a.className='primary';a.href=tenantUrl('./index.html');a.textContent='Kembali ke gerbang';panel.append(a);});}else if(requestedTransfer&&!transfer){location.replace(tenantUrl('./adventure-map.html?journey='+readSetup()?.program));}else try{boot();}catch(error){intro.hidden=true;if(intro.open)intro.close();el('districtError').hidden=false;el('errorMessage').textContent='Kawasan membutuhkan WebGL. '+(error instanceof Error?error.message:'Coba muat ulang browser.');console.error(error);}
