@@ -33,12 +33,17 @@ export function createDistrictLandmarks(scene:THREE.Scene){
  for(const x of [-6,-3,0,3,6]){const arch=new THREE.Mesh(new THREE.TorusGeometry(1.24,.15,10,32,Math.PI),cream);arch.position.set(x,1.95,-6.02);office.add(arch);block(office,2.53,1.9,.08,x,.97,-6.10,dark);const inner=new THREE.Mesh(new THREE.CircleGeometry(1.22,32,0,Math.PI),dark);inner.position.set(x,1.95,-6.09);office.add(inner);}
  let alfamart:ReturnType<typeof createAlfamartStore>|null=null;
  let alfamartPlacement:THREE.Group|null=null;
+ const shopDetails:{shop:Shop;detail:THREE.Object3D;near:boolean}[]=[];
+ let alfamartNear=false;
  for(const shop of DISTRICT_SHOPS){
   const group=new THREE.Group();group.name='district-'+shop.name.toLowerCase();group.rotation.y=Math.PI;group.position.set(shop.x+shop.sourceX,0,shop.z+shop.sourceZ);root.add(group);
-  if(shop.name==='Alfamart'){alfamart=createAlfamartStore(group,()=>{});alfamartPlacement=group;}
-  else createLandingShop(group,shop.name);
+  if(shop.name==='Alfamart'){alfamart=createAlfamartStore(group,()=>{},true);alfamartPlacement=group;}
+  else{const building=createLandingShop(group,shop.name,true);const detail=building.getObjectByName('district-shop-interior');if(detail)shopDetails.push({shop,detail,near:false});}
  }
  const local=new THREE.Vector3();
- function update(hero:Point,dt:number){if(alfamart&&alfamartPlacement){local.set(hero.x,0,hero.z);alfamartPlacement.worldToLocal(local);alfamart.update(dt,local,[]);}}
+ function update(hero:Point,dt:number){
+  for(const d of shopDetails){const gap=Math.hypot(hero.x-d.shop.x,hero.z-d.shop.z);d.near=gap<(d.near?22:17);d.detail.visible=d.near;}
+  if(alfamart&&alfamartPlacement){const shop=DISTRICT_SHOPS[2],gap=Math.hypot(hero.x-shop.x,hero.z-shop.z);alfamartNear=gap<(alfamartNear?22:17);alfamart.setDetailVisible(alfamartNear);if(gap<24){local.set(hero.x,0,hero.z);alfamartPlacement.worldToLocal(local);alfamart.update(dt,local,[]);}}
+ }
  return {solids:landmarkSolids(),update,root};
 }
