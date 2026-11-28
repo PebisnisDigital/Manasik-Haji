@@ -6,7 +6,7 @@ import {createLivePlazas} from './cityLivePlazas.ts';
 import {humanActor,updateHumanActors,disposeHumanActors,humanBodies} from '../characters/HumanActors.ts';
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {DISTRICT_SOLIDS,type Point,type Rect,type Vehicle} from './districtModel.ts';
+import {DISTRICT_FURNITURE_SOLIDS,type Point,type Rect,type Vehicle} from './districtModel.ts';
 import {NUSUK_LEVELS} from './nusukModel.ts';
 import {UMRAH_LEVELS} from '../frontModel.ts';
 export type CityKind='motor'|'mobil'|'bus';
@@ -34,7 +34,7 @@ export function cityDrive(v:CityVehicle,forward:number,right:number,brake:boolea
 }
 export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',boardSolid:Rect){
  const missions=CITY_BUILDINGS.slice(0,program==='hajj'?12:5),places=program==='hajj'?[...missions,SOUVENIR_BUILDING]:missions;
- const solids:Rect[]=[...DISTRICT_SOLIDS,boardSolid,...places];
+ const solids:Rect[]=[...DISTRICT_FURNITURE_SOLIDS,boardSolid,...places];
  const plazas=createLivePlazas(scene,missions);solids.push(...plazas.solids);const celebration=program==='hajj'?createSouvenirCelebration(scene):null;if(celebration)solids.push(...celebration.solids);
  const vehicles=initial();let selected:CityVehicle|null=null;
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
