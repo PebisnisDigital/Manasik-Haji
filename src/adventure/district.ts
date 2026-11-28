@@ -67,7 +67,7 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;
   const budget=createRenderBudget(renderer),world=createDistrictWorld(renderer,arafahToMuzdalifah,!!hub),camera=new THREE.PerspectiveCamera(61,1,.1,230);
   camera.far=hub?320:230;camera.updateProjectionMatrix();
-  const rig=new ThirdPersonCamera(camera,[...BUILDINGS,...(hub?CITY_BUILDINGS.slice(0,hub.access.program==='hajj'?12:5):[])].map(b=>new THREE.Box3(new THREE.Vector3(b.x-b.w/2,0,b.z-b.d/2),new THREE.Vector3(b.x+b.w/2,b.height,b.z+b.d/2))));
+  const rig=new ThirdPersonCamera(camera,(hub?(hub.access.program==='hajj'?[...CITY_BUILDINGS,SOUVENIR_BUILDING]:CITY_BUILDINGS.slice(0,5)):BUILDINGS).map(b=>new THREE.Box3(new THREE.Vector3(b.x-b.w/2,0,b.z-b.d/2),new THREE.Vector3(b.x+b.w/2,b.height,b.z+b.d/2))));
   const journeyBus=()=>transfer?transferBus(save as TransferSave):busSpawn(save);
   const journeySpawn=()=>hub?hub.module.BOARD_SPAWN:transfer?(transferExit(journeyBus(),save.stage>=4?STATIONS.arrival:STATIONS.luggage)??districtSpawn(save)):(save.stage===5?errandSpawn(errands):null)??districtSpawn(save);
   const returning=hub?.access.program==='hajj'&&new URLSearchParams(location.search).get('board')!=='preview'?[...CITY_BUILDINGS,SOUVENIR_BUILDING].find(b=>b.number===districtVisit()):undefined;
