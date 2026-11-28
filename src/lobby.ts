@@ -161,11 +161,29 @@ let videotron:ReturnType<typeof mountGateVideotron>|undefined;
 let closeGateDialogue:(()=>void)|undefined;
 let gateEncounter:'guide'|'clerk'|null=null,guideIntroduced=false,guidePlayerName='';
 let queueJoining=false,queueStage=0,queueAuthorized=false;
+let queueTurnElapsed=0,queueTurnRetry=0,queueTurnRoute:THREE.Vector3[]=[];
+let queueDeskCamera:THREE.Vector3|null=null;
+function resetQueueApproach(){queueTurnElapsed=0;queueTurnRetry=0;queueTurnRoute=[];queueDeskCamera=null;}
+// Only a FIFO ticket with no NPCs ahead can open the registration conversation.
+function beginQueueService(){
+ if(!registrationHall||!queueJoining||registrationHall.ahead(avatar==='female')!==0||modal||encounter||portraitBlocked||departure)return;
+ const female=avatar==='female',desk=registrationHall.playerSlot(female),pos=hero.root.position;
+ const bodies=humanBodies(s,hero.root);
+ const offsets=[[0,0],[-.35,.08],[.35,.08],[-.5,.25],[.5,.25]] as const;
+ const safe=offsets.map(([x,z])=>desk.clone().add(new THREE.Vector3(x,0,z))).find(p=>marketWalkable(p.x,p.z,.32)&&bodies.every(b=>Math.hypot(p.x-b.x,p.z-b.z)>=.32+(b.radius??.32)));
+ // If a pedestrian blocks every desk position, use the clerk camera without teleporting into them.
+ queueDeskCamera=safe??desk;
+ if(safe)pos.copy(safe);
+ queueJoining=false;queueAuthorized=true;registrationHall.setRegistrationBusy(true);stopMotion();
+ $('instruction').textContent='Giliran Anda · sedang dilayani petugas';
+ greet(gateGuide(avatar).slot);
+}
+
 let departure:{href:string;side:number;route:THREE.Vector3[];retry:number;stall:number;best:number;fade:number;overlay?:HTMLDivElement;navigated:boolean}|null=null;
 function cancelDeparture(){departure?.overlay?.remove();departure=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);}
-function startDeparture(href:string){closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;queueAuthorized=false;queueJoining=false;target=null;stopMotion();dismissGuideCall();cameraPointer=null;resetCameraStick();registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);departure={href,side:avatar==='female'?1:-1,route:[],retry:0,stall:0,best:Infinity,fade:0,navigated:false};$('instruction').textContent='Tiket aktif · berjalan menuju pintu keberangkatan';}
-function leaveRegistrationQueue(){if(registrationHall&&(queueJoining||queueAuthorized)){registrationHall.leave(avatar==='female');registrationHall.setRegistrationBusy(false);}queueJoining=false;queueStage=0;queueAuthorized=false;stopMotion();}
-function registrationAction(){if(!selected||modal||encounter||portraitBlocked||departure||sales.pending!==null||sales.serving!==null)return;if(queueJoining||queueAuthorized)return;if(!sceneReady||!registrationHall){$('instruction').textContent='Arena antrean belum tersedia. Muat ulang halaman.';return;}target=null;stopMotion();queueJoining=true;queueStage=0;registrationHall.join(avatar==='female');dismissGuideCall();$('instruction').textContent='Menuju bagian belakang antrean';}
+function startDeparture(href:string){closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;queueAuthorized=false;queueJoining=false;resetQueueApproach();target=null;stopMotion();dismissGuideCall();cameraPointer=null;resetCameraStick();registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);departure={href,side:avatar==='female'?1:-1,route:[],retry:0,stall:0,best:Infinity,fade:0,navigated:false};$('instruction').textContent='Tiket aktif · berjalan menuju pintu keberangkatan';}
+function leaveRegistrationQueue(){if(registrationHall&&(queueJoining||queueAuthorized)){registrationHall.leave(avatar==='female');registrationHall.setRegistrationBusy(false);}queueJoining=false;queueStage=0;queueAuthorized=false;resetQueueApproach();stopMotion();}
+function registrationAction(){if(!selected||modal||encounter||portraitBlocked||departure||sales.pending!==null||sales.serving!==null)return;if(queueJoining||queueAuthorized)return;if(!sceneReady||!registrationHall){$('instruction').textContent='Arena antrean belum tersedia. Muat ulang halaman.';return;}target=null;stopMotion();queueJoining=true;queueStage=0;resetQueueApproach();registrationHall.join(avatar==='female');dismissGuideCall();$('instruction').textContent='Menuju bagian belakang antrean';}
 const guideRings:Partial<Record<Program,THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>>>= {};
 const guideLines={
  male:['Assalamualaikum, Akhi! Mari ke sini.','Mau tahu tentang HAJJI.DIGITAL?','Silakan datang, saya jelaskan dulu.'],
@@ -232,7 +250,7 @@ function greet(p:Program){
   if(queueAuthorized){
    queueAuthorized=false;gateEncounter='clerk';cameraPointer=null;resetCameraStick();registrationHall?.setRegistrationBusy(true);
    $('instruction').textContent='Sedang dilayani petugas pendaftaran';
-   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetPosition(true);cameraInitialized=true;guideIntroduced=true;$('instruction').textContent='Dekati papan MULAI ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName,startDeparture);
+   closeGateDialogue=openSalmaWelcome(()=>{closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;registrationHall?.leave(avatar==='female');registrationHall?.setRegistrationBusy(false);resetQueueApproach();resetPosition(true);cameraInitialized=true;guideIntroduced=true;$('instruction').textContent='Dekati papan MULAI ANTREAN jika ingin melanjutkan pendaftaran';},side=>gateProject(p,true,side),guidePlayerName,startDeparture);
   }else{
    gateEncounter='guide';$('instruction').textContent='Berbincang dengan '+gateGuide(avatar).name;
    closeGateDialogue=openSalmaWelcome(()=>{guideIntroduced=true;closeGateDialogue=undefined;encounter=false;encounterProgram=null;gateEncounter=null;$('instruction').textContent='Dekati pemandu atau papan MULAI ANTREAN';},side=>gateProject(p,false,side),guidePlayerName,startDeparture,name=>{guidePlayerName=name;registrationAction();});
@@ -351,7 +369,7 @@ function currentGateAction():GateAction|null{
  const p=gateGuide(avatar).slot,female=avatar==='female',pos=hero.root.position;
  if(departure)return null;
  if(queueAuthorized){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'PETUGAS PENDAFTARAN',line:'Silakan, sekarang giliran Anda.',label:'DAFTAR',point,run:()=>greet(p)};}
- if(queueJoining){const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'BATALKAN ANTREAN',point,run:()=>{leaveRegistrationQueue();$('instruction').textContent='Antrean dibatalkan.';}};}
+ if(queueJoining){if(registrationHall.ahead(female)===0){const point=registrationHall.clerk(female).position.clone();point.y=1.88;return {id:'clerk',title:'GILIRAN ANDA',line:'Silakan lanjut mendaftar di loket.',label:'DAFTAR',point,run:beginQueueService};}const point=pos.clone();point.y=2.12;return {id:'leave',title:'ANTREAN',line:'Tunggu giliran Anda.',label:'BATALKAN ANTREAN',point,run:()=>{leaveRegistrationQueue();$('instruction').textContent='Antrean dibatalkan.';}};}
  if(buburMarket){
   if(sales.pending!==null&&!escortArrived&&!escortManual)return null;
   const owners=buburMarket.owners;
@@ -437,7 +455,26 @@ function frame(now:number){
     $('instruction').textContent=d.route.length?'Tiket aktif · menuju pintu keberangkatan':'Menunggu jalan kosong menuju pintu';
    }
   }
-  else if(queueJoining&&registrationHall){automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female);const side=female?1:-1;const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.10){if(queueStage<2)queueStage++;else if(registrationHall.ahead(female)===0){queueJoining=false;queueAuthorized=true;registrationHall.setRegistrationBusy(true);$('instruction').textContent='Giliran Anda. Pilih DAFTAR di dekat petugas.';}dx=dz=0;}}
+  else if(queueJoining&&registrationHall){
+   automatic=true;const female=avatar==='female',q=registrationHall.playerSlot(female),side=female?1:-1;
+   if(registrationHall.ahead(female)===0){
+    queueTurnElapsed+=dt;queueTurnRetry=Math.max(0,queueTurnRetry-dt);
+    // The service turn is authoritative; a blocked animation must not strand a registrant.
+    if(pos.distanceTo(q)<.22||queueTurnElapsed>=6){beginQueueService();}
+    else{
+     if(queueTurnRetry===0){
+      const bodies=humanBodies(s,hero.root),origin=pos.clone();
+      queueTurnRoute=planMarketRoute(origin,q,(x,z)=>marketWalkable(x,z,.32)&&bodyClear(origin,{x,z},bodies,.32));
+      queueTurnRetry=1.2;
+     }
+     while(queueTurnRoute[0]&&pos.distanceTo(queueTurnRoute[0])<.16)queueTurnRoute.shift();
+     const dest=queueTurnRoute[0];if(dest){dx=dest.x-pos.x;dz=dest.z-pos.z;}
+    }
+   }else{
+    const points=[new THREE.Vector3(side*2.25,0,5.35),new THREE.Vector3(q.x,0,5.35),q];const dest=points[Math.min(queueStage,2)]!;
+    dx=dest.x-pos.x;dz=dest.z-pos.z;if(Math.hypot(dx,dz)<.15){if(queueStage<2)queueStage++;dx=dz=0;}
+   }
+  }
   else if(sales.pending!==null&&sales.job&&buburMarket&&!escortManual){
    automatic=true;const dest=escortDestination(sales.job);
    if(!escortRoute){escortRoute=planEscortRoute(pos,sales.job);if(!escortRoute.length&&pos.distanceTo(dest)>.3)escortManual=true;}
@@ -487,7 +524,7 @@ function frame(now:number){
   // First-person at the participant's eye line, facing the seated clerk across the ledger.
   // The slight downward gaze keeps the paperwork on the counter in the same shot.
   const eyeHeight=avatar==='female'?1.50:1.60;
-  cameraGoal.set(pos.x,eyeHeight,pos.z+.10);
+  const eyePoint=queueDeskCamera??pos;cameraGoal.set(eyePoint.x,eyeHeight,eyePoint.z+.10);
   look.copy(clerk.position).add(new THREE.Vector3(0,1.49,.08));
   look.lerp(gateDeskPoint(),.27);
  }
