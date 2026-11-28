@@ -1,3 +1,4 @@
+import {mountMemberSupportShortcut} from './memberSupport.ts';
 import {configured,session,signIn,signUp,logout,me} from './commercialApi.ts';
 import {tenantUrl,slug,lookup,bootTenant} from './tenant.ts';
 import {readShare,enableShare,disableShare} from './partnerApi.ts';
@@ -22,3 +23,5 @@ $<HTMLFormElement>('login').onsubmit=async e=>{e.preventDefault();const form=e.c
 $('logout').onclick=async()=>{if(pendingRuns().length&&!confirm('Masih ada progress belum tersinkron. Keluar? Progress tetap di perangkat untuk akun ini.'))return;generation++;sharePartner='';$('sharePanel').hidden=true;await logout();$('runs').replaceChildren();$('guestRuns').replaceChildren();$('bookmarks').replaceChildren();await load();};$('sync').onclick=()=>void refresh();
 $<HTMLFormElement>('saveCert').onsubmit=async e=>{e.preventDefault();const input=$<HTMLInputElement>('certCode'),code=input.value.trim().toLowerCase();if(!validCode(code)){say('Masukkan kode sertifikat lengkap dari QR.');return;}try{const r=await lookupCertificate(code);if(!r||r.revoked_at){say('Sertifikat tidak ditemukan atau sudah dicabut.');return;}await bookmark(r.id);input.value='';say('Sertifikat disimpan.');await drawBookmarks(generation);}catch{say('Sertifikat belum dapat disimpan.');}};
 bootTenant();void load();
+
+mountMemberSupportShortcut();
