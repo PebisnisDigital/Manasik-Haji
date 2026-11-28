@@ -12,7 +12,7 @@ import {UMRAH_LEVELS} from '../frontModel.ts';
 export type CityKind='motor'|'mobil'|'bus';
 import {CITY_BOUNDS,CITY_ROADS} from './cityNavigation.ts';
 export {CITY_BOUNDS} from './cityNavigation.ts';
-const layout=[[-35,100,Math.PI],[35,100,Math.PI],[105,100,Math.PI],[120,38,-Math.PI/2],[120,-38,-Math.PI/2],[105,-100,0],[35,-100,0],[-35,-100,0],[-105,-100,0],[-120,-38,Math.PI/2],[-120,38,Math.PI/2],[-105,100,Math.PI]] as const;
+import {CITY_LAYOUT as layout} from './cityLayout.ts';
 const guardNames=['Asep','Dedi','Jajang','Bambang','Eko','Sutrisno','Wawan','Dadang','Agus','Yanto','Rudi','Slamet'] as const;
 export const CITY_BUILDINGS=layout.map(([x,z,yaw],i)=>({x,z,yaw,w:20,d:20,height:18+(i%3)*3,number:i+1,guardName:'Pak '+guardNames[i],door:{x:x+Math.sin(yaw)*10.9,z:z+Math.cos(yaw)*10.9}}));
 const profiles={motor:{label:'Motor',w:.48,d:1.05,wheelbase:1.35,max:14,acc:5},mobil:{label:'Mobil',w:1.0,d:2.25,wheelbase:2.7,max:16,acc:4.2},bus:{label:'Bus',w:1.45,d:4.8,wheelbase:5.1,max:11,acc:3.5}};
@@ -41,7 +41,7 @@ export function createMissionCity(scene:THREE.Scene,program:'hajj'|'umrah',board
  const mat=(color:number,roughness=.8)=>new THREE.MeshStandardMaterial({color,roughness});
  const sand=mat(0xc5b597),road=mat(0x444c4d),pave=mat(0xcfc7b2),white=mat(0xfffaf0),gold=mat(0xd6b46b,.36),green=mat(0xe6d2a4,.55),glass=mat(0x41464d,.25),dark=mat(0x564634),rubber=mat(0x252526);
  function box(parent:THREE.Object3D,w:number,h:number,d:number,x:number,y:number,z:number,m:THREE.MeshStandardMaterial){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);mesh.position.set(x,y,z);mesh.receiveShadow=true;parent.add(mesh);return mesh;}
- box(scene,310,.1,270,0,-.12,0,sand);
+ box(scene,CITY_BOUNDS.maxX-CITY_BOUNDS.minX+4,.1,CITY_BOUNDS.maxZ-CITY_BOUNDS.minZ+4,0,-.12,0,sand);
  function street(x:number,z:number,w:number,d:number){
   box(scene,w+2,.1,d+2,x,-.015,z,pave);box(scene,w,.1,d,x,.045,z,road);
   const long=w>d;for(let k=-(long?w:d)/2+4;k<(long?w:d)/2-2;k+=8)box(scene,long?3:.14,.015,long?.14:3,x+(long?k:0),.103,z+(long?0:k),white);
