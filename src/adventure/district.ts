@@ -63,9 +63,9 @@ function persist(){
 function persistErrands(){let stored=false;try{stored=storeErrands(localStorage,errandsKey,errands);}catch{}saveStatus(stored);}
 function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;module:typeof import('./districtBoard.ts')}){
   const canvas=el<HTMLCanvasElement>('districtWorld');canvas.tabIndex=0;
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:graphicsTier()!=='low',powerPreference:'high-performance'});
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:!hub&&graphicsTier()!=='low',powerPreference:'high-performance'});
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.02;
-  const budget=createRenderBudget(renderer),world=createDistrictWorld(renderer,arafahToMuzdalifah,!!hub),camera=new THREE.PerspectiveCamera(61,1,.1,230);
+  const budget=createRenderBudget(renderer),world=createDistrictWorld(renderer,arafahToMuzdalifah,!!hub),camera=new THREE.PerspectiveCamera(61,1,.1,hub?125:230);
   camera.far=hub?320:230;camera.updateProjectionMatrix();
   const rig=new ThirdPersonCamera(camera,(hub?(hub.access.program==='hajj'?[...CITY_BUILDINGS,SOUVENIR_BUILDING]:CITY_BUILDINGS.slice(0,5)):BUILDINGS).map(b=>new THREE.Box3(new THREE.Vector3(b.x-b.w/2,0,b.z-b.d/2),new THREE.Vector3(b.x+b.w/2,b.height,b.z+b.d/2))));
   const journeyBus=()=>transfer?transferBus(save as TransferSave):busSpawn(save);
@@ -87,8 +87,8 @@ function boot(hub?:{access:import('./districtBoard.ts').DistrictBoardAccess;modu
   makePlayer();
   const crowd=new CrowdRenderer(16,quality),salma=new CrowdRenderer(1,quality,transfer&&save.avatar==='male'?{robeLength:.19,coverHead:false,pilgrimStyle:'male'}:{robeLength:.065,coverHead:true,pilgrimStyle:'female'});
   world.scene.add(crowd.group,salma.group);
-  const routes=[[-28,14,-14,14,-14,19,-28,19],[-3,-16,3,-16,3,-3,-3,-3],[30,14,32,14,32,-2,30,-2],[-45,-12,-45,10,-48,10,-48,-12]];
-  const npcs=Array.from({length:graphicsTier()==='low'?6:12},(_,i)=>{const route=routes[i%routes.length],index=i%4;return {x:route[index*2],z:route[index*2+1],route,index:(index+1)%4,yaw:0,motion:new DistrictLocomotion(i*.13),palette:i%8,waiting:false};});
+  const routes=hub?[[-32,-12,-12,-12,-12,-8,-32,-8],[-32,17,-8,17,-8,23,-32,23]]:[[-28,14,-14,14,-14,19,-28,19],[-3,-16,3,-16,3,-3,-3,-3],[30,14,32,14,32,-2,30,-2],[-45,-12,-45,10,-48,10,-48,-12]];
+  const npcs=Array.from({length:hub?4:graphicsTier()==='low'?6:12},(_,i)=>{const route=routes[i%routes.length],index=i%4;return {x:route[index*2],z:route[index*2+1],route,index:(index+1)%4,yaw:0,motion:new DistrictLocomotion(i*.13),palette:i%8,waiting:false};});
   let toastTimer=0;
   const city=hub?createMissionCity(world.scene,hub.access.program,hub.module.BOARD_SOLID):null;
   const cityMinimap=city&&hub?mountCityMinimap(city.places,city.solids,hub.module.BOARD_SOLID):null;
