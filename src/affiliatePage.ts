@@ -1,3 +1,4 @@
+import {mountMemberSupportShortcut} from './memberSupport.ts';
 import {ADMIN_WHATSAPP} from './registrationHandoff.ts';
 type Withdrawal={id:string;amount:number;status:string;created_at:string;reference:string|null;note:string|null};
 type Wallet={earned:number;paid:number;reserved:number;available:number;shortfall:number};
@@ -58,4 +59,4 @@ async function bootAffiliate(){
  }
  await run();
 }
-void bootAffiliate();
+void bootAffiliate().then(()=>mountMemberSupportShortcut());
