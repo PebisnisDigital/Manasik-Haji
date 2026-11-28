@@ -1,5 +1,5 @@
 /* Bundled with the HUD rather than depending on the optional brand stylesheet. */
-html body :is(#gameAffiliateButton,#gameCommissionButton){
+html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.memberSupportStandalone){
  appearance:none!important;display:grid!important;place-items:center!important;
  width:var(--affiliate-icon-width,44px)!important;height:var(--affiliate-icon-height,44px)!important;min-height:var(--affiliate-icon-height,44px)!important;min-width:var(--affiliate-icon-width,44px)!important;
  flex:0 0 auto!important;margin:0;padding:0!important;box-sizing:border-box;
@@ -9,8 +9,8 @@ html body :is(#gameAffiliateButton,#gameCommissionButton){
 html body .simpleTop #gameAffiliateButton{margin-left:auto}
 html body .simpleTop:has(#gameCommissionButton){gap:8px;align-items:flex-start}
 html body .simpleTop:has(#gameCommissionButton)>div{min-width:0;max-width:calc(100% - 156px)}
-html body :is(#gameAffiliateButton,#gameCommissionButton)[aria-expanded=true]{background:#f8ecd3!important}
-html body :is(#gameAffiliateButton,#gameCommissionButton):focus-visible{outline:2px solid #b88b2e;outline-offset:2px}
+html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.memberSupportStandalone)[aria-expanded=true]{background:#f8ecd3!important}
+html body :is(#gameAffiliateButton,#gameCommissionButton,#gameSupportButton,.memberSupportStandalone):focus-visible{outline:2px solid #b88b2e;outline-offset:2px}
 html body #gameAffiliateDialog{
  position:fixed!important;z-index:1200;inset:60px 12px auto auto;margin:0!important;padding:0!important;
  width:min(285px,calc(100vw - 24px))!important;max-height:calc(100dvh - 72px);height:min(620px,calc(100dvh - 72px));min-height:0;
@@ -25,3 +25,20 @@ html body #gameAffiliateDialog>header button{appearance:none;display:grid;place-
 html body #gameAffiliateDialog>iframe{display:block;width:100%;flex:1;min-height:0;border:0;background:#fffdf8}
 html body.affiliateHudOpen.simplePlay .simpleCovered .simpleTop{visibility:visible!important}
 @media(max-height:450px){html body #gameAffiliateDialog>header{padding:6px 10px}}
+
+html body :is(#gameSupportButton,.memberSupportStandalone,.memberSupportContent,#gameAffiliateDialog>iframe,#memberSupportStandalonePanel)[hidden]{display:none!important}
+html body .simpleTop:has(#gameSupportButton:not([hidden]))>div{max-width:calc(100% - 208px);overflow:hidden}
+html body #gameSupportButton svg,html body .memberSupportStandalone svg{color:#198754}
+html body #gameAffiliateDialog[data-view="support"]{height:auto;overflow-y:auto}
+.memberSupportContent{padding:12px 14px 14px;font:500 13px/1.5 system-ui,sans-serif;color:#25211b;overflow-y:auto}
+.memberSupportContent p{margin:0 0 10px}
+.memberSupportContent ul{margin:0 0 14px;padding-left:18px;display:grid;gap:7px}
+.memberSupportContent .memberSupportAction{display:block;text-align:center;background:#16864c;color:#fff!important;font-weight:750;text-decoration:none;padding:11px 9px;border-radius:9px}
+.memberSupportContent .memberSupportAction[aria-disabled=true]{opacity:.45;pointer-events:none}
+.memberSupportContent .memberSupportNote{font-size:11px;color:#776c58;margin:9px 0 0}
+.memberSupportContent .memberSupportRetry{margin-top:8px;border:1px solid #d6b46b;border-radius:8px;background:#fffdf8;color:#25211b;padding:6px 12px}
+html body .memberSupportStandalone{position:fixed;right:14px;top:14px;z-index:1201}
+html body #memberSupportStandalonePanel{position:fixed;z-index:1200;top:66px;right:14px;width:min(285px,calc(100vw - 28px));max-height:calc(100dvh - 80px);overflow:auto;background:#fffdf8;color:#25211b;border:1px solid #d6b46b;border-radius:16px;box-shadow:0 6px 22px #25211b12}
+html body #memberSupportStandalonePanel>header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #e3d9c7;background:#fffdf8;color:#25211b;font:750 15px/1.4 system-ui;position:static}
+html body #memberSupportStandalonePanel>header button{width:30px;height:30px;padding:0;background:#fffdf8;color:#25211b;border:1px solid #d6b46b;border-radius:9px;font-size:21px}
+@media(max-width:480px){html body .simpleTop:has(#gameSupportButton:not([hidden])){gap:5px}html body .simpleTop:has(#gameSupportButton:not([hidden]))>div{max-width:calc(100% - 180px)}}
