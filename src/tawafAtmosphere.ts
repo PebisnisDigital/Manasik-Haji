@@ -1,4 +1,3 @@
-import {bodyClear} from './sim/GroundCollision.ts';
 import {CLOCK_POSITION} from './haramLandmarks.ts';
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
@@ -10,7 +9,7 @@ export const TAWAF_PANORAMA=[CLOCK_POSITION.x,130.2,CLOCK_POSITION.z] as const;
 /** Original stylised skyline, not a surveyed replica. All ornament is geometric. */
 export function mountTawafAtmosphere(scene:THREE.Scene,host:HTMLElement){
  const root=new THREE.Group();root.name='tawaf-skyline-and-details';scene.add(root);
- const tier=graphicsTier(),people=createTawafPilgrims(tier),actors=people.map(p=>{const actor=humanActor(scene,0xf4f1e8,p.female,p.height,undefined,{...p,cull:true});actor.name='tawaf-pilgrim';const at=pilgrimPosition(p);actor.position.set(at.x,0,at.z);actor.rotation.y=at.yaw;return actor;});
+ const tier=graphicsTier(),people=createTawafPilgrims(tier),actors=people.map(p=>{const actor=humanActor(scene,0xf4f1e8,p.female,p.height,undefined,{...p,cull:true});actor.name='tawaf-pilgrim';actor.userData.noCollision=true;const at=pilgrimPosition(p);actor.position.set(at.x,0,at.z);actor.rotation.y=at.yaw;return actor;});
  host.dataset.crowdCount=String(people.length);host.dataset.crowdOrigins='Asia, Eropa, Afrika, Arab';
  const materials=[0xc8bda3,0xdccba3,0x967b44,0x244b46,0x497678].map(color=>new THREE.MeshStandardMaterial({color,roughness:.78}));
  const batches=materials.map(()=>[] as THREE.BufferGeometry[]),textures:THREE.Texture[]=[];
@@ -35,5 +34,7 @@ export function mountTawafAtmosphere(scene:THREE.Scene,host:HTMLElement){
  const skyCanvas=document.createElement('canvas');skyCanvas.width=2;skyCanvas.height=256;const skyCtx=skyCanvas.getContext('2d')!,gradient=skyCtx.createLinearGradient(0,0,0,256);gradient.addColorStop(0,'#4688c5');gradient.addColorStop(.55,'#9bc8e3');gradient.addColorStop(1,'#e5dfcb');skyCtx.fillStyle=gradient;skyCtx.fillRect(0,0,2,256);const skyMap=new THREE.CanvasTexture(skyCanvas);skyMap.colorSpace=THREE.SRGBColorSpace;textures.push(skyMap);const skyMat=new THREE.MeshBasicMaterial({map:skyMap,side:THREE.BackSide,depthWrite:false,fog:false});const sky=new THREE.Mesh(new THREE.SphereGeometry(440,24,12),skyMat);sky.position.z=64;sky.renderOrder=-10;root.add(sky);
  const oldFog=scene.fog;scene.fog=new THREE.Fog(0xc7ddd9,230,490);
  host.dataset.clockTower='true';
- return {tick(dt:number,player:{x:number;z:number},active:boolean){const bodies=actors.map((a,i)=>({x:a.position.x,z:a.position.z,radius:.32*people[i].build}));for(let i=0;i<people.length;i++){const p=people[i],previous=p.angle,from=bodies[i];stepPilgrim(p,dt,player,active);let at=pilgrimPosition(p);if(!bodyClear(from,at,[player,...bodies.filter((_,j)=>j!==i)],from.radius)){p.angle=previous;at=pilgrimPosition(p);}actors[i].position.set(at.x,0,at.z);actors[i].rotation.y=at.yaw;from.x=at.x;from.z=at.z;}host.dataset.crowdSampleX=actors[0].position.x.toFixed(3);host.dataset.crowdSampleZ=actors[0].position.z.toFixed(3);},dispose(){for(const actor of actors)actor.removeFromParent();scene.fog=oldFog;root.traverse(p=>{if(p instanceof THREE.Mesh)p.geometry.dispose();});for(const m of materials)m.dispose();clockMat.dispose();skyMat.dispose();for(const t of textures)t.dispose();root.removeFromParent();}};
+ return {tick(dt:number,player:{x:number;z:number},active:boolean){// Flow lanes have their own spacing and soft yielding. Hard person-to-person collision
+ // would turn the circular crowd into a stationary queue and block the player's checkpoints.
+ for(let i=0;i<people.length;i++){const p=people[i];stepPilgrim(p,dt,player,active);const at=pilgrimPosition(p);actors[i].position.set(at.x,0,at.z);actors[i].rotation.y=at.yaw;}host.dataset.crowdSampleX=actors[0].position.x.toFixed(3);host.dataset.crowdSampleZ=actors[0].position.z.toFixed(3);},dispose(){for(const actor of actors)actor.removeFromParent();scene.fog=oldFog;root.traverse(p=>{if(p instanceof THREE.Mesh)p.geometry.dispose();});for(const m of materials)m.dispose();clockMat.dispose();skyMat.dispose();for(const t of textures)t.dispose();root.removeFromParent();}};
 }
