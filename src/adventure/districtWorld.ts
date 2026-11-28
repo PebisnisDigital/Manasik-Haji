@@ -38,8 +38,9 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
   // Pedestrian crossings lead from each sidewalk to the main road.
   for(let x=-8;x<=4;x+=1.5)box(.7,.025,7.5,white,x,.11,24,scene,false);
   for(let z=-16;z<=-8;z+=1.5)box(7.5,.025,.7,white,38,.11,z,scene,false);
-  for(const b of BUILDINGS){
-    const facade=mat(missionCity?0xf0e8d9:b.color);box(b.w,b.height,b.d,facade,b.x,b.height/2,b.z);
+  // These five buildings are used only in the original transfer/errand scene, never in the member city.
+  if(!missionCity)for(const b of BUILDINGS){
+    const facade=mat(b.color);box(b.w,b.height,b.d,facade,b.x,b.height/2,b.z);
     box(b.w+.5,.45,b.d+.5,stone,b.x,b.height+.1,b.z);box(b.w+.7,.28,.8,gold,b.x,3.4,b.z+b.d/2+.3);
     for(let y=4.8;y<b.height-1;y+=3.1)for(let x=-b.w/2+2;x<b.w/2-1;x+=3.4){
       box(1.65,1.9,.12,glass,b.x+x,y,b.z+b.d/2+.07);
@@ -78,7 +79,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     mesh(new THREE.CylinderGeometry(.09,.13,6.6,8),dark,x,3.3,z);
     box(1.2,.12,.5,dark,x+.45,6.6,z);box(.9,.04,.32,mat(0xf6ddb0,.3),x+.45,6.5,z,scene,false);
   }
-  for(let i=0;i<5;i++){const x=-30+i*5;const awning=box(4,.13,2.8,mat(i%2?0x667e65:0xa96e54),x,3,-36);awning.rotation.x=.14;box(3.5,1.1,1,mat(0x89735c),x,.55,-36.3);}
+  if(!missionCity)for(let i=0;i<5;i++){const x=-30+i*5;const awning=box(4,.13,2.8,mat(i%2?0x667e65:0xa96e54),x,3,-36);awning.rotation.x=.14;box(3.5,1.1,1,mat(0x89735c),x,.55,-36.3);}
   // The legacy scenery mosque is outside its original transfer map; omit it from the compact member city to clear the level 8 footprint.
   if(!missionCity){box(23,5,14,mat(0xc8c2b1),-22,2.5,-66);
   mesh(new THREE.SphereGeometry(6,24,12,0,Math.PI*2,0,Math.PI/2),mat(0x71877a,.5),-22,5,-66);
@@ -90,11 +91,11 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     const mountain=mesh(new THREE.ConeGeometry(20+(i%3)*8,20+(i%4)*9,5),mat(0x9f9f91),-100+i*25,6,-98,scene,false);mountain.rotation.y=i*.6;
   }
   // A visible bus stop and a marked destination parking bay.
-  for(const x of [-8,0])box(.12,2.7,.12,dark,x,1.35,30);
+  if(!missionCity){for(const x of [-8,0])box(.12,2.7,.12,dark,x,1.35,30);
   box(9,.2,3.7,dark,-4,2.75,30);label('BUS 01 · ROMBONGAN',7,-4,2.3,30.1);
   box(7,.5,.8,stone,-4,.25,30.5);label('PARKIR BUS',6,33.7,.2,-12,Math.PI/2,'#f1d398');
   for(const x of [34.3,41.7])box(.18,.025,12,gold,x,.11,-12,scene,false);
-  for(const z of [-18,-6])box(7.5,.025,.18,gold,38,.11,z,scene,false);
+  for(const z of [-18,-6])box(7.5,.025,.18,gold,38,.11,z,scene,false);}
   const luggage=new THREE.Group();scene.add(luggage);luggage.position.set(STATIONS.luggage.x,0,STATIONS.luggage.z);
   box(.58,.82,.32,mat(0xa88052),0,.5,0,luggage);box(.32,.24,.055,dark,0,1.02,0,luggage);
   for(const x of [-.21,.21])mesh(new THREE.SphereGeometry(.07,7,5),dark,x,.09,0,luggage);
