@@ -20,3 +20,20 @@ describe('walk from Tawaf to Safa',()=>{
  it('places uneven rock remnants behind each endpoint, outside the playable lane',()=>{for(const side of [-1,1] as const){const rocks=saiRockLayout(side);expect(rocks).toHaveLength(26);expect(new Set(rocks.map(r=>r.sy)).size).toBeGreaterThan(3);expect(rocks.every(r=>Math.abs(r.z)-r.sz>43)).toBe(true);expect(rocks.every(r=>Math.sign(r.z)===side)).toBe(true);expect(saiRockLayout(side)).toEqual(rocks);}});
  it('uses the walking entrance for new Hajj Sai and preserves direct bookmarks with old partial Sai',()=>{const m=setup();saveSetup(defaultSetup());saveStory({briefed:true});for(const id of ['miqat','arrival'])m.setItem('manasik-hajj-'+id+'-v1',JSON.stringify({version:1,id,program:'hajj',avatar:'male',name:'QA',step:1}));expect(withTransfer('./sai-adventure.html')).toContain('&sai=1');expect(magicDeparture()).toContain('&sai=1');const raw=JSON.stringify({version:1,stage:1,legs:3,gate:2});m.setItem('manasik-sai-quest-v1',raw);expect(withTransfer('./sai-adventure.html')).toBe('./sai-adventure.html');expect(m.getItem('manasik-sai-quest-v1')).toBe(raw);});
 });
+
+import {bindTicket,ticketKey} from '../src/ticketProgress.ts';
+import {loadProgress,storeProgress,decodeRoute,QUEST_KEYS} from '../src/adventure/questProgress.ts';
+it('legacy gallery scripts read and write the paid ticket checkpoint instead of the guest save',()=>{
+ const m=setup();vi.stubGlobal('sessionStorage',new Memory());
+ bindTicket('HJ-123456789ABC','QA','hajj');
+ const tawaf={version:1,stage:3,laps:7,gate:0};
+ m.setItem(ticketKey('manasik-tawaf-quest-v1'),JSON.stringify(tawaf));
+ expect(loadProgress('manasik-tawaf-quest-v1',r=>decodeRoute(r,'tawaf'))?.stage).toBe(3);
+ expect(canStartSaiTransfer()).toBe(true);
+ expect(storeProgress('manasik-sai-quest-v1',{version:1,stage:1,legs:2,gate:1})).toBe(true);
+ expect(loadProgress(QUEST_KEYS.sai,r=>decodeRoute(r,'sai'))?.count).toBe(2);
+ expect(m.getItem('manasik-sai-quest-v1')).toBeNull();
+ bindTicket('HJ-ABCDEF123456','Other','hajj');
+ expect(loadProgress('manasik-sai-quest-v1',r=>decodeRoute(r,'sai'))).toBeNull();
+ expect(canStartSaiTransfer()).toBe(false);
+});
