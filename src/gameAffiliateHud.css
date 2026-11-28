@@ -103,3 +103,14 @@ html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent bu
 html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton:focus-visible{outline:3px solid #d6b46b;outline-offset:2px}
 html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton:disabled{opacity:.55;cursor:wait}
 html body :is(#gameAffiliateDialog,#memberThreadsPanel) .memberThreadsContent button.threadsPrimaryButton[hidden],html body .memberThreadsContent .threadsNote[hidden]{display:none!important}
+
+html body .autojualanContent{font:400 13px/1.6 system-ui,sans-serif;padding:14px!important}
+.autojualanContent .autojualanRule{font-size:12px;padding:9px 11px;border-radius:8px;background:#f0e7d2;color:#694f21}
+.autojualanCards{display:grid;gap:10px;margin:12px 0}
+.autojualanPlatform{padding:12px;border:1px solid #ddd2bc;border-radius:12px;background:#fff}
+.autojualanPlatform strong{font-size:16px}.autojualanPlatform p{font-size:12px;margin:5px 0 10px}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .autojualanContent button.autoConnect{min-height:43px;background:#171717!important;color:#fff!important;font-weight:750;border-radius:9px}
+html body :is(#gameAffiliateDialog,#memberThreadsPanel) .autojualanContent button.autoConnect.whatsapp{background:#12834c!important}
+html body .autojualanContent button:disabled{opacity:.5;cursor:not-allowed}
+.autojualanContent [hidden]{display:none!important}.autoQr,.autoTargets{padding:10px;border:1px solid #e0d8ca;border-radius:10px;margin:10px 0}.autoQr img{display:block;width:min(210px,100%);margin:8px auto;background:#fff}.autoTargets label{display:flex;gap:8px;margin:10px 0}
+html body #gameThreadsButton[data-hud-label]::after{font-size:9px}

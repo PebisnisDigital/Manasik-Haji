@@ -1,7 +1,7 @@
 import {clearSimpleInput,setSimpleMenu} from './simpleInput.ts';
 import './gameAffiliateHud.css';
 import {getSupportGroup,supportContent,whatsappIcon} from './memberSupport.ts';
-import {threadsContent,threadsIcon,paidMember} from './memberThreads.ts';
+import {threadsContent,speakerIcon,paidMember} from './memberThreads.ts';
 type View='affiliate'|'commission'|'support'|'threads';
 export function mountAffiliateHud(gear:HTMLElement,canOpen:()=>boolean=()=>true){
  if(document.getElementById('gameAffiliateButton'))return;
@@ -10,9 +10,9 @@ export function mountAffiliateHud(gear:HTMLElement,canOpen:()=>boolean=()=>true)
  const network=makeButton('gameAffiliateButton','Affiliate','<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/>');
  const money=makeButton('gameCommissionButton','Komisi Saya','<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M2 9a4 4 0 0 0 4-4m12 0a4 4 0 0 0 4 4M2 15a4 4 0 0 1 4 4m12 0a4 4 0 0 1 4-4"/>');
  const whatsapp=makeButton('gameSupportButton','Grup WhatsApp',whatsappIcon);whatsapp.hidden=true;
- const threads=makeButton('gameThreadsButton','Threads',threadsIcon);threads.hidden=true;gear.before(network,money,whatsapp,threads);
+ const threads=makeButton('gameThreadsButton','AUTOJUALAN',speakerIcon);threads.hidden=true;gear.before(network,money,whatsapp,threads);
  gear.parentElement?.classList.add('memberHudLabeled');
- network.dataset.hudLabel='Affiliate';money.dataset.hudLabel='Komisi';whatsapp.dataset.hudLabel='Grup WA';threads.dataset.hudLabel='Threads';gear.dataset.hudLabel='Pengaturan';void paidMember().then(ok=>{if(ok){threads.hidden=false;alignIcons();}});
+ network.dataset.hudLabel='Affiliate';money.dataset.hudLabel='Komisi';whatsapp.dataset.hudLabel='Grup WA';threads.dataset.hudLabel='AUTOJUALAN';gear.dataset.hudLabel='Pengaturan';void paidMember().then(ok=>{if(ok){threads.hidden=false;alignIcons();}});
  void getSupportGroup().then(()=>{whatsapp.hidden=false;alignIcons();}).catch(()=>{});
  const panel=document.createElement('aside');panel.id='gameAffiliateDialog';panel.hidden=true;panel.setAttribute('role','region');panel.setAttribute('aria-labelledby','gameAffiliateTitle');
  const header=document.createElement('header'),title=document.createElement('strong'),close=document.createElement('button');title.id='gameAffiliateTitle';title.textContent='Affiliate Saya';close.type='button';close.textContent='×';close.setAttribute('aria-label','Tutup panel');const headerIcon=document.createElement('span');headerIcon.className='memberSupportHeaderIcon';headerIcon.innerHTML=svg(whatsappIcon);headerIcon.hidden=true;header.append(headerIcon,title,close);
@@ -25,7 +25,7 @@ export function mountAffiliateHud(gear:HTMLElement,canOpen:()=>boolean=()=>true)
  document.addEventListener('pointerdown',e=>{if(!panel.hidden&&e.target instanceof Node&&!panel.contains(e.target)&&!network.contains(e.target)&&!money.contains(e.target)&&!whatsapp.contains(e.target)&&!threads.contains(e.target))finish(false);},true);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!panel.hidden){e.preventDefault();e.stopPropagation();finish();}},true);
  frame.addEventListener('load',()=>{try{frame.contentDocument?.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();finish();}});}catch{}});
- function open(view:View,b:HTMLButtonElement){if(!panel.hidden){if(trigger===b){finish();return;}finish(false);}if(!canOpen()||document.querySelector('dialog[open]'))return;trigger=b;title.textContent=view==='affiliate'?'Affiliate Saya':view==='commission'?'Komisi Saya':view==='threads'?'Threads Autopilot':'Grup WhatsApp Member';frame.title=title.textContent;panel.dataset.view=view;headerIcon.hidden=view!=='support';position();clearSimpleInput();setSimpleMenu(true);window.dispatchEvent(new Event('blur'));document.body.classList.add('affiliateHudOpen');frame.hidden=view==='support'||view==='threads';support.body.hidden=view!=='support';tp.body.hidden=view!=='threads';if(view==='threads'){frame.removeAttribute('src');void tp.refresh();}else if(view==='support'){frame.removeAttribute('src');void support.refresh();}else frame.src='/affiliate.html?embedded=1&view='+view;panel.hidden=false;b.setAttribute('aria-expanded','true');close.focus({preventScroll:true});}
+ function open(view:View,b:HTMLButtonElement){if(!panel.hidden){if(trigger===b){finish();return;}finish(false);}if(!canOpen()||document.querySelector('dialog[open]'))return;trigger=b;title.textContent=view==='affiliate'?'Affiliate Saya':view==='commission'?'Komisi Saya':view==='threads'?'AUTOJUALAN':'Grup WhatsApp Member';frame.title=title.textContent;panel.dataset.view=view;headerIcon.hidden=view!=='support';position();clearSimpleInput();setSimpleMenu(true);window.dispatchEvent(new Event('blur'));document.body.classList.add('affiliateHudOpen');frame.hidden=view==='support'||view==='threads';support.body.hidden=view!=='support';tp.body.hidden=view!=='threads';if(view==='threads'){frame.removeAttribute('src');void tp.refresh();}else if(view==='support'){frame.removeAttribute('src');void support.refresh();}else frame.src='/affiliate.html?embedded=1&view='+view;panel.hidden=false;b.setAttribute('aria-expanded','true');close.focus({preventScroll:true});}
  network.onclick=()=>open('affiliate',network);money.onclick=()=>open('commission',money);whatsapp.onclick=()=>open('support',whatsapp);threads.onclick=()=>open('threads',threads);
  alignIcons();requestAnimationFrame(alignIcons);
  window.addEventListener('resize',()=>{alignIcons();if(!panel.hidden)position();});
