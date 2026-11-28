@@ -6,7 +6,7 @@ import {GATE_OFFICE,GATE_VIDEOTRON} from '../gateVideotronModel.ts';
 import type {Rect,Point} from './districtModel.ts';
 
 // The original landing plaza remains unchanged. These are independent district instances.
-export const DISTRICT_HQ={x:0,z:-34,w:29.6,d:7.2,height:23,scale:1.25} as const;
+export const DISTRICT_HQ={x:8,z:-34,w:29.6,d:7.2,height:23,scale:1.25} as const;
 export const DISTRICT_SHOPS=[
  {name:'KOKOSALAMA',x:-80,z:113,sourceX:-26,sourceZ:-6.4,w:8.7,d:7.1,height:4.3},
  {name:'INDOMARET',x:-69,z:113,sourceX:-16.5,sourceZ:-6.4,w:8.7,d:7.1,height:4.3},
