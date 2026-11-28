@@ -21,6 +21,19 @@ export function mountTicketAdmin(){
  type Promo={code:string;kind:'fixed'|'percent';value:number;enabled:boolean};
  type Pricing={price:number;coupons:Promo[]};
  const pricingLink=document.createElement('button');pricingLink.type='button';pricingLink.className='secondary';pricingLink.style.cssText='width:100%;margin:12px 0;text-align:left;padding:16px';pricingLink.textContent='Harga & Kode Kupon  ›';$('settings').querySelector('.payment')?.before(pricingLink);
+ const supportLink=document.createElement('button');supportLink.type='button';supportLink.className='secondary';supportLink.style.cssText=pricingLink.style.cssText;supportLink.textContent='Grup WhatsApp Member  ›';pricingLink.after(supportLink);
+ let supportGeneration=0;
+ supportLink.onclick=async()=>{
+  if(!active)return;const gen=++supportGeneration,e=epoch;popup('Grup WhatsApp Member');
+  const f=document.createElement('form');const info=paragraph('Atur link undangan grup resmi yang dibuka melalui ikon WhatsApp di gameplay member aktif.');
+  const label=document.createElement('label');label.textContent='Link undangan grup WhatsApp';
+  const input=document.createElement('input');input.type='url';input.required=true;input.placeholder='https://chat.whatsapp.com/...';input.maxLength=100;label.append(input);
+  const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Simpan Link Grup';save.disabled=true;
+  const status=paragraph('Memuat pengaturan…');status.setAttribute('role','status');const valid=()=>active&&epoch===e&&supportGeneration===gen&&dialog.open&&f.isConnected;
+  f.append(info,label,save,status,button('Tutup',close));dialog.append(f);
+  try{const config=await rpc<{url:string}>('support-group-get');if(!valid())return;input.value=config.url;save.disabled=false;status.textContent='Link aktif saat ini.';}catch(err){if(valid())status.textContent=error(err);}
+  f.onsubmit=async ev=>{ev.preventDefault();if(!valid()||save.disabled)return;const url=input.value.trim();if(!/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9]{16,64}$/.test(url)){status.textContent='Masukkan link undangan grup WhatsApp yang valid.';return;}save.disabled=true;try{const config=await rpc<{url:string}>('support-group-save',{url});if(valid()){input.value=config.url;status.textContent='Link tersimpan. Berlaku saat pemain membuka menu WhatsApp berikutnya.';}}catch(err){if(valid())status.textContent=error(err);}finally{if(valid())save.disabled=false;}};
+ };
  let pricingGeneration=0;
  async function openPricing(){
   if(!active)return;const gen=++pricingGeneration,e=epoch;popup('Harga & Kode Kupon');dialog.append(paragraph('Memuat pengaturan…'));
