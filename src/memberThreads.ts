@@ -8,7 +8,7 @@ export async function paidMember(){try{const r=await fetch('/api/registration',{
 export function threadsContent(){
  const body=document.createElement('div');body.className='memberThreadsContent';
  const intro=document.createElement('p');intro.textContent='Konten jalan. Anda tinggal berinteraksi.';
- const benefits=document.createElement('ul');for(const t of ['150 konten selama 30 hari','5 postingan per hari: teks dan gambar','Tim HAJJI.DIGITAL menjadwalkan dan memublikasikan konten melalui Repliz','Tidak perlu memberikan password']){const li=document.createElement('li');li.textContent=t;benefits.append(li);}
+ const benefits=document.createElement('ul');for(const t of ['150 konten selama 30 hari','5 postingan per hari: teks dan gambar','Tim HAJJI.DIGITAL menyiapkan dan menjadwalkan konten otomatis','Tidak perlu memberikan password']){const li=document.createElement('li');li.textContent=t;benefits.append(li);}
  const action=document.createElement('button');action.type='button';action.className='threadsPrimaryButton';action.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+threadsIcon+'</svg><span>Hubungkan Threads</span><span aria-hidden="true">→</span>';
  const disconnect=document.createElement('button');disconnect.type='button';disconnect.className='disconnect';disconnect.textContent='Putuskan koneksi';disconnect.hidden=true;
  const note=document.createElement('p');note.className='threadsNote';note.setAttribute('role','status');note.hidden=true;
@@ -30,7 +30,7 @@ export function threadsContent(){
   try{const d=await request('start',{consent:true});if(id!==gen)return;const url=new URL(d.url??'');if(url.protocol!=='https:'||!['threads.net','www.threads.net','threads.com','www.threads.com'].includes(url.hostname))throw Error('URL otorisasi tidak valid.');location.assign(url.href);}
   catch(e){if(id===gen){say(e instanceof Error?e.message:'Koneksi gagal.');busy=false;update();}}
  };
- disconnect.onclick=async()=>{if(busy||!confirm('Putuskan akses Repliz ke akun Threads ini?'))return;busy=true;disconnect.disabled=true;try{await request('disconnect',{confirm:true});await refresh();}catch(e){say(e instanceof Error?e.message:'Koneksi belum diputus.');}finally{busy=false;disconnect.disabled=false;update();}};
+ disconnect.onclick=async()=>{if(busy||!confirm('Hentikan layanan konten otomatis HAJJI.DIGITAL dan putuskan koneksi akun Threads ini?'))return;busy=true;disconnect.disabled=true;try{await request('disconnect',{confirm:true});await refresh();}catch(e){say(e instanceof Error?e.message:'Koneksi belum diputus.');}finally{busy=false;disconnect.disabled=false;update();}};
  function clear(){gen++;busy=false;processing=false;update();say('');}
  body.append(intro,benefits,action,disconnect,note);return {body,refresh,clear};
 }

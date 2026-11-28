@@ -10,9 +10,9 @@ async function rpc(secret,op,data={}){
 }
 async function repliz(path,method='GET',data){
  const access=process.env.REPLIZ_ACCESS_KEY,secret=process.env.REPLIZ_SECRET_KEY;
- if(!access||!secret)throw new Err(503,'Repliz belum dikonfigurasi.');
+ if(!access||!secret)throw new Err(503,'Koneksi Threads belum siap. Silakan hubungi tim support.');
  const r=await fetch('https://api.repliz.com/public/account'+path,{method,headers:{Authorization:'Basic '+Buffer.from(access+':'+secret).toString('base64'),'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{}),signal:AbortSignal.timeout(10000),redirect:'error'});
- if(!r.ok)throw new Err(r.status,r.status===402?'Slot atau paket Repliz belum tersedia.':'Repliz belum dapat menyelesaikan permintaan.');
+ if(!r.ok)throw new Err(r.status,r.status===402?'Kapasitas layanan Threads belum tersedia.':'Koneksi Threads belum dapat diproses.');
  return r.status===204?{}:r.json();
 }
 function callback(res){
@@ -29,7 +29,7 @@ export default async function handler(req,res){
  try{
   if(op==='status'&&!enabled())return reply(200,{enabled:false,status:'none'});
   if(op==='status'){const d=await rpc(secret,'status');let status=d.status,username=d.username;if(status==='connected'&&enabled()){try{const a=await repliz('/'+d.account_id);if(a.isConnected===false)status='disconnected';username=a.username??username;}catch(e){if(e.status===404)status='disconnected';}}return reply(200,{enabled:enabled(),status,username});}
-  if(!enabled())return reply(503,{error:'Koneksi Repliz belum dikonfigurasi. Silakan hubungi tim support.'});
+  if(!enabled())return reply(503,{error:'Koneksi Threads belum siap. Silakan hubungi tim support.'});
   if(op==='start'){if(data.consent!==true)return reply(400,{error:'Persetujuan diperlukan.'});const state=randomBytes(32).toString('hex');await rpc(secret,'start',{state,consent:true});const redirect=ORIGIN+'/api/threads?action=callback&flow='+state;const auth=await repliz('/threads/authorize?'+new URLSearchParams({redirect}));const url=new URL(auth.url);if(url.protocol!=='https:'||!['threads.net','www.threads.net','threads.com','www.threads.com'].includes(url.hostname))throw new Err(502,'URL Threads tidak valid.');return reply(200,{url:url.href});}
   if(op==='connect'){
    if(typeof data.code!=='string'||data.code.length<8||data.code.length>8000||typeof data.state!=='string'||!/^[a-f0-9]{64}$/.test(data.state))return reply(400,{error:'Otorisasi tidak valid.'});
