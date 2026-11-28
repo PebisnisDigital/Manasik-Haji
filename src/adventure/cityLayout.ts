@@ -9,10 +9,4 @@ export const CITY_ROADS:readonly Rect[]=[
  {x:-20,z:41,w:8,d:26},
  {x:-55.75,z:0,w:27.5,d:8},{x:55.75,z:24,w:27.5,d:8},
 ];
-export const DISTRICT_HQ={x:8,z:-34,w:29.6,d:7.2,height:23,scale:1.25} as const;
-export const DISTRICT_SHOPS=[
- {name:'KOKOSALAMA',x:-55,z:43,sourceX:-26,sourceZ:-6.4,w:8.7,d:7.1,height:4.3},
- {name:'INDOMARET',x:-44,z:43,sourceX:-16.5,sourceZ:-6.4,w:8.7,d:7.1,height:4.3},
- {name:'Alfamart',x:-33,z:43,sourceX:16.5,sourceZ:-6.9,w:8.9,d:7.9,height:3.8},
-] as const;
 export const SOUVENIR_POSITION={x:-55,z:-38} as const;
