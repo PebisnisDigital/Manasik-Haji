@@ -24,7 +24,7 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=2;
     const sign=mesh(new THREE.PlaneGeometry(width,width/8),new THREE.MeshBasicMaterial({map:t}),x,y,z,parent,false);sign.rotation.y=rotation;return sign;
   }
-  const ground=mesh(new THREE.PlaneGeometry(190,170),sand,0,-.04,0,scene,false);ground.rotation.x=-Math.PI/2;
+  const ground=mesh(new THREE.PlaneGeometry(missionCity?212:190,missionCity?186:170),sand,0,-.04,0,scene,false);ground.rotation.x=-Math.PI/2;
   for(const road of DISTRICT_ROADS)box(road.w,.12,road.d,asphalt,road.x,road.z===54?0:.025,road.z,scene,false);
   box(72,.16,44,pavement,0,.03,0,scene,false);
   for(const z of [-24,24]){
@@ -79,9 +79,10 @@ export function createDistrictWorld(renderer:THREE.WebGLRenderer,night=false,mis
     box(1.2,.12,.5,dark,x+.45,6.6,z);box(.9,.04,.32,mat(0xf6ddb0,.3),x+.45,6.5,z,scene,false);
   }
   for(let i=0;i<5;i++){const x=-30+i*5;const awning=box(4,.13,2.8,mat(i%2?0x667e65:0xa96e54),x,3,-36);awning.rotation.x=.14;box(3.5,1.1,1,mat(0x89735c),x,.55,-36.3);}
-  box(23,5,14,mat(missionCity?0xf0e8d9:0xc8c2b1),-22,2.5,-66);
+  // The legacy scenery mosque is outside its original transfer map; omit it from the compact member city to clear the level 8 footprint.
+  if(!missionCity){box(23,5,14,mat(0xc8c2b1),-22,2.5,-66);
   mesh(new THREE.SphereGeometry(6,24,12,0,Math.PI*2,0,Math.PI/2),mat(0x71877a,.5),-22,5,-66);
-  mesh(new THREE.CylinderGeometry(.8,1.2,19,12),stone,-37,9.5,-64);mesh(new THREE.ConeGeometry(1.4,3,12),gold,-37,20,-64);
+  mesh(new THREE.CylinderGeometry(.8,1.2,19,12),stone,-37,9.5,-64);mesh(new THREE.ConeGeometry(1.4,3,12),gold,-37,20,-64);}
   // The legacy transfer map ends at z=-57. Its mountain silhouettes at z=-98
   // intersect the expanded mission city (z=-128..128), including buildings 6–9.
   // Do not create these meshes in the mission hub at all, even before static batching.
