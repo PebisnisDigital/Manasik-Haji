@@ -1,4 +1,3 @@
-import {DISTRICT_HQ,DISTRICT_SHOPS} from './districtLandmarks.ts';
 import {SOUVENIR_NUMBER} from './citySouvenir.ts';
 import {BUILDINGS,DISTRICT_ROADS,type Point,type Rect} from './districtModel.ts';
 import {CITY_BOUNDS,CITY_ROADS} from './cityNavigation.ts';
@@ -16,8 +15,6 @@ export function mountCityMinimap(places:readonly Building[],solids:readonly Rect
  for(const road of roads)layer.append(rect(road,{fill:'#777772'}));
  for(const b of BUILDINGS)layer.append(rect(b,{fill:'#343434',stroke:'#8b8475','stroke-width':.35}));
  layer.append(rect(board,{fill:'#d6b46b'}));
- layer.append(rect(DISTRICT_HQ,{fill:'#b79a55',stroke:'#f1da9a','stroke-width':.5,rx:.5}));
- for(const shop of DISTRICT_SHOPS)layer.append(rect(shop,{fill:'#4e8574',stroke:'#b3c6af','stroke-width':.35,rx:.3}));
  const buildings=new Map<number,SVGRectElement>();
  for(const b of places){const box=rect(b,{fill:b.number===SOUVENIR_NUMBER?'#d4b56b':'#454545',stroke:'#888278','stroke-width':.45,rx:.6});buildings.set(b.number,box);layer.append(box);}
  route.setAttribute('stroke','#f5ca70');route.setAttribute('stroke-width','2.1');route.setAttribute('stroke-linecap','round');route.setAttribute('stroke-linejoin','round');route.removeAttribute('hidden');svg.append(route);
