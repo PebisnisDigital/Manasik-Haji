@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import {CSS3DObject,CSS3DRenderer} from 'three/addons/renderers/CSS3DRenderer.js';
-import {GATE_VIDEOTRON as V} from './gateVideotronModel.ts';
+import {GATE_VIDEOTRON} from './gateVideotronModel.ts';
 import {journeyVolume} from './frontSettings.ts';
 
 // Public Dropbox direct media URL. Keep native playback independent of the scene renderer.
 export const VIDEO_URL='https://www.dropbox.com/scl/fi/yzak3q9d2f3kexkpol1li/YTDown.com_YouTube_Media_dPh-wxExciE_BACAAN-TALBIYAH-HAJI-DAN-UMRAH_001_1080p.mp4?rlkey=vzq192g392p7rutypcmntt2kq&raw=1';
-export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
+type VideoPlacement={x:number;y:number;z:number;width:number;height:number;nearby?:number};
+export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement,placement?:VideoPlacement){
+ const V={...GATE_VIDEOTRON,...placement};
  const css=new CSS3DRenderer(),scene=new THREE.Scene();
  css.domElement.className='gateVideotronLayer';css.domElement.style.cssText='position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;visibility:hidden;';
  canvas.after(css.domElement);
@@ -44,6 +46,7 @@ export function mountGateVideotron(host:HTMLElement,canvas:HTMLCanvasElement){
  function draw(camera:THREE.PerspectiveCamera,enabled:boolean){
   if(disposed)return;if(!host.isConnected){dispose();return;}
   // Only the visual surface is culled. The video and audio stay alive regardless of orientation or tab focus.
+  if(placement?.nearby){const distance=Math.hypot(camera.position.x-V.x,camera.position.z-V.z);video.volume=.75*journeyVolume()*THREE.MathUtils.clamp(1-distance/placement.nearby,0,1);if(distance>placement.nearby){hideSurface();return;}}
   if(!enabled||document.hidden||camera.position.z<=V.z+.05){hideSurface();return;}
   if(!w||!h)resize();
   for(let i=0;i<corners.length;i++){
