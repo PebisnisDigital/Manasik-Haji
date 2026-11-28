@@ -146,7 +146,7 @@ function createParking(scene:THREE.Scene){
 
 
 /** Upper floors are built over the original arcade; both departure tunnels stay open. */
-export function createGrandOffice(scene:THREE.Object3D){
+export function createGrandOffice(scene:THREE.Object3D,withVideotron=true){
  const stone=material(0xf2e9d9),trim=material(0xfffaf0),emerald=material(0xe1d0aa),deep=material(0x8c7049),windowMat=material(0x42474e);
  gold.metalness=.35;
  function cylinder(parent:THREE.Object3D,rt:number,rb:number,h:number,x:number,y:number,z:number,m:THREE.Material,segments=24){
@@ -173,12 +173,12 @@ export function createGrandOffice(scene:THREE.Object3D){
  // Cornices along the sides preserve the uninterrupted central two-floor video wall.
  for(let f=0;f<=3;f++){
   const y=O.groundTop+f*O.floorHeight;
-  if(f===1){for(const side of [-1,1]){box(scene,5.75,.17,4.86,side*8.38,y,O.z,trim);box(scene,5.75,.075,4.94,side*8.38,y-.12,O.z,gold);}}
+  if(f===1&&withVideotron){for(const side of [-1,1]){box(scene,5.75,.17,4.86,side*8.38,y,O.z,trim);box(scene,5.75,.075,4.94,side*8.38,y-.12,O.z,gold);}}
   else{box(scene,O.width+.5,.18,4.86,0,y,O.z,trim);box(scene,O.width+.56,.09,4.94,0,y-.13,O.z,gold);}
  }
  for(let floor=0;floor<3;floor++){
   const y=O.groundTop+floor*O.floorHeight+1.49;
-  for(const x of [-9,-6.7,6.7,9]){
+  for(const x of (!withVideotron&&floor<2?[-9,-6.7,-3.4,0,3.4,6.7,9]:[-9,-6.7,6.7,9])){
    box(scene,1.50,1.68,.08,x,y,front+.06,deep);
    const arch=new THREE.Mesh(new THREE.CircleGeometry(.75,24,0,Math.PI),deep);arch.position.set(x,y+.83,front+.115);scene.add(arch);
    const frame=new THREE.Mesh(new THREE.TorusGeometry(.75,.060,7,24,Math.PI),gold);frame.position.set(x,y+.83,front+.17);scene.add(frame);
@@ -187,8 +187,10 @@ export function createGrandOffice(scene:THREE.Object3D){
   }
  }
  // Actual 16:9 screen with gold frame; dark panel remains when YouTube cannot be displayed.
+ if(withVideotron){
  const frame=box(scene,V.width+.38,V.height+.38,.19,V.x,V.y,V.z-.17,gold);frame.name='hajji-videotron-frame';
  const screen=box(scene,V.width,V.height,.065,V.x,V.y,V.z-.075,new THREE.MeshBasicMaterial({color:0x101b1d}));screen.name='hajji-videotron-screen';
+ }
  sign(scene,'HAJJI.DIGITAL','PUSAT PENGARAHAN & PENDAFTARAN',0,roof-1.55,front+.22,10.6,2.10);
  const emblemTex=new THREE.TextureLoader().load('./pwa-icon.svg');emblemTex.colorSpace=THREE.SRGBColorSpace;
  const emblem=new THREE.Mesh(new THREE.PlaneGeometry(1.8,1.8),new THREE.MeshBasicMaterial({map:emblemTex,transparent:true,toneMapped:false}));emblem.position.set(7.35,roof-1.55,front+.28);scene.add(emblem);
