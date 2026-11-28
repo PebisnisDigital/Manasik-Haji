@@ -43,10 +43,12 @@ export function districtSpawn(save:DistrictSave):Point {
   return save.stage>=4?{x:31,z:-6}:save.stage===3?{x:-.7,z:27.5}:{x:-20,z:15};
 }
 export const districtReward=(save:DistrictSave)=>save.stage*20;
-export const DISTRICT_SOLIDS:readonly Rect[]=[...BUILDINGS,
+// Only these shared street fixtures remain in the member city. Legacy transfer buildings are not part of the hub.
+export const DISTRICT_FURNITURE_SOLIDS:readonly Rect[]=[
   ...[[-4,-9],[0,6],[27,6],[-49,15],[-48,-13],[48,30]].map(([x,z])=>({x,z,w:2.7,d:2.7})),
   ...[[-5,3],[5,8],[27,-1],[-12,-17]].map(([x,z])=>({x,z,w:3,d:.8})),
 ];
+export const DISTRICT_SOLIDS:readonly Rect[]=[...BUILDINGS,...DISTRICT_FURNITURE_SOLIDS];
 export function canStand(x:number,z:number,obstacles:readonly Rect[]=DISTRICT_SOLIDS,radius=.4):boolean {
   const b=DISTRICT_BOUNDS;
   return x>b.minX+radius&&x<b.maxX-radius&&z>b.minZ+radius&&z<b.maxZ-radius&&!obstacles.some(o=>Math.abs(x-o.x)<o.w/2+radius&&Math.abs(z-o.z)<o.d/2+radius);
