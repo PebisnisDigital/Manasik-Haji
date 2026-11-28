@@ -227,6 +227,22 @@ body.affiliateDashboard .affiliateSetting p{margin:0}
 body.affiliateDashboard .affiliateCodeValue{font-size:15px;color:#805c22;overflow-wrap:anywhere}
 body.affiliateDashboard .affiliateLinkValue{font-size:12px;background:#fff;border:1px solid #d8ccb4;border-radius:9px;padding:9px;color:#805c22;overflow-wrap:anywhere;user-select:text}
 body.affiliateDashboard .affiliateSetting form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin:0;align-items:center}
+/* Coupon editor has five controls, not the two-item affiliate-code row.
+   Keep its inputs, parent selection, preview and action in a single full-width column. */
+body.affiliateDashboard #affiliatePromotion,
+body.affiliateDashboard #affiliateData,
+body.affiliateDashboard .affiliateSetting{min-width:0;max-width:100%}
+body.affiliateDashboard #editCoupon{display:grid;grid-template-columns:minmax(0,1fr);grid-auto-flow:row;gap:9px;align-items:stretch;width:100%;min-width:0;margin:0}
+body.affiliateDashboard #editCoupon> *{grid-column:1/-1;min-width:0;max-width:100%}
+body.affiliateDashboard #editCoupon label{margin:3px 0 0;white-space:normal;overflow-wrap:normal}
+body.affiliateDashboard #editCoupon :is(input,select){display:block;width:100%;min-width:0;min-height:40px;padding:9px 10px;border:1px solid #d8ccb4;border-radius:9px;background:#fff;color:#25211b;font:600 13px/1.4 system-ui,sans-serif}
+body.affiliateDashboard #editCoupon select{text-overflow:ellipsis}
+body.affiliateDashboard #parentCouponPreview{padding:10px;border-radius:8px;background:#f7eedb;color:#70541f;font:500 12px/1.55 system-ui,sans-serif;white-space:normal;overflow-wrap:break-word}
+body.affiliateDashboard #editCoupon>button{display:block;width:100%;min-height:40px;white-space:normal;word-break:normal;overflow-wrap:normal;text-align:center;line-height:1.4}
+body.affiliateDashboard #copyCode{width:100%;min-height:40px;word-break:normal;overflow-wrap:normal}
+body.affiliateDashboard #affiliateTerms{font:400 11px/1.5 system-ui,sans-serif;color:#776c58;overflow-wrap:break-word}
+body.affiliateDashboard #editCoupon[hidden]{display:none!important}
+
 body.affiliateDashboard .affiliateSetting form[hidden]{display:none!important}
 body.affiliateDashboard .affiliateSetting input{width:100%;min-width:0;min-height:38px;padding:8px;border:1px solid #d8ccb4;border-radius:9px;background:white;color:#25211b;font:600 13px system-ui}
 body.affiliateDashboard .affiliateSetting button{min-height:37px;padding:7px 10px;border:1px solid #d6b46b;border-radius:9px;color:#25211b;font:650 12px system-ui;box-shadow:none}
