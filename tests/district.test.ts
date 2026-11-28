@@ -157,3 +157,10 @@ describe('compact member city',()=>{
   expect(cityRoute(places[0]!.door,places[1]!.door,roads,solids)).toEqual([places[0]!.door,places[1]!.door]);
  });
 });
+
+import {followCityRoute} from '../src/adventure/cityRouteFollow.ts';
+describe('asynchronous minimap route following',()=>{
+ const route=[{x:0,z:0},{x:10,z:0},{x:10,z:10}];
+ it('reuses a route while walking and removes traversed segments',()=>{expect(followCityRoute({x:5,z:0},route).remaining).toBe(15);expect(followCityRoute({x:10,z:5},route).tail).toEqual([{x:10,z:10}]);expect(followCityRoute({x:10,z:10},route).remaining).toBe(0);});
+ it('detects deviation rather than recalculating merely because the player moved',()=>{expect(followCityRoute({x:5,z:-6},route).deviation).toBe(6);expect(followCityRoute({x:0,z:0},[]).deviation).toBe(Infinity);});
+});
